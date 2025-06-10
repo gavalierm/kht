@@ -238,7 +238,7 @@ io.on('connection', (socket) => {
     });
     
     // Send to panels (without correct answer)
-    io.emit('panel_question_started', questionData);
+    io.to(`game_${data.gamePin}_panel`).emit('panel_question_started', questionData);
     
     // Auto-end question after time limit
     setTimeout(() => {
@@ -296,18 +296,41 @@ io.on('connection', (socket) => {
   socket.on('join_panel', (data) => {
     const game = activeGames.get(data.gamePin);
     if (!game) {
-      socket.emit('panel_error', { message: 'Hra s týmto PIN kódom neexistuje' });
+      socket.emit('panel_join_error', { message: 'Hra s týmto PIN kódom neexistuje' });
       return;
     }
     
     socket.join(`game_${data.gamePin}_panel`);
     
     // Send current game state to panel
-    socket.emit('panel_game_created', {
+    socket.emit('panel_game_joined', {
       gamePin: data.gamePin,
       title: 'Kvíz',
-      questionCount: game.questions.length
+      questionCount: game.questions.length,
+      currentState: game.phase
     });
+    
+    // If question is active, send current question
+    if (game.phase === 'QUESTION_ACTIVE' && game.currentQuestion) {
+      const question = game.getCurrentQuestion();
+      const questionData = {
+        questionNumber: game.currentQuestionIndex + 1,
+        totalQuestions: game.questions.length,
+        question: question.question,
+        options: question.options,
+        timeLimit: question.timeLimit || 30,
+        serverTime: game.questionStartTime
+      };
+      socket.emit('panel_question_started', questionData);
+    }
+    
+    // Send current leaderboard if available
+    if (game.players.size > 0) {
+      const leaderboard = game.getLeaderboard();
+      socket.emit('panel_leaderboard_update', {
+        leaderboard: leaderboard.slice(0, 10)
+      });
+    }
     
     console.log(`Panel joined game ${data.gamePin}`);
   });
@@ -412,7 +435,7 @@ function endQuestion(game) {
   }
   
   // Send to panels
-  io.emit('panel_question_ended', resultsData);
+  io.to(`game_${game.gamePin}_panel`).emit('panel_question_ended', resultsData);
   
   console.log(`Question ended in game ${game.gamePin}`);
 }
@@ -435,7 +458,7 @@ function updateDashboardStats(game) {
 function updatePanelLeaderboard(game) {
   const leaderboard = game.getLeaderboard();
   
-  io.emit('panel_leaderboard_update', {
+  io.to(`game_${game.gamePin}_panel`).emit('panel_leaderboard_update', {
     leaderboard: leaderboard.slice(0, 10) // Top 10 for panel
   });
 }
