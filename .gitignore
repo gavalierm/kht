@@ -1,0 +1,15 @@
+# Node.js
+node_modules/
+.env
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# macOS metadata
+.Spotlight-V100
+.Trashes

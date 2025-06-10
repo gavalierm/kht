@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="sk">
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Kvíz Apka</title>
+	<style>
+		* {
+			margin: 0;
+			padding: 0;
+			min-width: 0;
+		}
+
+		html,
+		body {
+			margin: 0;
+			height: 100%;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			background: #47109e;
+			font-family: Arial, sans-serif;
+		}
+
+		.container {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			min-width: 300px;
+		}
+
+		.page {
+			display: none;
+		}
+
+		.page.visible {
+			display: flex;
+		}
+
+		.logo {
+			font-size: 2rem;
+			font-weight: bold;
+			margin-bottom: 25px;
+			color: white;
+		}
+
+		.pin-box {
+			padding: 30px 40px;
+			background: white;
+			border-radius: 8px;
+			box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			width: 100%;
+		}
+
+		input {
+			font-size: 1.5rem;
+			padding: 10px;
+			width: 100%;
+			box-sizing: border-box;
+			margin-bottom: 15px;
+			border: 1px solid #ccc;
+			border-radius: 4px;
+			text-align: center;
+		}
+
+		button {
+			font-size: 1.2rem;
+			padding: 10px;
+			width: 100%;
+			border: none;
+			background-color: #007BFF;
+			color: white;
+			border-radius: 4px;
+			cursor: pointer;
+		}
+
+		button:hover {
+			background-color: #0056b3;
+		}
+	</style>
+</head>
+
+<body>
+
+	<div class="page" id="login">
+		<div class="container">
+			<div class="logo">KVÍZ HRA</div>
+			<div class="pin-box">
+				<input type="tel" pattern="\d{6}" maxlength="6" inputmode="numeric" placeholder="Zadajte 6-miestny PIN" />
+				<button>Prihlásiť sa</button>
+			</div>
+		</div>
+	</div>
+	<div class="page visible" id="stage">
+		<div class="container">
+			<div>Status</div>
+			
+		</div>
+	</div>
+
+</body>
+<script src="/app/app.js"></script>
+
+</html>
