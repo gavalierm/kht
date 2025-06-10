@@ -1,4 +1,15 @@
-# 🎯 Kvíz App
+### Dashboard
+- **Live štatistiky** odpovedí
+- **Leaderboard** v reálnom čase
+- **Moderátorské ovládanie** (štart/stop otázok)
+
+### Panel View (Projektor)
+- **Veľké zobrazenie** otázok a odpovedí
+- **Automatická synchronizácia** s hrou
+- **Bez správnych odpovedí** (fair play)
+- **Optimalizované pre projektory** a veľké monitory
+- **Real-time timer** s vizuálnymi upozorneniami
+- **Live leaderboard** - priebežné poradie hráčov# 🎯 Kvíz App
 
 Interaktívna kvíz aplikácia v reálnom čase podobná Kahoot.com
 
@@ -35,6 +46,7 @@ npm start
 
 ### 3. Prístup k aplikácii
 - **Dashboard (Moderátor)**: http://localhost:3000/dashboard
+- **Panel (Projektor)**: http://localhost:3000/panel
 - **Klient (Hráči)**: http://localhost:3000
 
 ## 📱 Ako používať
@@ -45,6 +57,12 @@ npm start
 3. Zdieľaj PIN kód hráčom
 4. Spusti otázky jedna za druhou
 5. Sleduj live štatistiky a leaderboard
+
+### Pre Projektor/Veľký monitor:
+1. Otvor panel: `http://localhost:3000/panel`
+2. Automaticky zobrazí aktuálnu hru
+3. Zobrazuje otázky a odpovede pre všetkých účastníkov
+4. Bez označenia správnej odpovede (pre fair play)
 
 ### Pre Hráčov:
 1. Otvor: `http://localhost:3000` (na telefóne/počítači)
@@ -83,6 +101,28 @@ npm start
 - Responzívny design
 - Latencia kompenzácia
 - Multi-category otázky
+- **Panel view pre projektory s live leaderboard**
+
+### 📺 Panel View (Projektor)
+
+Panel view je špeciálne rozhranie určené na zobrazenie na projektore alebo veľkom monitore pred všetkými súťažiacimi.
+
+**Funkcie:**
+- 📺 **Veľké písmo** optimalizované pre projektory
+- ⏰ **Veľký timer** s vizuálnymi upozorneniami
+- 🎯 **Zobrazenie PIN kódu** pre pripájanie hráčov
+- 📋 **Otázky a odpovede** bez označenia správnej (fair play)
+- 🏆 **Live leaderboard** - priebežné poradie hráčov
+- 📊 **Výsledky po ukončení** otázky so štatistikami
+- 🎨 **Plnohodnotný design** s gradientmi a animáciami
+
+**Použitie:**
+1. Pripoj projektor/TV k počítaču
+2. Otvor: `http://localhost:3000/panel`
+3. Panel sa automaticky synchronizuje s aktuálnou hrou
+4. Zobrazuje sa v plnej obrazovke (stlač F11)
+
+**Tip:** Panel môžeš otvoriť aj pred vytvorením hry - automaticky sa pripojí k novej hre keď ju moderátor vytvorí.
 
 ## 🔧 Konfigurácia
 
@@ -147,18 +187,21 @@ server {
 ## 🎮 Game Flow
 
 ```
-Moderátor                    Hráči
-    |                          |
-    | 1. Vytvorí hru            |
-    | 2. Dostane PIN: 123456    |
-    |                          | 3. Zadajú PIN + meno
-    |                          | 4. Pripoja sa k hre
-    | 5. Spustí otázku         |
-    |                          | 6. Vidia otázku súčasne
-    |                          | 7. Odpovedajú (time bucketing)
-    | 8. Vidí live štatistiky  |
-    | 9. Zobrazí výsledky      | 10. Vidia výsledok + skóre
-    | 11. Ďalšia otázka...     |
+Moderátor                    Panel (Projektor)           Hráči
+    |                             |                        |
+    | 1. Vytvorí hru              |                        |
+    | 2. Dostane PIN: 123456      |                        |
+    |                             | 3. Zobrazí PIN + čaká  |
+    |                             |                        | 4. Zadajú PIN + meno
+    |                             |                        | 5. Pripoja sa k hre
+    | 6. Spustí otázku            |                        |
+    |                             | 7. Zobrazí otázku      | 8. Vidia otázku súčasne
+    |                             | (bez správnej odpovede)|
+    |                             |                        | 9. Odpovedajú (time bucketing)
+    | 10. Vidí live štatistiky    |                        |
+    | 11. Zobrazí výsledky        | 12. Zobrazí správnu    | 13. Vidia výsledok + skóre
+    |                             | odpoveď + štatistiky   |
+    | 14. Ďalšia otázka...        |                        |
 ```
 
 ## 🔧 Troubleshooting
