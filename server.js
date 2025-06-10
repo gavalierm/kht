@@ -309,6 +309,9 @@ io.on('connection', (socket) => {
   // Dashboard: Reconnect moderator
   socket.on('reconnect_moderator', async (data) => {
     try {
+      console.log(`Moderator reconnect attempt for game: ${data.gamePin}`);
+      console.log(`Data received:`, { gamePin: data.gamePin, hasPassword: !!data.password, hasToken: !!data.moderatorToken });
+
       // Check if moderator is already connected to prevent duplicates
       const existingModeratorInfo = socketToModerator.get(socket.id);
       if (existingModeratorInfo && existingModeratorInfo.gamePin === data.gamePin) {
@@ -319,15 +322,19 @@ io.on('connection', (socket) => {
       const gameData = await db.validateModerator(data.gamePin, data.password, data.moderatorToken);
       
       if (!gameData) {
+        console.log(`Moderator validation failed for game: ${data.gamePin}`);
         socket.emit('moderator_reconnect_error', { 
           message: 'Neplatné prihlásenie moderátora alebo hra neexistuje' 
         });
         return;
       }
 
+      console.log(`Moderator validation successful for game: ${data.gamePin}`);
+
       // Check if game exists in memory
       let game = activeGames.get(data.gamePin);
       if (!game) {
+        console.log(`Restoring game ${data.gamePin} from database`);
         // Restore game from database
         const players = await db.getGamePlayers(gameData.id);
         game = new GameInstance(data.gamePin, gameData.questions, gameData.id);
@@ -341,6 +348,7 @@ io.on('connection', (socket) => {
         });
         
         activeGames.set(data.gamePin, game);
+        console.log(`Game ${data.gamePin} restored with ${players.length} players`);
       }
       
       // Remove any existing moderator connection for this game
@@ -362,17 +370,20 @@ io.on('connection', (socket) => {
       
       // Send current state to moderator
       const players = await db.getGamePlayers(gameData.id);
+      const connectedPlayers = players.filter(p => p.connected);
+      
       socket.emit('moderator_reconnected', {
         gamePin: data.gamePin,
         title: gameData.title,
         questionCount: gameData.questions.length,
         currentQuestionIndex: gameData.current_question_index,
         status: gameData.status,
-        players: players.map(p => p.name),
-        totalPlayers: players.length
+        players: connectedPlayers.map(p => p.name),
+        totalPlayers: connectedPlayers.length,
+        moderatorToken: gameData.moderator_token
       });
       
-      console.log(`Moderator reconnected to game ${data.gamePin}`);
+      console.log(`Moderator successfully reconnected to game ${data.gamePin} with ${connectedPlayers.length} players`);
       
     } catch (error) {
       console.error('Moderator reconnect error:', error);

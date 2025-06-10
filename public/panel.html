@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kvíz Panel</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: white;
+            color: black;
+            margin: 0;
+            padding: 20px;
+            font-size: 24px;
+            line-height: 1.4;
+        }
+        
+        .panel-pin {
+            font-size: 48px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .quiz-title {
+            font-size: 36px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .question-section {
+            margin-bottom: 40px;
+        }
+        
+        .question-number {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        
+        .question-text {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+        
+        .options {
+            margin-bottom: 40px;
+        }
+        
+        .option {
+            font-size: 28px;
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 2px solid black;
+        }
+        
+        .leaderboard {
+            margin-top: 40px;
+        }
+        
+        .leaderboard h3 {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        
+        .leaderboard-item {
+            font-size: 24px;
+            margin-bottom: 10px;
+            padding: 5px;
+        }
+        
+        .timer {
+            font-size: 48px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .results {
+            margin-top: 30px;
+        }
+        
+        .correct-answer {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 3px solid black;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="panel-pin" id="panelPin">PIN: ------</div>
+    
+    <div class="quiz-title" id="quizTitle">Kvíz</div>
+    
+    <div class="timer hidden" id="timer">30</div>
+    
+    <div class="question-section" id="questionSection">
+        <div class="question-number" id="questionNumber">Čakáme na otázku...</div>
+        <div class="question-text" id="questionText"></div>
+        <div class="options" id="options"></div>
+    </div>
+    
+    <div class="results hidden" id="results">
+        <div class="correct-answer" id="correctAnswer"></div>
+    </div>
+    
+    <div class="leaderboard" id="leaderboard">
+        <h3>REBRÍČEK</h3>
+        <div id="leaderboardList">Žiadni hráči</div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="panel.js"></script>
+</body>
+</html>

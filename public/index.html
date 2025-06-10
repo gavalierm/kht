@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kvíz App</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2196F3">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Kvíz">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Login Screen -->
+        <div class="screen" id="loginScreen">
+            <div class="login-container">
+                <div class="app-logo">
+                    <h1>🎯 Kvíz</h1>
+                    <p>Interaktívny kvíz v reálnom čase</p>
+                </div>
+                
+                <div class="login-form">
+                    <div class="form-group">
+                        <label for="gamePinInput">PIN hry</label>
+                        <input type="text" id="gamePinInput" placeholder="Zadajte PIN kód" maxlength="20">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="playerNameInput">Vaše meno</label>
+                        <input type="text" id="playerNameInput" placeholder="Zadajte svoje meno" maxlength="20">
+                    </div>
+                    
+                    <button id="joinGameBtn" class="btn btn-primary">Pripojiť sa</button>
+                    
+                    <div class="error-message" id="errorMessage" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Waiting Screen -->
+        <div class="screen" id="waitingScreen" style="display: none;">
+            <div class="waiting-container">
+                <div class="waiting-header">
+                    <h2>🎮 Pripojený ako</h2>
+                    <div class="player-name" id="connectedPlayerName">MENO</div>
+                    <div class="game-pin">PIN: <span id="connectedGamePin">------</span></div>
+                </div>
+                
+                <div class="waiting-content">
+                    <div class="waiting-animation">
+                        <div class="spinner"></div>
+                    </div>
+                    <p class="waiting-text">Čakáme na začiatok otázky...</p>
+                    <div class="players-count">
+                        👥 <span id="waitingPlayersCount">0</span> hráčov pripojených
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Question Screen -->
+        <div class="screen" id="questionScreen" style="display: none;">
+            <div class="question-container">
+                <div class="question-header">
+                    <div class="question-info">
+                        <span id="questionCounter">Otázka 1/10</span>
+                        <div class="timer-circle" id="timerCircle">
+                            <span id="timeRemaining">30</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="question-content">
+                    <h2 id="questionText">Načítava sa otázka...</h2>
+                </div>
+                
+                <div class="answers-grid" id="answersGrid">
+                    <!-- Answer buttons will be populated by JavaScript -->
+                </div>
+                
+                <div class="answer-submitted" id="answerSubmitted" style="display: none;">
+                    <div class="submitted-icon">✓</div>
+                    <p>Odpoveď odoslaná!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Result Screen -->
+        <div class="screen" id="resultScreen" style="display: none;">
+            <div class="result-container">
+                <div class="result-header">
+                    <div class="result-icon" id="resultIcon">🎯</div>
+                    <h2 id="resultTitle">Výsledok</h2>
+                </div>
+                
+                <div class="result-content">
+                    <div class="correct-answer" id="correctAnswerText"></div>
+                    
+                    <div class="score-display">
+                        <div class="points-earned" id="pointsEarned">+0 bodov</div>
+                        <div class="total-score">
+                            Celkové skóre: <span id="totalScore">0</span> bodov
+                        </div>
+                        <div class="position">
+                            Pozícia: <span id="currentPosition">-</span>
+                        </div>
+                    </div>
+                    
+                    <div class="response-time">
+                        ⏱️ Čas odpovede: <span id="responseTime">0.0s</span>
+                    </div>
+                </div>
+                
+                <div class="waiting-next">
+                    <div class="spinner-small"></div>
+                    <p>Čakáme na ďalšiu otázku...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Final Results Screen -->
+        <div class="screen" id="finalScreen" style="display: none;">
+            <div class="final-container">
+                <div class="final-header">
+                    <h1>🎉 Koniec hry!</h1>
+                </div>
+                
+                <div class="final-results">
+                    <div class="final-position" id="finalPosition">
+                        <div class="position-medal" id="positionMedal">🏆</div>
+                        <div class="position-text">
+                            <div class="position-number" id="finalPositionNumber">1.</div>
+                            <div class="position-label">miesto</div>
+                        </div>
+                    </div>
+                    
+                    <div class="final-score">
+                        <div class="score-number" id="finalScore">0</div>
+                        <div class="score-label">bodov</div>
+                    </div>
+                </div>
+                
+                <div class="final-leaderboard" id="finalLeaderboardMobile">
+                    <h3>🏆 Top 5</h3>
+                    <div id="topPlayersList">
+                        <!-- Top players will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <button id="playAgainBtn" class="btn btn-primary">Hrať znovu</button>
+            </div>
+        </div>
+
+        <!-- Connection Status -->
+        <div class="connection-status" id="connectionStatus" style="display: none;">
+            <div class="connection-indicator offline">
+                <span class="status-icon">⚠️</span>
+                <span class="status-text">Pripájam sa...</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
