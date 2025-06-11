@@ -16,33 +16,52 @@
 		body {
 			margin: 0;
 			height: 100%;
+			width: 100%;
 			display: flex;
 			justify-content: center;
-			align-items: center;
 			background: #47109e;
 			font-family: Arial, sans-serif;
+			overflow: hidden;
 		}
 
-		.container {
+		.badge {
+			border-radius: 2em;
+			padding: 0.5em 1em;
+			color: white;
+			background: red;
+			font-weight: bold;
+		}
+
+		.page,
+		.phase {
+			display: none;
+			text-align: center;
+			flex: 1;
+		}
+
+		.page.visible,
+		.phase.visible {
+			display: flex;
+		}
+
+		.vertical_center,
+		.vertical_space {
 			display: flex;
 			flex-direction: column;
-			align-items: center;
-			min-width: 300px;
+			justify-content: center;
+			height: 100%;
+			width: 100%;
 		}
 
-		.page {
-			display: none;
-		}
-
-		.page.visible {
-			display: flex;
+		.vertical_space {
+			justify-content: space-between;
 		}
 
 		.logo {
 			font-size: 2rem;
 			font-weight: bold;
-			margin-bottom: 25px;
 			color: white;
+			text-wrap: balance;
 		}
 
 		.pin-box {
@@ -53,7 +72,7 @@
 			display: flex;
 			flex-direction: column;
 			align-items: center;
-			width: 100%;
+			margin: 2em;
 		}
 
 		input {
@@ -81,14 +100,158 @@
 		button:hover {
 			background-color: #0056b3;
 		}
+
+		#header {
+			padding: 2em;
+			color: white;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+
+		.phase {
+			flex: 1;
+			font-size: 2em;
+			background: white;
+			border-radius: 1em 1em 0 0;
+			color: black;
+			flex-direction: column;
+			justify-content: space-between;
+		}
+
+		.question {
+			padding: 1em;
+		}
+
+		#playground .options_container {
+			flex: 1;
+			display: flex;
+			position: relative;
+		}
+
+		#playground .options_container #timer {
+			z-index: 1;
+			flex: 1;
+			position: absolute;
+			left: 50%;
+			top: 50%;
+			transform: translate(-50%, -50%);
+			background: white;
+			font-weight: bold;
+			aspect-ratio: 1;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			width: 3em;
+			overflow: hidden;
+			border-radius: 100%;
+		}
+
+		#playground #options {
+			flex: 1;
+			display: grid;
+			grid-template-columns: repeat(2, 1fr);
+			grid-template-rows: repeat(2, 1fr);
+			gap: 0.1em;
+		}
+
+		#playground #options .option {
+			display: flex;
+			align-items: center;
+			flex-direction: column;
+			padding: 1em;
+			overflow: hidden;
+			justify-content: space-around;
+			color: white;
+		}
+
+		.option::before {
+			content: "X";
+			font-weight: bold;
+		}
+
+		.option p {
+			display: block;
+			font-size: 0.9em;
+		}
+
+		.option_a {
+			background: #d7193c;
+		}
+
+		.option_a::before {
+			content: "A";
+		}
+
+		.option_b {
+			background: #115fc5;
+		}
+
+		.option_b::before {
+			content: "B";
+		}
+
+		.option_c {
+			background: #b68501;
+		}
+
+		.option_c::before {
+			content: "C";
+		}
+
+		.option_d {
+			background: #298a0f;
+		}
+
+		.option_d::before {
+			content: "D";
+		}
+
+		#scoreboard {
+			flex: 1;
+		}
+
+		.status_icon {
+			font-size: 3em;
+			flex: 2;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background: red;
+			color: white;
+			margin: 1em 0;
+		}
+
+		.status_icon.success {
+			background: #3eac00;
+		}
+
+		.status_icon div,
+		.status_icon.success .fail {
+			display: none;
+		}
+
+		.status_icon.success .ok,
+		.status_icon.fail .fail {
+			display: block;
+		}
+
+		.debug {
+			padding: 0.25em;
+			display: flex;
+			gap: 1em;
+			background: black;
+			color: white;
+			overflow-x: scroll;
+		}
 	</style>
 </head>
 
 <body>
 
 	<div class="page" id="login">
-		<div class="container">
-			<div class="logo">KVÍZ HRA</div>
+		<div class="vertical_center">
+			<div class="logo">Zahraj si s nami kvízovú hru!</div>
 			<div class="pin-box">
 				<input type="tel" pattern="\d{6}" maxlength="6" inputmode="numeric" placeholder="Zadajte 6-miestny PIN" />
 				<button>Prihlásiť sa</button>
@@ -96,9 +259,63 @@
 		</div>
 	</div>
 	<div class="page visible" id="stage">
-		<div class="container">
-			<div>Status</div>
-			
+		<div class="vertical_space">
+			<div id="header">
+				<h1>#kod</h1>
+				<span class="badge status">{Hra sa skončila}</span>
+			</div>
+			<div class="phase visible" id="playground">
+				<p class="question">
+					{Ake je hlavne mesto Slovenska}
+				</p>
+				<div class="options_container">
+					<div id="timer">30</div>
+					<div id="options">
+						<div class="option option_a">
+							<p>{Bratislava}</p>
+						</div>
+						<div class="option option_b">
+							<p>{Presov}</p>
+						</div>
+						<div class="option option_c">
+							<p>{Poprad}</p>
+						</div>
+						<div class="option option_d">
+							<p>{Mengusovce}</p>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="phase" id="scoreboard">
+				<p class="question">
+					{Ake je hlavne mesto Slovenska}
+				</p>
+				<div>
+					<span style="font-size: 0.6em;">Správna odpoveď:</span>
+					<p class="answer">
+						{Bratislava}
+					</p>
+				</div>
+
+				<div class="status_icon fail">
+					<div class="ok">👍</div>
+					<div class="fail">👎</div>
+				</div>
+				<p class="player_time">
+					{0.4s}
+				</p>
+				<p class="player_position">
+					{1. miesto}
+				</p>
+			</div>
+			<div class="debug" id="debug">
+				<div class="dbox">
+					<span>ID: </span><span id="player_id">{hash}</span>
+				</div>
+				<div class="dbox">
+					<span>Latency: </span><span id="player_id">{10ms}</span>
+				</div>
+			</div>
 		</div>
 	</div>
 
