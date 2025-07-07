@@ -4,7 +4,7 @@ import { defaultNotificationManager } from '../shared/notifications.js';
 import { defaultGameState } from '../shared/gameState.js';
 import { defaultRouter } from '../shared/router.js';
 import { defaultDOMHelper } from '../shared/dom.js';
-import { SOCKET_EVENTS, GAME_STATES, ANSWER_OPTIONS, ANSWER_OPTION_CLASSES, ELEMENT_IDS, UI_CONSTANTS } from '../constants.js';
+import { SOCKET_EVENTS, GAME_STATES, ANSWER_OPTIONS, ANSWER_OPTION_CLASSES, ELEMENT_IDS, UI_CONSTANTS } from '../shared/constants.js';
 
 class App {
 	constructor() {

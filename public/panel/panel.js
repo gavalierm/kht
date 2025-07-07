@@ -2,7 +2,7 @@ import { defaultSocketManager } from '../shared/socket.js';
 import { defaultNotificationManager } from '../shared/notifications.js';
 import { defaultRouter } from '../shared/router.js';
 import { defaultDOMHelper } from '../shared/dom.js';
-import { SOCKET_EVENTS, GAME_STATES, ELEMENT_IDS, CSS_CLASSES, DEFAULTS } from '../constants.js';
+import { SOCKET_EVENTS, GAME_STATES, ELEMENT_IDS, CSS_CLASSES, DEFAULTS } from '../shared/constants.js';
 
 class PanelApp {
 	constructor() {
