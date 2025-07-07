@@ -231,6 +231,18 @@ class GameDatabase {
   // Add player without name
   async addPlayer(gameId) {
     return new Promise((resolve, reject) => {
+      // Validate inputs
+      if (!gameId) {
+        reject(new Error('Game ID is required'));
+        return;
+      }
+
+      // Check database connection
+      if (!this.db) {
+        reject(new Error('Database connection not available'));
+        return;
+      }
+
       // Generate player token
       const playerToken = this.generateToken();
       
@@ -240,16 +252,27 @@ class GameDatabase {
         VALUES (?, ?, ?)
       `;
 
-      this.db.run(sql, [gameId, 'Player', playerToken], function(err) {
+      // Store database reference to avoid context issues
+      const db = this.db;
+      
+      db.run(sql, [gameId, 'Player', playerToken], function(err) {
         if (err) {
-          reject(err);
+          console.error('Error inserting player:', err);
+          reject(new Error(`Failed to create player: ${err.message}`));
         } else {
           const playerId = this.lastID;
-          // Update name to include ID
+          
+          if (!playerId) {
+            reject(new Error('Failed to get player ID after insertion'));
+            return;
+          }
+          
+          // Update name to include ID using stored database reference
           const updateSql = `UPDATE players SET name = ? WHERE id = ?`;
-          this.db.run(updateSql, [`Player ${playerId}`, playerId], (updateErr) => {
+          db.run(updateSql, [`Player ${playerId}`, playerId], (updateErr) => {
             if (updateErr) {
-              reject(updateErr);
+              console.error('Error updating player name:', updateErr);
+              reject(new Error(`Failed to update player name: ${updateErr.message}`));
             } else {
               resolve({
                 playerId: playerId,
@@ -410,7 +433,10 @@ class GameDatabase {
   }
 
   close() {
-    this.db.close();
+    if (this.db) {
+      this.db.close();
+      this.db = null;
+    }
   }
 }
 
