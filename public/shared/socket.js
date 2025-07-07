@@ -129,17 +129,23 @@ export class SocketManager {
 	setupLatencyMeasurement(latencyDisplay) {
 		if (!latencyDisplay) return;
 
+		let currentLatency = 0;
+
 		// Listen for latency ping from server
 		this.on('latency_ping', (timestamp) => {
+			const clientTimestamp = Date.now();
 			this.emit('latency_pong', timestamp);
+			
+			// Calculate round-trip latency
+			// Note: This is a simplified client-side calculation
+			// The server also calculates latency for game logic
+			currentLatency = Math.round((clientTimestamp - timestamp) / 2);
 		});
 
 		// Update latency display every second
 		setInterval(() => {
 			if (this.connected()) {
-				// Simplified latency calculation for now
-				const latency = Math.round(performance.now() % 100);
-				latencyDisplay.textContent = `${latency}ms`;
+				latencyDisplay.textContent = `${currentLatency}ms`;
 			} else {
 				latencyDisplay.textContent = '0ms';
 			}
