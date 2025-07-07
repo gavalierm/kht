@@ -21,6 +21,16 @@ Runs server.js directly with Node.js.
 npm install
 ```
 
+### Testing Commands
+```bash
+npm test                    # Run all tests (67 tests)
+npm run test:unit          # Run unit tests (42 tests)
+npm run test:integration   # Run integration tests (16 tests) 
+npm run test:e2e          # Run E2E tests (19 tests)
+npm run test:watch        # Watch mode for development
+npm run test:coverage     # Generate coverage report
+```
+
 ## Architecture Overview
 
 This is a real-time multiplayer quiz application built with Node.js, Express, Socket.io, and SQLite. The application has three main interfaces:
