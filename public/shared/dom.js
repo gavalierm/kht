@@ -59,8 +59,10 @@ export class DOMHelper {
 	 */
 	addEventListener(element, event, handler, options = {}) {
 		const el = typeof element === 'string' ? this.getElementById(element) : element;
-		if (el) {
+		if (el && typeof el.addEventListener === 'function') {
 			el.addEventListener(event, handler, options);
+		} else if (!el) {
+			console.warn(`DOM Helper: Element not found for addEventListener: ${element}`);
 		}
 	}
 
@@ -72,8 +74,10 @@ export class DOMHelper {
 	 */
 	removeEventListener(element, event, handler) {
 		const el = typeof element === 'string' ? this.getElementById(element) : element;
-		if (el) {
+		if (el && typeof el.removeEventListener === 'function') {
 			el.removeEventListener(event, handler);
+		} else if (!el) {
+			console.warn(`DOM Helper: Element not found for removeEventListener: ${element}`);
 		}
 	}
 
@@ -84,8 +88,10 @@ export class DOMHelper {
 	 */
 	setText(element, text) {
 		const el = typeof element === 'string' ? this.getElementById(element) : element;
-		if (el) {
+		if (el && typeof el.textContent !== 'undefined') {
 			el.textContent = text;
+		} else if (!el) {
+			console.warn(`DOM Helper: Element not found for setText: ${element}`);
 		}
 	}
 
@@ -96,8 +102,10 @@ export class DOMHelper {
 	 */
 	setHTML(element, html) {
 		const el = typeof element === 'string' ? this.getElementById(element) : element;
-		if (el) {
+		if (el && typeof el.innerHTML !== 'undefined') {
 			el.innerHTML = html;
+		} else if (!el) {
+			console.warn(`DOM Helper: Element not found for setHTML: ${element}`);
 		}
 	}
 
