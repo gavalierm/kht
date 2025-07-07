@@ -433,7 +433,10 @@ class GameDatabase {
   }
 
   close() {
-    this.db.close();
+    if (this.db) {
+      this.db.close();
+      this.db = null;
+    }
   }
 }
 
