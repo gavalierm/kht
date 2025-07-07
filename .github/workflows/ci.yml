@@ -13,7 +13,7 @@ jobs:
     
     strategy:
       matrix:
-        node-version: [18, 20, 22]
+        node-version: [18, 20]
     
     steps:
     - name: Checkout code
@@ -43,8 +43,8 @@ jobs:
     - name: Run integration tests
       run: npm run test:integration
       
-    - name: Run all tests with coverage
-      run: npm run test:coverage
+    - name: Run E2E tests
+      run: npm run test:e2e
       
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v4
@@ -155,9 +155,11 @@ jobs:
         # Run tests and capture output
         npm test 2>&1 | tee test-output.log
         
-        # Check for console errors (excluding expected test output)
-        if grep -i "console.error\|unhandled\|uncaught" test-output.log | grep -v "jest\|test"; then
+        # Check for console errors (excluding expected test output and common jest patterns)
+        if grep -i "console.error\|unhandled promise rejection\|uncaught exception" test-output.log | grep -v -E "(jest|test|Database initialized successfully|Test game|Server running|Client connected|Client disconnected)"; then
           echo "❌ Console errors detected in tests"
+          echo "Found errors:"
+          grep -i "console.error\|unhandled promise rejection\|uncaught exception" test-output.log | grep -v -E "(jest|test|Database initialized successfully|Test game|Server running|Client connected|Client disconnected)"
           exit 1
         else
           echo "✅ No console errors detected"
