@@ -21,7 +21,7 @@ const db = new GameDatabase();
 app.use(express.json());
 
 // Static files for each app
-app.use('/app', express.static(path.join(__dirname, 'public/app')));
+app.use('/app', express.static(path.join(__dirname, 'public/game')));
 app.use('/dashboard', express.static(path.join(__dirname, 'public/dashboard')));
 app.use('/panel', express.static(path.join(__dirname, 'public/panel')));
 app.use('/shared', express.static(path.join(__dirname, 'public/shared')));
@@ -213,16 +213,16 @@ app.get('/', (req, res) => {
 
 // Player app routes (SPA)
 app.get('/app', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/app/app.html'));
+  res.sendFile(path.join(__dirname, 'public/game/game.html'));
 });
 
 app.get('/app/:pin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/app/app.html'));
+  res.sendFile(path.join(__dirname, 'public/game/game.html'));
 });
 
 // App game page (after joining with PIN)
 app.get('/app/:pin/game', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/app/app.html'));
+  res.sendFile(path.join(__dirname, 'public/game/game.html'));
 });
 
 // App panel page (fullscreen display for venues)

@@ -10,6 +10,7 @@
 			margin: 0;
 			padding: 0;
 			min-width: 0;
+			box-sizing: border-box;
 		}
 
 		html,
@@ -28,7 +29,7 @@
 			border-radius: 2em;
 			padding: 0.5em 1em;
 			color: white;
-			background: red;
+			background: #666;
 			font-weight: bold;
 		}
 
@@ -62,6 +63,7 @@
 			font-weight: bold;
 			color: white;
 			text-wrap: balance;
+			margin-bottom: 2rem;
 		}
 
 		.pin-box {
@@ -95,10 +97,16 @@
 			color: white;
 			border-radius: 4px;
 			cursor: pointer;
+			transition: background-color 0.2s;
 		}
 
-		button:hover {
+		button:hover:not(:disabled) {
 			background-color: #0056b3;
+		}
+
+		button:disabled {
+			background-color: #ccc;
+			cursor: not-allowed;
 		}
 
 		#header {
@@ -121,6 +129,8 @@
 
 		.question {
 			padding: 1em;
+			font-size: 1.2em;
+			font-weight: bold;
 		}
 
 		#playground .options_container {
@@ -145,6 +155,8 @@
 			width: 3em;
 			overflow: hidden;
 			border-radius: 100%;
+			box-shadow: 0 0 20px rgba(0,0,0,0.3);
+			font-size: 1.5em;
 		}
 
 		#playground #options {
@@ -163,11 +175,22 @@
 			overflow: hidden;
 			justify-content: space-around;
 			color: white;
+			cursor: pointer;
+			transition: opacity 0.2s, transform 0.1s;
+		}
+
+		.option:active:not([style*="pointer-events: none"]) {
+			transform: scale(0.95);
+		}
+
+		.option[style*="cursor: not-allowed"]:hover {
+			transform: none;
 		}
 
 		.option::before {
 			content: "X";
 			font-weight: bold;
+			font-size: 1.5em;
 		}
 
 		.option p {
@@ -243,97 +266,37 @@
 			background: black;
 			color: white;
 			overflow-x: scroll;
+			font-size: 0.8em;
 		}
-	</style>
-</head>
 
-<body>
-
-	<div class="page" id="login">
-		<div class="vertical_center">
-			<div class="logo">Zahraj si s nami kvízovú hru!</div>
-			<div class="pin-box">
-				<input id="gamePinInput" type="tel" pattern="\d{6}" maxlength="6" inputmode="numeric" placeholder="Zadajte 6-miestny PIN" />
-				<button id="joinGameBtn">Prihlásiť sa</button>
-			</div>
-		</div>
-	</div>
-	<div class="page" id="game">
-		<div class="vertical_space">
-			<div id="header">
-				<h1>#kod</h1>
-				<span class="badge status">{Hra sa skončila}</span>
-			</div>
-			<div class="phase visible" id="playground">
-				<p class="question">
-					{Ake je hlavne mesto Slovenska}
-				</p>
-				<div class="options_container">
-					<div id="timer">30</div>
-					<div id="options">
-						<div class="option option_a">
-							<p>{Bratislava}</p>
-						</div>
-						<div class="option option_b">
-							<p>{Presov}</p>
-						</div>
-						<div class="option option_c">
-							<p>{Poprad}</p>
-						</div>
-						<div class="option option_d">
-							<p>{Mengusovce}</p>
-						</div>
-					</div>
-				</div>
-			</div>
-			<div class="phase" id="scoreboard">
-				<p class="question">
-					{Ake je hlavne mesto Slovenska}
-				</p>
-				<div>
-					<span style="font-size: 0.6em;">Správna odpoveď:</span>
-					<p class="answer">
-						{Bratislava}
-					</p>
-				</div>
-
-				<div class="status_icon fail">
-					<div class="ok">👍</div>
-					<div class="fail">👎</div>
-				</div>
-				<p class="player_time">
-					{0.4s}
-				</p>
-				<p class="player_position">
-					{1. miesto}
-				</p>
-			</div>
-			<div class="debug" id="debug">
-				<div class="dbox">
-					<span>ID: </span><span id="player_id">{hash}</span>
-				</div>
-				<div class="dbox">
-					<span>Latency: </span><span id="player_id">{10ms}</span>
-				</div>
-			</div>
-		</div>
-	</div>
-	<style>
 		#messageBox {
 			position: absolute;
 			top: 1em;
 			display: flex;
 			gap: 0.25em;
 			flex-direction: column;
+			pointer-events: none;
 		}
 
 		#messageBox div {
-			font-size: 1.7em;
+			font-size: 1.2em;
 			padding: 0.5em 1em;
 			background: white;
 			color: black;
 			border-radius: 2em;
 			text-align: center;
+			animation: slideIn 0.3s ease-out;
+		}
+
+		@keyframes slideIn {
+			from {
+				transform: translateY(-20px);
+				opacity: 0;
+			}
+			to {
+				transform: translateY(0);
+				opacity: 1;
+			}
 		}
 
 		#messageBox div.error {
@@ -355,10 +318,117 @@
 			background: orange;
 			color: white;
 		}
+
+		/* Responsive adjustments */
+		@media (max-width: 600px) {
+			.logo {
+				font-size: 1.5rem;
+			}
+			
+			.pin-box {
+				padding: 20px;
+				margin: 1em;
+			}
+			
+			input {
+				font-size: 1em;
+				padding: 0.8em 1.2em;
+			}
+			
+			.phase {
+				font-size: 1.5em;
+			}
+			
+			.question {
+				font-size: 1em;
+			}
+			
+			.option p {
+				font-size: 0.8em;
+			}
+		}
 	</style>
+</head>
+
+<body>
+
+	<div class="page visible" id="login">
+		<div class="vertical_center">
+			<div class="logo">Zahraj si s nami kvízovú hru!</div>
+			<div class="pin-box">
+				<input id="gamePinInput" type="tel" pattern="\d{6}" maxlength="6" inputmode="numeric" placeholder="Zadajte 6-miestny PIN" />
+				<button id="joinGameBtn">Pripojiť sa</button>
+			</div>
+		</div>
+	</div>
+	
+	<div class="page" id="game">
+		<div class="vertical_space">
+			<div id="header">
+				<h1 id="gameCode">#kod</h1>
+				<span class="badge status" id="gameStatus">Hráč</span>
+			</div>
+			
+			<div class="phase visible" id="playground">
+				<p class="question" id="questionText">
+					Čakám na otázku...
+				</p>
+				<div class="options_container">
+					<div id="timer">-</div>
+					<div id="options">
+						<div class="option option_a">
+							<p>-</p>
+						</div>
+						<div class="option option_b">
+							<p>-</p>
+						</div>
+						<div class="option option_c">
+							<p>-</p>
+						</div>
+						<div class="option option_d">
+							<p>-</p>
+						</div>
+					</div>
+				</div>
+			</div>
+			
+			<div class="phase" id="scoreboard">
+				<p class="question" id="questionText2">
+					Správna odpoveď
+				</p>
+				<div>
+					<span style="font-size: 0.6em;">Správna odpoveď:</span>
+					<p class="answer" id="answerText">
+						-
+					</p>
+				</div>
+
+				<div class="status_icon fail" id="statusIcon">
+					<div class="ok">👍</div>
+					<div class="fail">👎</div>
+				</div>
+				<p class="player_time" id="playerTime">
+					-
+				</p>
+				<p class="player_position" id="playerPosition">
+					-
+				</p>
+			</div>
+			
+			<div class="debug" id="debug">
+				<div class="dbox">
+					<span>ID: </span><span id="player_id">-</span>
+				</div>
+				<div class="dbox">
+					<span>Latency: </span><span id="latencyDisplay">0ms</span>
+				</div>
+			</div>
+		</div>
+	</div>
+	
 	<div id="messageBox"></div>
 </body>
 <script src="/socket.io/socket.io.js"></script>
-<script src="/app/app.js"></script>
+<script type="module" src="/app/game.js"></script>
 
 </html>
