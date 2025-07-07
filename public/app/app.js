@@ -95,7 +95,7 @@ class App {
 			localStorage.setItem(`game_${this.gamePin}_id`, this.playerId);
 			
 			this.showSuccess(`Pripojené ako Hráč ${data.playerId}`);
-			this.redirectTo(`/app/${this.gamePin}/stage`);
+			this.redirectTo(`/app/${this.gamePin}/game`);
 			this.updateGameHeader();
 		});
 
@@ -110,7 +110,7 @@ class App {
 		this.socket.on('player_reconnected', (data) => {
 			this.playerId = data.playerId;
 			this.showSuccess('Úspešne pripojené späť');
-			this.redirectTo(`/app/${this.gamePin}/stage`);
+			this.redirectTo(`/app/${this.gamePin}/game`);
 			this.updateGameHeader();
 			
 			if (data.gameStatus === 'QUESTION_ACTIVE') {
@@ -207,9 +207,9 @@ class App {
 			el.classList.remove('visible');
 		});
 
-		if (path.startsWith('/app/') && path.includes('/stage')) {
-			// Show stage page
-			document.querySelector('#stage.page')?.classList.add('visible');
+		if (path.startsWith('/app/') && path.includes('/game')) {
+			// Show game page
+			document.querySelector('#game.page')?.classList.add('visible');
 			// Show playground by default
 			this.elements.playground?.classList.add('visible');
 		} else {

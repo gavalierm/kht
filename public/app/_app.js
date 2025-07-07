@@ -55,8 +55,8 @@ class App {
 				document.querySelector('#login.page')?.classList.add('visible');
 				break;
 
-			case '/stage':
-				document.querySelector('#stage.page')?.classList.add('visible');
+			case '/game':
+				document.querySelector('#game.page')?.classList.add('visible');
 				break;
 
 			default:

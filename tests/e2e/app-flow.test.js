@@ -134,7 +134,7 @@ describe('End-to-End Application Flow', () => {
       
       // Check for app-specific elements
       expect(html).toContain('id="login"');
-      expect(html).toContain('id="stage"');
+      expect(html).toContain('id="game"');
       expect(html).toContain('id="gamePinInput"');
       expect(html).toContain('id="joinGameBtn"');
     });
@@ -240,8 +240,8 @@ describe('End-to-End Application Flow', () => {
       // Login page should be visible by default
       expect(html).toMatch(/class="page[^"]*visible"[^>]*id="login"/);
       
-      // Stage page should not be visible initially
-      expect(html).not.toMatch(/class="page[^"]*visible"[^>]*id="stage"/);
+      // Game page should not be visible initially
+      expect(html).not.toMatch(/class="page[^"]*visible"[^>]*id="game"/);
     });
 
     test('should have proper game elements structure', async () => {
