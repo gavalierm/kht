@@ -219,6 +219,11 @@ app.get('/app/:pin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/app/app.html'));
 });
 
+// App game page (after joining with PIN)
+app.get('/app/:pin/game', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/app/app.html'));
+});
+
 // Dashboard routes
 app.get('/dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/dashboard/dashboard.html'));

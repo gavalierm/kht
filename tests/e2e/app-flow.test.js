@@ -29,6 +29,10 @@ describe('End-to-End Application Flow', () => {
       res.sendFile(path.join(__dirname, '../../public/app/app.html'));
     });
     
+    app.get('/app/:pin/game', (req, res) => {
+      res.sendFile(path.join(__dirname, '../../public/app/app.html'));
+    });
+    
     // Mock API endpoint
     app.get('/api/game/:pin', (req, res) => {
       const pin = req.params.pin;
@@ -86,6 +90,16 @@ describe('End-to-End Application Flow', () => {
       
       const html = await response.text();
       expect(html).toContain('Zahraj si s nami kvízovú hru!');
+    });
+
+    test('should serve app with PIN and game suffix', async () => {
+      const response = await fetch(`http://localhost:${port}/app/123456/game`);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toContain('text/html');
+      
+      const html = await response.text();
+      expect(html).toContain('Zahraj si s nami kvízovú hru!');
+      expect(html).toContain('id="game"');
     });
 
     test('should handle favicon requests', async () => {
