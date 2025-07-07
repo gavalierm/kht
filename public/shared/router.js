@@ -104,9 +104,22 @@ export class Router {
 	 * @param {string} pageId - Page ID to show
 	 */
 	showPage(pageId) {
-		const page = document.querySelector(`#${pageId}.page`);
-		if (page) {
-			page.classList.add('visible');
+		if (!pageId || typeof pageId !== 'string') {
+			console.warn('Router: Invalid pageId provided to showPage:', pageId);
+			return;
+		}
+
+		try {
+			const page = document.querySelector(`#${pageId}.page`);
+			if (page && page.classList) {
+				page.classList.add('visible');
+			} else {
+				console.warn(`Router: Page element not found: #${pageId}.page`);
+				// Fallback: try to show a default page or handle gracefully
+				this.handleMissingPage(pageId);
+			}
+		} catch (error) {
+			console.error(`Router: Error showing page ${pageId}:`, error);
 		}
 	}
 
@@ -115,9 +128,50 @@ export class Router {
 	 * @param {string} phaseId - Phase ID to show
 	 */
 	showPhase(phaseId) {
-		const phase = document.querySelector(`#${phaseId}.phase`);
-		if (phase) {
-			phase.classList.add('visible');
+		if (!phaseId || typeof phaseId !== 'string') {
+			console.warn('Router: Invalid phaseId provided to showPhase:', phaseId);
+			return;
+		}
+
+		try {
+			const phase = document.querySelector(`#${phaseId}.phase`);
+			if (phase && phase.classList) {
+				phase.classList.add('visible');
+			} else {
+				console.warn(`Router: Phase element not found: #${phaseId}.phase`);
+				// Fallback: try to show a default phase or handle gracefully
+				this.handleMissingPhase(phaseId);
+			}
+		} catch (error) {
+			console.error(`Router: Error showing phase ${phaseId}:`, error);
+		}
+	}
+
+	/**
+	 * Handle missing page elements gracefully
+	 * @param {string} pageId - The missing page ID
+	 */
+	handleMissingPage(pageId) {
+		// Try to show a fallback page (login/default)
+		const fallbackPage = document.querySelector('#login.page') || 
+							 document.querySelector('.page:first-child');
+		if (fallbackPage && fallbackPage.classList) {
+			console.warn(`Router: Showing fallback page instead of missing ${pageId}`);
+			fallbackPage.classList.add('visible');
+		}
+	}
+
+	/**
+	 * Handle missing phase elements gracefully
+	 * @param {string} phaseId - The missing phase ID
+	 */
+	handleMissingPhase(phaseId) {
+		// Try to show a fallback phase (playground/default)
+		const fallbackPhase = document.querySelector('#playground.phase') || 
+							  document.querySelector('.phase:first-child');
+		if (fallbackPhase && fallbackPhase.classList) {
+			console.warn(`Router: Showing fallback phase instead of missing ${phaseId}`);
+			fallbackPhase.classList.add('visible');
 		}
 	}
 

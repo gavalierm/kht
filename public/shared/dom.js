@@ -96,16 +96,53 @@ export class DOMHelper {
 	}
 
 	/**
-	 * Set element HTML content
+	 * Set element HTML content (with XSS protection)
 	 * @param {string|HTMLElement} element - Element ID or element
 	 * @param {string} html - HTML content
 	 */
 	setHTML(element, html) {
 		const el = typeof element === 'string' ? this.getElementById(element) : element;
 		if (el && typeof el.innerHTML !== 'undefined') {
-			el.innerHTML = html;
+			// Sanitize HTML to prevent XSS attacks
+			const sanitizedHTML = this.sanitizeHTML(html);
+			el.innerHTML = sanitizedHTML;
 		} else if (!el) {
 			console.warn(`DOM Helper: Element not found for setHTML: ${element}`);
+		}
+	}
+
+	/**
+	 * Basic HTML sanitization to prevent XSS attacks
+	 * @param {string} html - HTML string to sanitize
+	 * @returns {string} Sanitized HTML
+	 */
+	sanitizeHTML(html) {
+		if (typeof html !== 'string') {
+			console.warn('DOM Helper: HTML content must be a string');
+			return '';
+		}
+
+		// Create a temporary element to parse HTML
+		const temp = document.createElement('div');
+		temp.textContent = html; // This escapes all HTML tags
+		
+		// For cases where we need to allow some safe HTML, we can expand this
+		// For now, we escape everything to prevent XSS
+		return temp.innerHTML;
+	}
+
+	/**
+	 * Set element HTML content with explicit trust (use with caution)
+	 * @param {string|HTMLElement} element - Element ID or element
+	 * @param {string} html - Trusted HTML content
+	 */
+	setTrustedHTML(element, html) {
+		const el = typeof element === 'string' ? this.getElementById(element) : element;
+		if (el && typeof el.innerHTML !== 'undefined') {
+			console.warn('DOM Helper: Using setTrustedHTML - ensure content is safe!');
+			el.innerHTML = html;
+		} else if (!el) {
+			console.warn(`DOM Helper: Element not found for setTrustedHTML: ${element}`);
 		}
 	}
 
