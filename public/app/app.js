@@ -1,66 +1,66 @@
+import { GameAPI } from '../lib/api.js';
+import { defaultSocketManager } from '../lib/socket.js';
+import { defaultNotificationManager } from '../lib/notifications.js';
+import { defaultGameState } from '../lib/game.js';
+import { defaultRouter } from '../lib/router.js';
+import { defaultDOMHelper } from '../lib/dom.js';
+import { SOCKET_EVENTS, GAME_STATES, ANSWER_OPTIONS, ANSWER_OPTION_CLASSES, ELEMENT_IDS, UI_CONSTANTS } from '../constants.js';
+
 class App {
 	constructor() {
-		this.socket = io();
-
-		this.gamePin = null;
-		this.currentGame = null;
-		this.currentQuestion = null;
-		this.hasAnswered = false;
+		// Initialize managers
+		this.socket = defaultSocketManager.connect();
+		this.notifications = defaultNotificationManager;
+		this.gameState = defaultGameState;
+		this.router = defaultRouter;
+		this.dom = defaultDOMHelper;
+		
+		// Timer intervals
 		this.timerInterval = null;
 		this.latencyInterval = null;
-		this.playerToken = localStorage.getItem('playerToken');
-		this.playerId = null;
-		this.isWaiting = true; // Track waiting state
-
-		this.messageBox = null;
 		
 		// Element references
 		this.elements = {};
         
+		this.init();
+	}
+
+	init() {
 		this.bindEvents();
 		this.setupSocketEvents();
-		this.startLatencyMeasurement();
-		
-		// Check route on load
-		const path = window.location.pathname;
-		if (path.startsWith('/app/') && path.length > 5) {
-			this.gamePin = path.split('/')[2];
-			this.checkForSavedSession();
-		} else {
-			this.redirectToLogin();
-		}
+		this.setupLatencyMeasurement();
+		this.checkInitialRoute();
 	}
 
 	bindEvents() {
 		// Cache elements
-		this.elements = {
-			joinGameBtn: document.getElementById("joinGameBtn"),
-			gamePinInput: document.getElementById("gamePinInput"),
-			header: document.getElementById("header"),
-			gameCode: document.getElementById("gameCode"),
-			gameStatus: document.getElementById("gameStatus"),
-			questionText: document.getElementById("questionText"),
-			timer: document.getElementById("timer"),
-			options: document.getElementById("options"),
-			playground: document.getElementById("playground"),
-			scoreboard: document.getElementById("scoreboard"),
-			answerText: document.getElementById("answerText"),
-			statusIcon: document.getElementById("statusIcon"),
-			playerTime: document.getElementById("playerTime"),
-			playerPosition: document.getElementById("playerPosition"),
-			latencyDisplay: document.getElementById("latencyDisplay"),
-			playerIdDisplay: document.getElementById("player_id")
-		};
+		this.elements = this.dom.cacheElements([
+			ELEMENT_IDS.JOIN_GAME_BTN,
+			ELEMENT_IDS.GAME_PIN_INPUT,
+			ELEMENT_IDS.HEADER,
+			ELEMENT_IDS.GAME_CODE,
+			ELEMENT_IDS.GAME_STATUS,
+			ELEMENT_IDS.QUESTION_TEXT,
+			ELEMENT_IDS.TIMER,
+			ELEMENT_IDS.OPTIONS,
+			ELEMENT_IDS.PLAYGROUND,
+			ELEMENT_IDS.SCOREBOARD,
+			ELEMENT_IDS.ANSWER_TEXT,
+			ELEMENT_IDS.STATUS_ICON,
+			ELEMENT_IDS.PLAYER_TIME,
+			ELEMENT_IDS.PLAYER_POSITION,
+			ELEMENT_IDS.LATENCY_DISPLAY,
+			ELEMENT_IDS.PLAYER_ID_DISPLAY
+		]);
 
 		// Event listeners
-		this.elements.joinGameBtn?.addEventListener('click', () => this.joinGame());
+		this.dom.addEventListener(this.elements.joinGameBtn, 'click', () => this.joinGame());
 		
 		// Handle option clicks
-		this.elements.options?.addEventListener('click', (e) => {
+		this.dom.addEventListener(this.elements.options, 'click', (e) => {
 			const option = e.target.closest('.option');
-			if (option && !this.hasAnswered && !this.isWaiting) {
-				const answer = ['option_a', 'option_b', 'option_c', 'option_d']
-					.indexOf(option.classList[1]);
+			if (option && !this.gameState.hasAnswered && !this.gameState.isWaiting) {
+				const answer = ANSWER_OPTION_CLASSES.indexOf(option.classList[1]);
 				if (answer !== -1) {
 					this.submitAnswer(answer);
 				}
@@ -75,95 +75,103 @@ class App {
 
 	setupSocketEvents() {
 		// Connection events
-		this.socket.on('connect', () => {
+		this.socket.on(SOCKET_EVENTS.CONNECT, () => {
 			console.log('Connected to server');
-			if (this.playerToken && this.gamePin) {
+			if (this.gameState.playerToken && this.gameState.gamePin) {
 				this.attemptReconnect();
 			}
 		});
 
-		this.socket.on('disconnect', () => {
+		this.socket.on(SOCKET_EVENTS.DISCONNECT, () => {
 			console.log('Disconnected from server');
-			this.showWarning('Spojenie prerušené, pokúšam sa pripojiť...');
+			this.notifications.showWarning('Spojenie prerušené, pokúšam sa pripojiť...');
 		});
 
 		// Game events
-		this.socket.on('game_joined', (data) => {
-			this.playerToken = data.playerToken;
-			this.playerId = data.playerId;
-			localStorage.setItem('playerToken', this.playerToken);
-			localStorage.setItem(`game_${this.gamePin}_id`, this.playerId);
+		this.socket.on(SOCKET_EVENTS.GAME_JOINED, (data) => {
+			this.gameState.setPlayerToken(data.playerToken);
+			this.gameState.setPlayerId(data.playerId);
 			
-			this.showSuccess(`Pripojené ako Hráč ${data.playerId}`);
-			this.redirectTo(`/app/${this.gamePin}/game`);
+			this.notifications.showSuccess(`Pripojené ako Hráč ${data.playerId}`);
+			this.router.navigateTo(`/app/${this.gameState.gamePin}/game`);
 			this.updateGameHeader();
 		});
 
-		this.socket.on('join_error', (data) => {
-			this.showError(data.message);
-			this.elements.joinGameBtn.disabled = false;
-			this.elements.joinGameBtn.textContent = 'Pripojiť sa';
-			this.gamePin = null;
+		this.socket.on(SOCKET_EVENTS.JOIN_ERROR, (data) => {
+			this.notifications.showError(data.message);
+			this.enableJoinButton();
+			this.gameState.setGamePin(null);
 			this.redirectToLogin();
 		});
 
-		this.socket.on('player_reconnected', (data) => {
-			this.playerId = data.playerId;
-			this.showSuccess('Úspešne pripojené späť');
-			this.redirectTo(`/app/${this.gamePin}/game`);
+		this.socket.on(SOCKET_EVENTS.PLAYER_RECONNECTED, (data) => {
+			this.gameState.setPlayerId(data.playerId);
+			this.notifications.showSuccess('Úspešne pripojené späť');
+			this.router.navigateTo(`/app/${this.gameState.gamePin}/game`);
 			this.updateGameHeader();
 			
-			if (data.gameStatus === 'QUESTION_ACTIVE') {
-				// Rejoining during active question
-				this.showInfo('Otázka práve prebieha');
+			if (data.gameStatus === GAME_STATES.QUESTION_ACTIVE) {
+				this.notifications.showInfo('Otázka práve prebieha');
 			}
 		});
 
-		this.socket.on('reconnect_error', (data) => {
-			this.showError(data.message);
-			localStorage.removeItem('playerToken');
-			this.playerToken = null;
+		this.socket.on(SOCKET_EVENTS.RECONNECT_ERROR, (data) => {
+			this.notifications.showError(data.message);
+			this.gameState.clearSavedSession();
 			this.redirectToLogin();
 		});
 
 		// Question events
-		this.socket.on('question_started', (data) => {
+		this.socket.on(SOCKET_EVENTS.QUESTION_STARTED, (data) => {
 			this.showQuestion(data);
 		});
 
-		this.socket.on('question_ended', (data) => {
+		this.socket.on(SOCKET_EVENTS.QUESTION_ENDED, (data) => {
 			this.showResults(data);
 		});
 
-		this.socket.on('answer_result', (data) => {
+		this.socket.on(SOCKET_EVENTS.ANSWER_RESULT, (data) => {
 			this.handleAnswerResult(data);
 		});
 
 		// Latency measurement
-		this.socket.on('latency_ping', (timestamp) => {
-			this.socket.emit('latency_pong', timestamp);
+		this.socket.on(SOCKET_EVENTS.LATENCY_PING, (timestamp) => {
+			this.socket.emit(SOCKET_EVENTS.LATENCY_PONG, timestamp);
 		});
 	}
 
-	startLatencyMeasurement() {
-		// Update latency display every second
-		this.latencyInterval = setInterval(() => {
-			if (this.elements.latencyDisplay) {
+	setupLatencyMeasurement() {
+		if (this.elements.latencyDisplay) {
+			this.latencyInterval = setInterval(() => {
 				const latency = this.socket.connected ? 
-					Math.round(performance.now() % 100) : 0; // Simplified for now
-				this.elements.latencyDisplay.textContent = `${latency}ms`;
+					Math.round(performance.now() % 100) : 0;
+				this.dom.setText(this.elements.latencyDisplay, `${latency}ms`);
+			}, UI_CONSTANTS.LATENCY_UPDATE_INTERVAL);
+		}
+	}
+
+	checkInitialRoute() {
+		const path = window.location.pathname;
+		if (path.startsWith('/app/') && path.length > 5) {
+			const gamePin = this.router.extractGamePin(path);
+			if (gamePin) {
+				this.gameState.setGamePin(gamePin);
+				this.checkForSavedSession();
+			} else {
+				this.redirectToLogin();
 			}
-		}, 1000);
+		} else {
+			this.redirectToLogin();
+		}
 	}
 
 	async checkForSavedSession() {
-		if (this.playerToken && this.gamePin) {
-			const savedId = localStorage.getItem(`game_${this.gamePin}_id`);
+		if (this.gameState.hasSavedSession()) {
+			const savedId = this.gameState.getSavedPlayerId();
 			if (savedId) {
-				this.playerId = savedId;
+				this.gameState.setPlayerId(savedId);
 				this.attemptReconnect();
 			} else {
-				// Token exists but no saved ID for this game
 				this.redirectToLogin();
 			}
 		} else {
@@ -172,177 +180,143 @@ class App {
 	}
 
 	attemptReconnect() {
-		this.showInfo('Pokúšam sa pripojiť späť...');
-		this.socket.emit('reconnect_player', {
-			gamePin: this.gamePin,
-			playerToken: this.playerToken
+		this.notifications.showInfo('Pokúšam sa pripojiť späť...');
+		this.socket.emit(SOCKET_EVENTS.RECONNECT_PLAYER, {
+			gamePin: this.gameState.gamePin,
+			playerToken: this.gameState.playerToken
 		});
-	}
-
-	redirectTo(path = '/app') {
-		const normalize = p => p.replace(/\/+$/, '').toLowerCase();
-		const currentPath = normalize(window.location.pathname);
-		const targetPath = normalize(path);
-
-		if (!/^\/[a-z0-9\/\-]*$/i.test(targetPath)) {
-			console.error('Neplatná cieľová cesta:', targetPath);
-			return;
-		}
-
-		if (currentPath !== targetPath) {
-			history.pushState(null, '', path);
-		}
-
-		this.handleRouteChange(targetPath);
 	}
 
 	handleRouteChange(path) {
-		// Hide all pages
-		document.querySelectorAll('.page').forEach(el => {
-			el.classList.remove('visible');
-		});
-
-		// Hide all phases
-		document.querySelectorAll('.phase').forEach(el => {
-			el.classList.remove('visible');
-		});
-
-		if (path.startsWith('/app/') && path.includes('/game')) {
-			// Show game page
-			document.querySelector('#game.page')?.classList.add('visible');
-			// Show playground by default
-			this.elements.playground?.classList.add('visible');
-		} else {
-			// Show login page
-			document.querySelector('#login.page')?.classList.add('visible');
-		}
+		this.router.handleRouteChange(path);
 	}
 
 	redirectToLogin() {
-		this.redirectTo('/app');
+		this.router.navigateTo('/app');
+	}
+
+	enableJoinButton() {
+		if (this.elements.joinGameBtn) {
+			this.elements.joinGameBtn.disabled = false;
+			this.dom.setText(this.elements.joinGameBtn, 'Pripojiť sa');
+		}
 	}
 
 	async joinGame() {
 		this.elements.joinGameBtn.disabled = true;
-		this.elements.joinGameBtn.textContent = 'Pripájam sa...';
+		this.dom.setText(this.elements.joinGameBtn, 'Pripájam sa...');
 
 		// Get game PIN
-		if (!this.gamePin) {
-			this.gamePin = this.elements.gamePinInput?.value.trim() || null;
+		let gamePin = this.gameState.gamePin;
+		if (!gamePin) {
+			gamePin = this.elements.gamePinInput?.value.trim() || null;
 		}
 
-		if (!this.gamePin || this.gamePin.length < 6) {
-			this.showError('PIN musí mať aspoň 6 znakov');
-			this.gamePin = null;
-			this.elements.joinGameBtn.disabled = false;
-			this.elements.joinGameBtn.textContent = 'Pripojiť sa';
+		if (!gamePin || gamePin.length < UI_CONSTANTS.MIN_PIN_LENGTH) {
+			this.notifications.showError('PIN musí mať aspoň 6 znakov');
+			this.gameState.setGamePin(null);
+			this.enableJoinButton();
 			return;
 		}
 
-		// First check if game exists via API
-		const game = await this.api('getGame', this.gamePin);
+		// Check if game exists via API
+		const game = await GameAPI.getGame(gamePin);
 
 		if (!game) {
-			this.showError(`Hra s PIN ${this.gamePin} neexistuje`);
-			this.gamePin = null;
-			this.elements.joinGameBtn.disabled = false;
-			this.elements.joinGameBtn.textContent = 'Pripojiť sa';
+			this.notifications.showError(`Hra s PIN ${gamePin} neexistuje`);
+			this.gameState.setGamePin(null);
+			this.enableJoinButton();
 			return;
 		}
 
-		if (game.status === 'finished') {
-			this.showWarning('Hra už skončila');
-			this.gamePin = null;
-			this.elements.joinGameBtn.disabled = false;
-			this.elements.joinGameBtn.textContent = 'Pripojiť sa';
+		if (game.status === GAME_STATES.FINISHED) {
+			this.notifications.showWarning('Hra už skončila');
+			this.gameState.setGamePin(null);
+			this.enableJoinButton();
 			return;
 		}
 
-		// Join via socket - no player name needed
-		this.socket.emit('join_game', {
-			gamePin: this.gamePin
+		// Set game PIN and join via socket
+		this.gameState.setGamePin(gamePin);
+		this.socket.emit(SOCKET_EVENTS.JOIN_GAME, {
+			gamePin: gamePin
 		});
 	}
 
 	updateGameHeader() {
 		if (this.elements.gameCode) {
-			this.elements.gameCode.textContent = `#${this.gamePin}`;
+			this.dom.setText(this.elements.gameCode, `#${this.gameState.gamePin}`);
 		}
 		if (this.elements.gameStatus) {
-			this.elements.gameStatus.textContent = `Hráč ${this.playerId || '?'}`;
+			this.dom.setText(this.elements.gameStatus, `Hráč ${this.gameState.playerId || '?'}`);
 		}
 		if (this.elements.playerIdDisplay) {
-			this.elements.playerIdDisplay.textContent = this.playerId || '-';
+			this.dom.setText(this.elements.playerIdDisplay, this.gameState.playerId || '-');
 		}
 		
-		// Set initial waiting state
 		this.setWaitingState();
 	}
 
 	setWaitingState() {
-		this.isWaiting = true;
+		this.gameState.setWaiting(true);
 		
 		// Update question text
-		if (this.elements.questionText) {
-			this.elements.questionText.textContent = 'Čakám na otázku...';
-		}
+		this.dom.setText(this.elements.questionText, 'Čakám na otázku...');
 		
 		// Reset timer
-		if (this.elements.timer) {
-			this.elements.timer.textContent = '-';
-		}
+		this.dom.setText(this.elements.timer, '-');
 		
 		// Disable all options
 		this.elements.options?.querySelectorAll('.option').forEach(el => {
-			el.style.opacity = '0.3';
-			el.style.pointerEvents = 'none';
-			el.style.cursor = 'not-allowed';
+			this.dom.setStyles(el, {
+				opacity: '0.3',
+				pointerEvents: 'none',
+				cursor: 'not-allowed'
+			});
 		});
 		
 		// Reset option texts
 		const optionElements = this.elements.options?.querySelectorAll('.option p');
 		if (optionElements) {
 			optionElements.forEach(el => {
-				el.textContent = '-';
+				this.dom.setText(el, '-');
 			});
 		}
 	}
 
 	showQuestion(data) {
 		// Switch to playground phase
-		this.elements.scoreboard?.classList.remove('visible');
-		this.elements.playground?.classList.add('visible');
+		this.dom.removeClass(this.elements.scoreboard, 'visible');
+		this.dom.addClass(this.elements.playground, 'visible');
 
-		// Reset state
-		this.hasAnswered = false;
-		this.isWaiting = false;
-		this.currentQuestion = data;
+		// Update game state
+		this.gameState.setCurrentQuestion(data);
 
 		// Update question text
-		if (this.elements.questionText) {
-			this.elements.questionText.textContent = data.question;
-		}
+		this.dom.setText(this.elements.questionText, data.question);
 
 		// Update options
 		const optionElements = this.elements.options?.querySelectorAll('.option p');
 		if (optionElements) {
 			data.options.forEach((option, index) => {
 				if (optionElements[index]) {
-					optionElements[index].textContent = option;
+					this.dom.setText(optionElements[index], option);
 				}
 			});
 		}
 
 		// Enable all options
 		this.elements.options?.querySelectorAll('.option').forEach(el => {
-			el.style.opacity = '1';
-			el.style.pointerEvents = 'auto';
-			el.style.cursor = 'pointer';
-			el.style.border = 'none'; // Reset border
+			this.dom.setStyles(el, {
+				opacity: '1',
+				pointerEvents: 'auto',
+				cursor: 'pointer',
+				border: 'none'
+			});
 		});
 
-		// Start timer with the time from question data
-		this.startTimer(data.timeLimit || 30);
+		// Start timer
+		this.startTimer(data.timeLimit || UI_CONSTANTS.QUESTION_TIME_LIMIT);
 	}
 
 	startTimer(duration) {
@@ -353,51 +327,51 @@ class App {
 		}
 
 		const updateTimer = () => {
-			if (this.elements.timer) {
-				this.elements.timer.textContent = timeLeft;
-			}
+			this.dom.setText(this.elements.timer, timeLeft);
 			
 			if (timeLeft <= 0) {
 				clearInterval(this.timerInterval);
-				if (!this.hasAnswered) {
-					this.showInfo('Čas vypršal!');
+				if (!this.gameState.hasAnswered) {
+					this.notifications.showInfo('Čas vypršal!');
 				}
 			}
 			timeLeft--;
 		};
 
 		updateTimer();
-		this.timerInterval = setInterval(updateTimer, 1000);
+		this.timerInterval = setInterval(updateTimer, UI_CONSTANTS.TIMER_UPDATE_INTERVAL);
 	}
 
 	submitAnswer(answerIndex) {
-		if (this.hasAnswered) return;
+		if (!this.gameState.submitAnswer(answerIndex)) return;
 
-		this.hasAnswered = true;
 		const answerTime = Date.now();
 
 		// Disable all options
 		this.elements.options?.querySelectorAll('.option').forEach(el => {
-			el.style.opacity = '0.5';
-			el.style.pointerEvents = 'none';
+			this.dom.setStyles(el, {
+				opacity: '0.5',
+				pointerEvents: 'none'
+			});
 		});
 
 		// Highlight selected answer
 		const selectedOption = this.elements.options?.querySelectorAll('.option')[answerIndex];
 		if (selectedOption) {
-			selectedOption.style.opacity = '1';
-			selectedOption.style.border = '3px solid white';
+			this.dom.setStyles(selectedOption, {
+				opacity: '1',
+				border: '3px solid white'
+			});
 		}
 
-		this.socket.emit('submit_answer', {
+		this.socket.emit(SOCKET_EVENTS.SUBMIT_ANSWER, {
 			answer: answerIndex,
 			timestamp: answerTime
 		});
 	}
 
 	handleAnswerResult(data) {
-		// Store result for display
-		this.lastResult = data;
+		this.gameState.setAnswerResult(data);
 	}
 
 	showResults(data) {
@@ -407,101 +381,58 @@ class App {
 		}
 
 		// Switch to scoreboard phase
-		this.elements.playground?.classList.remove('visible');
-		this.elements.scoreboard?.classList.add('visible');
+		this.dom.removeClass(this.elements.playground, 'visible');
+		this.dom.addClass(this.elements.scoreboard, 'visible');
 
 		// Update correct answer display
-		if (this.elements.answerText && this.currentQuestion) {
-			this.elements.answerText.textContent = 
-				this.currentQuestion.options[data.correctAnswer];
+		if (this.elements.answerText && this.gameState.currentQuestion) {
+			this.dom.setText(this.elements.answerText, 
+				this.gameState.currentQuestion.options[data.correctAnswer]);
 		}
 
 		// Update status icon
-		if (this.elements.statusIcon && this.lastResult) {
-			if (this.lastResult.correct) {
-				this.elements.statusIcon.classList.add('success');
-				this.elements.statusIcon.classList.remove('fail');
+		if (this.elements.statusIcon && this.gameState.lastResult) {
+			if (this.gameState.lastResult.correct) {
+				this.dom.addClass(this.elements.statusIcon, 'success');
+				this.dom.removeClass(this.elements.statusIcon, 'fail');
 			} else {
-				this.elements.statusIcon.classList.add('fail');
-				this.elements.statusIcon.classList.remove('success');
+				this.dom.addClass(this.elements.statusIcon, 'fail');
+				this.dom.removeClass(this.elements.statusIcon, 'success');
 			}
 		}
 
 		// Update time and position
-		if (this.elements.playerTime && this.lastResult) {
-			const seconds = (this.lastResult.responseTime / 1000).toFixed(1);
-			this.elements.playerTime.textContent = `${seconds}s`;
+		if (this.elements.playerTime && this.gameState.lastResult) {
+			const seconds = (this.gameState.lastResult.responseTime / 1000).toFixed(1);
+			this.dom.setText(this.elements.playerTime, `${seconds}s`);
 		}
 
 		// Find player position in leaderboard
-		const playerPosition = data.leaderboard.findIndex(p => p.playerId === this.playerId) + 1;
+		const playerPosition = data.leaderboard.findIndex(p => p.playerId === this.gameState.playerId) + 1;
 		if (this.elements.playerPosition) {
-			this.elements.playerPosition.textContent = playerPosition > 0 ? 
-				`${playerPosition}. miesto` : 'Nezodpovedané';
+			this.dom.setText(this.elements.playerPosition, playerPosition > 0 ? 
+				`${playerPosition}. miesto` : 'Nezodpovedané');
 		}
 
-		// After showing results, set back to waiting state
+		// Auto-reset after delay
 		setTimeout(() => {
-			// Only switch back to playground if game is not finished
-			if (data.gameStatus !== 'FINISHED') {
-				this.elements.scoreboard?.classList.remove('visible');
-				this.elements.playground?.classList.add('visible');
+			if (data.gameStatus !== GAME_STATES.FINISHED) {
+				this.dom.removeClass(this.elements.scoreboard, 'visible');
+				this.dom.addClass(this.elements.playground, 'visible');
 				this.setWaitingState();
 			}
-		}, 10000); // Show results for 10 seconds
+		}, UI_CONSTANTS.QUESTION_RESULT_DISPLAY_TIME);
 	}
 
-	async api(action, payload = null) {
-		switch (action) {
-			case 'getGame':
-				if (!payload) {
-					console.warn('Chýba PIN payload.');
-					return null;
-				}
-				try {
-					const res = await fetch(`/api/game/${payload}`);
-					if (!res.ok) return null;
-					return await res.json();
-				} catch (err) {
-					console.error('Chyba pri načítaní hry:', err);
-					return null;
-				}
-
-			default:
-				console.warn('Neznáme API:', action);
-				return null;
+	// Cleanup method
+	destroy() {
+		if (this.timerInterval) {
+			clearInterval(this.timerInterval);
 		}
-	}
-
-	showError(message) {
-		return this.showNotification(message, 'error');
-	}
-
-	showInfo(message) {
-		return this.showNotification(message, 'info');
-	}
-
-	showSuccess(message) {
-		return this.showNotification(message, 'success');
-	}
-
-	showWarning(message) {
-		return this.showNotification(message, 'warning');
-	}
-
-	showNotification(message, type = 'info') {
-		const notification = document.createElement('div');
-		notification.classList.add(type);
-		notification.textContent = message;
-
-		this.messageBox = this.messageBox ?? document.getElementById("messageBox");
-		this.messageBox.appendChild(notification);
-        
-		setTimeout(() => {
-			if (notification.parentNode) {
-				notification.parentNode.removeChild(notification);
-			}
-		}, 3000);
+		if (this.latencyInterval) {
+			clearInterval(this.latencyInterval);
+		}
+		this.gameState.clearTimers();
 	}
 }
 
