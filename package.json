@@ -3,18 +3,39 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon server.js"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:unit": "jest tests/unit",
+    "test:integration": "jest tests/integration",
+    "test:e2e": "jest tests/e2e",
+    "dev": "nodemon server.js",
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "express": "^5.1.0",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "sqlite3": "^5.1.7"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
-  }
+    "@jest/globals": "^30.0.4",
+    "better-sqlite3": "^12.2.0",
+    "jest": "^30.0.4",
+    "nodemon": "^3.1.10",
+    "socket.io-client": "^4.8.1",
+    "supertest": "^7.1.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gavalierm/kht.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gavalierm/kht/issues"
+  },
+  "homepage": "https://github.com/gavalierm/kht#readme",
+  "description": ""
 }
