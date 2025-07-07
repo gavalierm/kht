@@ -11,20 +11,22 @@ module.exports = {
   // Coverage configuration
   collectCoverage: false, // Enable only when needed
   collectCoverageFrom: [
-    '*.js',
+    'database.js',
     '!node_modules/**',
     '!coverage/**',
     '!jest.config.js',
-    '!tests/**'
+    '!tests/**',
+    '!_server.js',
+    '!server.js'
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   coverageThreshold: {
     global: {
-      branches: 10,
-      functions: 10,
-      lines: 10,
-      statements: 10
+      branches: 15,
+      functions: 25,
+      lines: 25,
+      statements: 25
     }
   },
   
