@@ -1,0 +1,343 @@
+const { describe, test, expect, beforeEach, afterEach } = require('@jest/globals');
+const GameDatabase = require('../../database');
+const { 
+  createTestDatabase, 
+  createSampleQuestions, 
+  generateTestPin,
+  cleanupTestDatabase 
+} = require('../helpers/test-utils');
+const { sampleGameData, samplePlayers } = require('../fixtures/sample-data');
+
+describe('GameDatabase', () => {
+  let db;
+
+  beforeEach(() => {
+    db = createTestDatabase();
+  });
+
+  afterEach(() => {
+    cleanupTestDatabase(db);
+  });
+
+  describe('Database Initialization', () => {
+    test('should initialize database with proper tables', () => {
+      expect(db).toBeDefined();
+      expect(typeof db.close).toBe('function');
+    });
+
+    test('should not create test game in test mode', async () => {
+      const testGame = await db.getGameByPin('123456');
+      expect(testGame).toBeNull();
+    });
+  });
+
+  describe('Game Management', () => {
+    describe('createGame', () => {
+      test('should create a new game successfully', async () => {
+        const pin = generateTestPin();
+        const questions = createSampleQuestions();
+        
+        const result = await db.createGame(
+          pin,
+          'Test Quiz',
+          questions,
+          'testpassword'
+        );
+
+        expect(result).toBeDefined();
+        expect(result.gameId).toBeDefined();
+        expect(result.moderatorToken).toBeDefined();
+        expect(result.pin).toBe(pin);
+      });
+
+      test('should create game without password', async () => {
+        const pin = generateTestPin();
+        const questions = createSampleQuestions();
+        
+        const result = await db.createGame(
+          pin,
+          'Test Quiz',
+          questions,
+          null
+        );
+
+        expect(result).toBeDefined();
+        expect(result.gameId).toBeDefined();
+        expect(result.moderatorToken).toBeDefined();
+      });
+
+      test('should handle duplicate PIN creation', async () => {
+        const pin = generateTestPin();
+        const questions = createSampleQuestions();
+        
+        // Create first game
+        await db.createGame(pin, 'Test Quiz 1', questions);
+        
+        // Try to create second game with same PIN - should fail
+        await expect(
+          db.createGame(pin, 'Test Quiz 2', questions)
+        ).rejects.toThrow();
+      });
+    });
+
+    describe('getGameByPin', () => {
+      test('should retrieve existing game by PIN', async () => {
+        const pin = generateTestPin();
+        const questions = createSampleQuestions();
+        
+        await db.createGame(pin, 'Test Quiz', questions);
+        const game = await db.getGameByPin(pin);
+
+        expect(game).toBeDefined();
+        expect(game.pin).toBe(pin);
+        expect(game.title).toBe('Test Quiz');
+        expect(game.questions).toEqual(questions);
+      });
+
+      test('should return null for non-existent PIN', async () => {
+        const game = await db.getGameByPin('999999');
+        expect(game).toBeNull();
+      });
+    });
+
+    describe('validateModerator', () => {
+      test('should validate moderator with correct password', async () => {
+        const pin = generateTestPin();
+        const questions = createSampleQuestions();
+        const password = 'testpassword';
+        
+        await db.createGame(pin, 'Test Quiz', questions, password);
+        const validation = await db.validateModerator(pin, password, null);
+
+        expect(validation).toBeDefined();
+        expect(validation.pin).toBe(pin);
+      });
+
+      test('should validate moderator with correct token', async () => {
+        const pin = generateTestPin();
+        const questions = createSampleQuestions();
+        
+        const result = await db.createGame(pin, 'Test Quiz', questions, 'password');
+        const validation = await db.validateModerator(pin, null, result.moderatorToken);
+
+        expect(validation).toBeDefined();
+        expect(validation.pin).toBe(pin);
+      });
+
+      test('should reject invalid password', async () => {
+        const pin = generateTestPin();
+        const questions = createSampleQuestions();
+        
+        await db.createGame(pin, 'Test Quiz', questions, 'correctpassword');
+        const validation = await db.validateModerator(pin, 'wrongpassword', null);
+
+        expect(validation).toBeFalsy();
+      });
+
+      test('should allow access to games without password protection', async () => {
+        const pin = generateTestPin();
+        const questions = createSampleQuestions();
+        
+        await db.createGame(pin, 'Test Quiz', questions, null);
+        const validation = await db.validateModerator(pin, null, null);
+
+        expect(validation).toBeDefined();
+        expect(validation.pin).toBe(pin);
+      });
+    });
+  });
+
+  describe('Player Management', () => {
+    let gameId;
+
+    beforeEach(async () => {
+      const pin = generateTestPin();
+      const questions = createSampleQuestions();
+      const result = await db.createGame(pin, 'Test Quiz', questions);
+      gameId = result.gameId;
+    });
+
+    describe('addPlayer', () => {
+      test('should add new player successfully', async () => {
+        const result = await db.addPlayer(gameId);
+
+        expect(result).toBeDefined();
+        expect(result.playerId).toBeDefined();
+        expect(result.playerToken).toBeDefined();
+        expect(result.name).toMatch(/^Player \d+$/);
+      });
+
+      test('should generate unique player tokens', async () => {
+        const player1 = await db.addPlayer(gameId);
+        const player2 = await db.addPlayer(gameId);
+
+        expect(player1.playerToken).not.toBe(player2.playerToken);
+        expect(player1.playerId).not.toBe(player2.playerId);
+      });
+    });
+
+    describe('reconnectPlayer', () => {
+      test('should reconnect existing player', async () => {
+        const addResult = await db.addPlayer(gameId);
+        const reconnectResult = await db.reconnectPlayer(gameId, addResult.playerToken);
+
+        expect(reconnectResult).toBeDefined();
+        expect(reconnectResult.id).toBe(addResult.playerId);
+        expect(reconnectResult.player_token).toBe(addResult.playerToken);
+        expect(reconnectResult.connected).toBe(true);
+      });
+
+      test('should return null for invalid token', async () => {
+        const result = await db.reconnectPlayer(gameId, 'invalid-token');
+        expect(result).toBeNull();
+      });
+    });
+
+    describe('getGamePlayers', () => {
+      test('should return players ordered by score', async () => {
+        // Add multiple players
+        const player1 = await db.addPlayer(gameId);
+        const player2 = await db.addPlayer(gameId);
+        
+        // Update scores
+        await db.updatePlayerScore(player1.playerId, 1500);
+        await db.updatePlayerScore(player2.playerId, 2000);
+
+        const players = await db.getGamePlayers(gameId);
+
+        expect(players).toHaveLength(2);
+        expect(players[0].score).toBe(2000); // Higher score first
+        expect(players[1].score).toBe(1500);
+      });
+
+      test('should return empty array for game without players', async () => {
+        const players = await db.getGamePlayers(gameId);
+        expect(players).toEqual([]);
+      });
+    });
+
+    describe('updatePlayerScore', () => {
+      test('should update player score successfully', async () => {
+        const player = await db.addPlayer(gameId);
+        await db.updatePlayerScore(player.playerId, 1500);
+
+        const players = await db.getGamePlayers(gameId);
+        const updatedPlayer = players.find(p => p.id === player.playerId);
+
+        expect(updatedPlayer.score).toBe(1500);
+      });
+    });
+  });
+
+  describe('Answer Management', () => {
+    let gameId, playerId;
+
+    beforeEach(async () => {
+      const pin = generateTestPin();
+      const questions = createSampleQuestions();
+      const gameResult = await db.createGame(pin, 'Test Quiz', questions);
+      gameId = gameResult.gameId;
+
+      const playerResult = await db.addPlayer(gameId);
+      playerId = playerResult.playerId;
+    });
+
+    describe('saveAnswer', () => {
+      test('should save answer successfully', async () => {
+        const answerId = await db.saveAnswer(
+          gameId,
+          playerId,
+          0, // question index
+          1, // answer option
+          true, // is correct
+          1200, // points earned
+          8500 // response time
+        );
+
+        expect(answerId).toBeDefined();
+        expect(typeof answerId).toBe('number');
+      });
+
+      test('should save multiple answers for same player', async () => {
+        const answer1 = await db.saveAnswer(gameId, playerId, 0, 1, true, 1200, 8500);
+        const answer2 = await db.saveAnswer(gameId, playerId, 1, 2, false, 0, 15000);
+
+        expect(answer1).toBeDefined();
+        expect(answer2).toBeDefined();
+        expect(answer1).not.toBe(answer2);
+      });
+    });
+  });
+
+  describe('Game State Management', () => {
+    let gameId;
+
+    beforeEach(async () => {
+      const pin = generateTestPin();
+      const questions = createSampleQuestions();
+      const result = await db.createGame(pin, 'Test Quiz', questions);
+      gameId = result.gameId;
+    });
+
+    describe('updateGameState', () => {
+      test('should update game state successfully', async () => {
+        const newState = {
+          status: 'question_active',
+          currentQuestionIndex: 1,
+          questionStartTime: Date.now()
+        };
+
+        await db.updateGameState(gameId, newState);
+
+        // Verify update by retrieving game
+        const games = await new Promise((resolve, reject) => {
+          db.db.get('SELECT * FROM games WHERE id = ?', [gameId], (err, row) => {
+            if (err) reject(err);
+            else resolve(row);
+          });
+        });
+
+        expect(games.status).toBe('question_active');
+        expect(games.current_question_index).toBe(1);
+      });
+    });
+  });
+
+  describe('Cleanup Operations', () => {
+    describe('cleanupOldGames', () => {
+      test('should not throw error during cleanup', async () => {
+        await expect(db.cleanupOldGames()).resolves.not.toThrow();
+      });
+    });
+  });
+
+  describe('Statistics', () => {
+    let gameId, playerId;
+
+    beforeEach(async () => {
+      const pin = generateTestPin();
+      const questions = createSampleQuestions();
+      const gameResult = await db.createGame(pin, 'Test Quiz', questions);
+      gameId = gameResult.gameId;
+
+      const playerResult = await db.addPlayer(gameId);
+      playerId = playerResult.playerId;
+
+      // Add some answers
+      await db.saveAnswer(gameId, playerId, 0, 1, true, 1200, 8500);
+      await db.saveAnswer(gameId, playerId, 1, 2, false, 0, 15000);
+    });
+
+    describe('getGameStats', () => {
+      test('should return game statistics', async () => {
+        const stats = await db.getGameStats(gameId);
+
+        expect(stats).toBeDefined();
+        expect(stats.total_players).toBe(1);
+        expect(stats.total_answers).toBe(2);
+        expect(stats.correct_answers).toBe(1);
+        expect(stats.avg_response_time).toBeDefined();
+      });
+    });
+  });
+});

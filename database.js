@@ -3,8 +3,9 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 
 class GameDatabase {
-  constructor(dbPath = './quiz.db') {
+  constructor(dbPath = './quiz.db', options = {}) {
     this.db = new sqlite3.Database(dbPath);
+    this.skipTestGame = options.skipTestGame || process.env.NODE_ENV === 'test';
     this.initTables();
   }
 
@@ -61,8 +62,10 @@ class GameDatabase {
         console.error('Database init error:', err);
       } else {
         console.log('Database initialized successfully');
-        // Create test game if it doesn't exist
-        this.createTestGame();
+        // Create test game if it doesn't exist and not in test mode
+        if (!this.skipTestGame) {
+          this.createTestGame();
+        }
       }
     });
   }

@@ -1,4 +1,3 @@
-const Database = require('better-sqlite3');
 const GameDatabase = require('../../database');
 
 /**
@@ -10,7 +9,7 @@ const GameDatabase = require('../../database');
  * @returns {GameDatabase} Test database instance
  */
 function createTestDatabase() {
-  // Use in-memory database for testing
+  // Use in-memory database for testing with sqlite3
   const testDb = new GameDatabase(':memory:');
   return testDb;
 }
