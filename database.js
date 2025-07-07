@@ -240,14 +240,18 @@ class GameDatabase {
         VALUES (?, ?, ?)
       `;
 
-      this.db.run(sql, [gameId, 'Player', playerToken], function(err) {
+      // Store database reference to avoid context issues
+      const db = this.db;
+      
+      db.run(sql, [gameId, 'Player', playerToken], function(err) {
         if (err) {
           reject(err);
         } else {
           const playerId = this.lastID;
-          // Update name to include ID
+          
+          // Update name to include ID using stored database reference
           const updateSql = `UPDATE players SET name = ? WHERE id = ?`;
-          this.db.run(updateSql, [`Player ${playerId}`, playerId], (updateErr) => {
+          db.run(updateSql, [`Player ${playerId}`, playerId], (updateErr) => {
             if (updateErr) {
               reject(updateErr);
             } else {
