@@ -3,8 +3,9 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 
 class GameDatabase {
-  constructor(dbPath = './quiz.db') {
+  constructor(dbPath = './quiz.db', options = {}) {
     this.db = new sqlite3.Database(dbPath);
+    this.skipTestGame = options.skipTestGame || process.env.NODE_ENV === 'test';
     this.initTables();
   }
 
@@ -57,9 +58,81 @@ class GameDatabase {
     `;
     
     this.db.exec(sql, (err) => {
-      if (err) console.error('Database init error:', err);
-      else console.log('Database initialized successfully');
+      if (err) {
+        console.error('Database init error:', err);
+      } else {
+        console.log('Database initialized successfully');
+        // Create test game if it doesn't exist and not in test mode
+        if (!this.skipTestGame) {
+          this.createTestGame();
+        }
+      }
     });
+  }
+
+  // Create test game with PIN 123456
+  async createTestGame() {
+    try {
+      // Check if test game already exists
+      const existingGame = await this.getGameByPin('123456');
+      if (existingGame) {
+        console.log('Test game with PIN 123456 already exists');
+        return;
+      }
+
+      // Test questions
+      const testQuestions = [
+        {
+          id: 1,
+          question: "Aké je hlavné mesto Slovenska?",
+          options: ["Bratislava", "Košice", "Prešov", "Žilina"],
+          correct: 0,
+          timeLimit: 30
+        },
+        {
+          id: 2,
+          question: "Koľko kontinentov má Zem?",
+          options: ["5", "6", "7", "8"],
+          correct: 2,
+          timeLimit: 25
+        },
+        {
+          id: 3,
+          question: "Ktorá rieka preteká cez Bratislavu?",
+          options: ["Váh", "Hron", "Dunaj", "Morava"],
+          correct: 2,
+          timeLimit: 20
+        },
+        {
+          id: 4,
+          question: "Ktorý je najvyšší vrch Slovenska?",
+          options: ["Kriváň", "Gerlachovský štít", "Rysy", "Ďumbier"],
+          correct: 1,
+          timeLimit: 25
+        },
+        {
+          id: 5,
+          question: "V ktorom roku vznikla Slovenská republika?",
+          options: ["1991", "1992", "1993", "1994"],
+          correct: 2,
+          timeLimit: 20
+        }
+      ];
+
+      // Create test game with no password
+      const result = await this.createGame(
+        '123456',
+        'Testovacia hra',
+        testQuestions,
+        null // no password
+      );
+
+      console.log('Test game created successfully with PIN: 123456');
+      console.log('Moderator token:', result.moderatorToken);
+      
+    } catch (error) {
+      console.error('Error creating test game:', error);
+    }
   }
 
   generateToken() {
@@ -126,6 +199,7 @@ class GameDatabase {
           // Check token first (for reconnection)
           if (token && row.moderator_token === token) {
             console.log('Token validation successful');
+            row.questions = JSON.parse(row.questions_data || '[]');
             resolve(row);
             return;
           }
@@ -134,6 +208,7 @@ class GameDatabase {
           if (password && row.moderator_password_hash && 
               bcrypt.compareSync(password, row.moderator_password_hash)) {
             console.log('Password validation successful');
+            row.questions = JSON.parse(row.questions_data || '[]');
             resolve(row);
             return;
           }
@@ -141,6 +216,7 @@ class GameDatabase {
           // If no password protection, allow connection
           if (!row.moderator_password_hash && !password) {
             console.log('No password protection, allowing connection');
+            row.questions = JSON.parse(row.questions_data || '[]');
             resolve(row);
             return;
           }
@@ -152,49 +228,38 @@ class GameDatabase {
     });
   }
 
-  // Add player with unique name handling
-  async addPlayer(gameId, playerName) {
+  // Add player without name
+  async addPlayer(gameId) {
     return new Promise((resolve, reject) => {
-      // First, get existing player names
-      this.db.all(
-        'SELECT name FROM players WHERE game_id = ? AND connected = true',
-        [gameId],
-        (err, rows) => {
-          if (err) {
-            reject(err);
-            return;
-          }
+      // Generate player token
+      const playerToken = this.generateToken();
+      
+      // Insert player with auto-generated ID
+      const sql = `
+        INSERT INTO players (game_id, name, player_token)
+        VALUES (?, ?, ?)
+      `;
 
-          const existingNames = rows.map(r => r.name.toLowerCase());
-          let uniqueName = playerName;
-          let counter = 2;
-
-          // Generate unique name if needed
-          while (existingNames.includes(uniqueName.toLowerCase())) {
-            uniqueName = `${playerName} (${counter})`;
-            counter++;
-          }
-
-          // Insert player
-          const playerToken = this.generateToken();
-          const sql = `
-            INSERT INTO players (game_id, name, player_token)
-            VALUES (?, ?, ?)
-          `;
-
-          this.db.run(sql, [gameId, uniqueName, playerToken], function(err) {
-            if (err) {
-              reject(err);
+      this.db.run(sql, [gameId, 'Player', playerToken], function(err) {
+        if (err) {
+          reject(err);
+        } else {
+          const playerId = this.lastID;
+          // Update name to include ID
+          const updateSql = `UPDATE players SET name = ? WHERE id = ?`;
+          this.db.run(updateSql, [`Player ${playerId}`, playerId], (updateErr) => {
+            if (updateErr) {
+              reject(updateErr);
             } else {
               resolve({
-                playerId: this.lastID,
+                playerId: playerId,
                 playerToken,
-                name: uniqueName
+                name: `Player ${playerId}`
               });
             }
           });
         }
-      );
+      });
     });
   }
 
@@ -205,14 +270,21 @@ class GameDatabase {
         UPDATE players 
         SET connected = true, last_seen = strftime('%s', 'now')
         WHERE game_id = ? AND player_token = ?
-        RETURNING *
       `;
 
-      this.db.get(sql, [gameId, playerToken], (err, row) => {
+      this.db.run(sql, [gameId, playerToken], (err) => {
         if (err) {
           reject(err);
         } else {
-          resolve(row);
+          // Get updated player data
+          this.db.get(
+            'SELECT * FROM players WHERE game_id = ? AND player_token = ?',
+            [gameId, playerToken],
+            (err, row) => {
+              if (err) reject(err);
+              else resolve(row);
+            }
+          );
         }
       });
     });
@@ -222,7 +294,7 @@ class GameDatabase {
   async getGamePlayers(gameId) {
     return new Promise((resolve, reject) => {
       this.db.all(
-        'SELECT * FROM players WHERE game_id = ? AND connected = true ORDER BY score DESC',
+        'SELECT * FROM players WHERE game_id = ? ORDER BY score DESC',
         [gameId],
         (err, rows) => {
           if (err) reject(err);

@@ -18,8 +18,12 @@ const io = socketIo(server, {
 const db = new GameDatabase();
 
 // Middleware
-app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
+
+// Static files for each app
+app.use('/app', express.static(path.join(__dirname, 'public/app')));
+app.use('/dashboard', express.static(path.join(__dirname, 'public/dashboard')));
+app.use('/panel', express.static(path.join(__dirname, 'public/panel')));
 
 // Global variables
 const activeGames = new Map(); // gamePin -> GameInstance (in-memory for performance)
@@ -203,15 +207,34 @@ function loadQuestions(category = 'general') {
 
 // Routes
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.redirect('/app');
 });
 
+// Player app routes (SPA)
+app.get('/app', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/app/app.html'));
+});
+
+app.get('/app/:pin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/app/app.html'));
+});
+
+// Dashboard routes
 app.get('/dashboard', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+  res.sendFile(path.join(__dirname, 'public/dashboard/dashboard.html'));
 });
 
+app.get('/dashboard/:pin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/dashboard/dashboard.html'));
+});
+
+// Panel routes
 app.get('/panel', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'panel.html'));
+  res.sendFile(path.join(__dirname, 'public/panel/panel.html'));
+});
+
+app.get('/panel/:pin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/panel/panel.html'));
 });
 
 // Favicon fallback
@@ -472,12 +495,12 @@ io.on('connection', (socket) => {
         game = new GameInstance(data.gamePin, gameData.questions, gameData.id);
         game.phase = gameData.status.toUpperCase();
         game.currentQuestionIndex = gameData.current_question_index;
-        
+      
         // Restore players
         players.forEach(playerData => {
           game.addPlayer(playerData.id, playerData);
         });
-        
+      
         activeGames.set(data.gamePin, game);
       }
 
@@ -485,56 +508,57 @@ io.on('connection', (socket) => {
         socket.emit('join_error', { message: 'Hra už prebieha, nemôžete sa pripojiť' });
         return;
       }
-      
-      // Add player to database
-      const playerResult = await db.addPlayer(gameData.id, data.playerName);
-      
+    
+      // Add player to database - no name needed
+      const playerResult = await db.addPlayer(gameData.id);
+    
       // Add to in-memory game
       game.addPlayer(playerResult.playerId, {
-        name: playerResult.name,
+        name: `Player ${playerResult.playerId}`,
         player_token: playerResult.playerToken,
         score: 0
       });
-      
+    
       const player = game.players.get(playerResult.playerId);
       player.socketId = socket.id;
-      
+    
       // Store player info
       socketToPlayer.set(socket.id, {
         gamePin: data.gamePin,
         playerId: playerResult.playerId,
         playerToken: playerResult.playerToken
       });
-      
+    
       socket.join(`game_${data.gamePin}`);
-      
+    
       socket.emit('game_joined', {
         gamePin: data.gamePin,
-        playerName: playerResult.name,
+        playerId: playerResult.playerId,
         playersCount: Array.from(game.players.values()).filter(p => p.connected).length,
         playerToken: playerResult.playerToken
       });
-      
+    
       // Update dashboard with new player count
       if (game.moderatorSocket) {
         const connectedPlayers = Array.from(game.players.values()).filter(p => p.connected);
         io.to(game.moderatorSocket).emit('player_joined', {
-          playerName: playerResult.name,
+          playerId: playerResult.playerId,
           totalPlayers: connectedPlayers.length,
-          players: connectedPlayers.map(p => p.name)
+          players: connectedPlayers.map(p => ({ id: p.id, name: p.name }))
         });
       }
-      
+    
       // Update panel leaderboard
       updatePanelLeaderboard(game);
-      
-      console.log(`Player ${playerResult.name} joined game ${data.gamePin}`);
-      
+    
+      console.log(`Player ${playerResult.playerId} joined game ${data.gamePin}`);
+    
     } catch (error) {
       console.error('Join game error:', error);
       socket.emit('join_error', { message: 'Chyba pri pripájaní do hry' });
     }
   });
+
 
   // Player: Reconnect
   socket.on('reconnect_player', async (data) => {
@@ -598,7 +622,7 @@ io.on('connection', (socket) => {
 
       socket.emit('player_reconnected', {
         gamePin: data.gamePin,
-        playerName: playerData.name,
+        playerId: playerData.id,
         score: playerData.score,
         gameStatus: game.phase
       });
@@ -861,6 +885,7 @@ setInterval(async () => {
 setInterval(async () => {
   try {
     await db.cleanupOldGames();
+    console.log('Old games cleanup completed');
   } catch (error) {
     console.error('Cleanup error:', error);
   }
@@ -883,6 +908,7 @@ process.on('SIGINT', async () => {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Quiz server running on http://localhost:${PORT}`);
+  console.log(`Player app: http://localhost:${PORT}/app`);
   console.log(`Dashboard: http://localhost:${PORT}/dashboard`);
-  console.log(`Panel: http://localhost:${PORT}/panel?pin=GAMEPIN`);
+  console.log(`Panel: http://localhost:${PORT}/panel`);
 });
