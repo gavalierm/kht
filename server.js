@@ -24,6 +24,7 @@ app.use(express.json());
 app.use('/app', express.static(path.join(__dirname, 'public/app')));
 app.use('/dashboard', express.static(path.join(__dirname, 'public/dashboard')));
 app.use('/panel', express.static(path.join(__dirname, 'public/panel')));
+app.use('/shared', express.static(path.join(__dirname, 'public/shared')));
 
 // Global variables
 const activeGames = new Map(); // gamePin -> GameInstance (in-memory for performance)
@@ -222,6 +223,11 @@ app.get('/app/:pin', (req, res) => {
 // App game page (after joining with PIN)
 app.get('/app/:pin/game', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/app/app.html'));
+});
+
+// App panel page (fullscreen display for venues)
+app.get('/app/:pin/panel', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/panel/panel.html'));
 });
 
 // Dashboard routes

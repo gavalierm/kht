@@ -15,6 +15,7 @@ describe('End-to-End Application Flow', () => {
     app.use('/app', express.static(path.join(__dirname, '../../public/app')));
     app.use('/dashboard', express.static(path.join(__dirname, '../../public/dashboard')));
     app.use('/panel', express.static(path.join(__dirname, '../../public/panel')));
+    app.use('/shared', express.static(path.join(__dirname, '../../public/shared')));
     
     // Routes
     app.get('/', (req, res) => {
@@ -31,6 +32,10 @@ describe('End-to-End Application Flow', () => {
     
     app.get('/app/:pin/game', (req, res) => {
       res.sendFile(path.join(__dirname, '../../public/app/app.html'));
+    });
+    
+    app.get('/app/:pin/panel', (req, res) => {
+      res.sendFile(path.join(__dirname, '../../public/panel/panel.html'));
     });
     
     // Mock API endpoint
@@ -100,6 +105,17 @@ describe('End-to-End Application Flow', () => {
       const html = await response.text();
       expect(html).toContain('Zahraj si s nami kvízovú hru!');
       expect(html).toContain('id="game"');
+    });
+
+    test('should serve panel with PIN and panel suffix', async () => {
+      const response = await fetch(`http://localhost:${port}/app/123456/panel`);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toContain('text/html');
+      
+      const html = await response.text();
+      expect(html).toContain('Quiz Panel - Fullscreen Display');
+      expect(html).toContain('panel-container');
+      expect(html).toContain('panel-leaderboard');
     });
 
     test('should handle favicon requests', async () => {
@@ -225,6 +241,16 @@ describe('End-to-End Application Flow', () => {
       expect(html).toContain('<style>');
       expect(html).toContain('background: #47109e'); // App's purple background
       expect(html).toContain('.page'); // CSS classes
+    });
+
+    test('should serve shared CSS file', async () => {
+      const response = await fetch(`http://localhost:${port}/shared/common.css`);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toContain('text/css');
+      
+      const css = await response.text();
+      expect(css).toContain('--primary-purple: #47109e');
+      expect(css).toContain('option-a, .panel-option-a');
     });
 
     test('should have proper Slovak language content', async () => {
