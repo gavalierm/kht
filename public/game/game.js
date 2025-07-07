@@ -1,9 +1,9 @@
-import { GameAPI } from '../lib/api.js';
-import { defaultSocketManager } from '../lib/socket.js';
-import { defaultNotificationManager } from '../lib/notifications.js';
-import { defaultGameState } from '../lib/game.js';
-import { defaultRouter } from '../lib/router.js';
-import { defaultDOMHelper } from '../lib/dom.js';
+import { GameAPI } from '../shared/api.js';
+import { defaultSocketManager } from '../shared/socket.js';
+import { defaultNotificationManager } from '../shared/notifications.js';
+import { defaultGameState } from '../shared/gameState.js';
+import { defaultRouter } from '../shared/router.js';
+import { defaultDOMHelper } from '../shared/dom.js';
 import { SOCKET_EVENTS, GAME_STATES, ANSWER_OPTIONS, ANSWER_OPTION_CLASSES, ELEMENT_IDS, UI_CONSTANTS } from '../constants.js';
 
 class App {
