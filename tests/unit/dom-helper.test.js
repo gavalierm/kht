@@ -1,328 +1,226 @@
 /**
  * DOM Helper Test Suite
  * Testing the DOM manipulation utility functions
+ * @jest-environment jsdom
  */
 
-// Mock DOM for testing
-class MockElement {
-	constructor(id) {
-		this.id = id;
-		this.textContent = '';
-		this.innerHTML = '';
-		this.classList = new MockClassList();
-		this.style = {};
-		this.attributes = {};
-	}
-
-	setAttribute(name, value) {
-		this.attributes[name] = value;
-	}
-
-	removeAttribute(name) {
-		delete this.attributes[name];
-	}
-
-	getAttribute(name) {
-		return this.attributes[name];
-	}
-
-	hasAttribute(name) {
-		return name in this.attributes;
-	}
-}
-
-class MockClassList {
-	constructor() {
-		this.classes = new Set();
-	}
-
-	add(className) {
-		this.classes.add(className);
-	}
-
-	remove(className) {
-		this.classes.delete(className);
-	}
-
-	toggle(className) {
-		if (this.classes.has(className)) {
-			this.classes.delete(className);
-			return false;
-		} else {
-			this.classes.add(className);
-			return true;
-		}
-	}
-
-	contains(className) {
-		return this.classes.has(className);
-	}
-}
-
-// Mock document
-const mockDocument = {
-	getElementById: jest.fn(),
-	querySelector: jest.fn(),
-	querySelectorAll: jest.fn(),
-	createElement: jest.fn(() => new MockElement()),
-	readyState: 'complete'
-};
-
-// Setup global mocks
-global.document = mockDocument;
-global.console = {
-	warn: jest.fn(),
-	log: jest.fn(),
-	error: jest.fn()
-};
-
-// Create DOMHelper class locally for testing since we can't import ES modules in Jest
-class DOMHelper {
-	constructor() {
-		this.elementCache = new Map();
-	}
-
-	getElementById(id) {
-		if (!this.elementCache.has(id)) {
-			this.elementCache.set(id, document.getElementById(id));
-		}
-		return this.elementCache.get(id);
-	}
-
-	setText(element, text) {
-		const el = typeof element === 'string' ? this.getElementById(element) : element;
-		if (el && typeof el.textContent !== 'undefined') {
-			el.textContent = text;
-		} else if (!el) {
-			console.warn(`DOM Helper: Element not found for setText: ${element}`);
-		}
-	}
-
-	setEnabled(element, enabled) {
-		const el = typeof element === 'string' ? this.getElementById(element) : element;
-		if (el) {
-			if (enabled) {
-				el.removeAttribute('disabled');
-			} else {
-				el.setAttribute('disabled', 'disabled');
-			}
-		}
-	}
-
-	addClass(element, className) {
-		const el = typeof element === 'string' ? this.getElementById(element) : element;
-		if (el) {
-			el.classList.add(className);
-		}
-	}
-
-	removeClass(element, className) {
-		const el = typeof element === 'string' ? this.getElementById(element) : element;
-		if (el) {
-			el.classList.remove(className);
-		}
-	}
-
-	toggleClass(element, className) {
-		const el = typeof element === 'string' ? this.getElementById(element) : element;
-		if (el) {
-			el.classList.toggle(className);
-		}
-	}
-
-	hasClass(element, className) {
-		const el = typeof element === 'string' ? this.getElementById(element) : element;
-		return el ? el.classList.contains(className) : false;
-	}
-
-	setStyle(element, property, value) {
-		const el = typeof element === 'string' ? this.getElementById(element) : element;
-		if (el) {
-			el.style[property] = value;
-		}
-	}
-
-	setStyles(element, styles) {
-		const el = typeof element === 'string' ? this.getElementById(element) : element;
-		if (el) {
-			Object.keys(styles).forEach(property => {
-				el.style[property] = styles[property];
-			});
-		}
-	}
-
-	cacheElements(ids) {
-		const elements = {};
-		ids.forEach(id => {
-			elements[id] = this.getElementById(id);
-		});
-		return elements;
-	}
-
-	clearCache() {
-		this.elementCache.clear();
-	}
-}
+import { DOMHelper } from '../../public/shared/dom.js';
 
 describe('DOMHelper', () => {
 	let domHelper;
-	let mockElement;
 
 	beforeEach(() => {
+		// Create a clean DOM environment for each test
+		document.body.innerHTML = '';
 		domHelper = new DOMHelper();
-		mockElement = new MockElement('test-element');
-		
-		// Reset mocks
-		jest.clearAllMocks();
-		mockDocument.getElementById.mockReturnValue(mockElement);
 	});
 
 	describe('Element caching', () => {
 		test('should cache elements by ID', () => {
-			const element = domHelper.getElementById('test-id');
-			
-			expect(mockDocument.getElementById).toHaveBeenCalledWith('test-id');
-			expect(element).toBe(mockElement);
-			
-			// Second call should use cache
-			const cachedElement = domHelper.getElementById('test-id');
-			expect(mockDocument.getElementById).toHaveBeenCalledTimes(1);
-			expect(cachedElement).toBe(mockElement);
+			// Create a test element
+			const testElement = document.createElement('div');
+			testElement.id = 'test-element';
+			document.body.appendChild(testElement);
+
+			// First call should fetch and cache
+			const element1 = domHelper.getElementById('test-element');
+			expect(element1).toBe(testElement);
+
+			// Second call should return cached element
+			const element2 = domHelper.getElementById('test-element');
+			expect(element2).toBe(element1);
+			expect(element2).toBe(testElement);
 		});
 
 		test('should cache multiple elements', () => {
-			const elements = domHelper.cacheElements(['element1', 'element2']);
+			// Create multiple test elements
+			const element1 = document.createElement('div');
+			element1.id = 'element1';
+			const element2 = document.createElement('span');
+			element2.id = 'element2';
 			
-			expect(elements).toHaveProperty('element1');
-			expect(elements).toHaveProperty('element2');
-			expect(mockDocument.getElementById).toHaveBeenCalledWith('element1');
-			expect(mockDocument.getElementById).toHaveBeenCalledWith('element2');
+			document.body.appendChild(element1);
+			document.body.appendChild(element2);
+
+			// Cache both elements
+			const cached1 = domHelper.getElementById('element1');
+			const cached2 = domHelper.getElementById('element2');
+
+			expect(cached1).toBe(element1);
+			expect(cached2).toBe(element2);
 		});
 	});
 
 	describe('Text manipulation', () => {
 		test('should set text content', () => {
-			domHelper.setText(mockElement, 'Test text');
-			expect(mockElement.textContent).toBe('Test text');
+			const testElement = document.createElement('div');
+			testElement.id = 'test-text';
+			document.body.appendChild(testElement);
+
+			domHelper.setText(testElement, 'Hello World');
+			expect(testElement.textContent).toBe('Hello World');
 		});
 
 		test('should set text content by element ID', () => {
-			domHelper.setText('test-id', 'Test text by ID');
-			expect(mockElement.textContent).toBe('Test text by ID');
+			const testElement = document.createElement('div');
+			testElement.id = 'test-text-id';
+			document.body.appendChild(testElement);
+
+			domHelper.setText('test-text-id', 'Hello by ID');
+			expect(testElement.textContent).toBe('Hello by ID');
 		});
 
 		test('should handle null element gracefully', () => {
-			mockDocument.getElementById.mockReturnValue(null);
-			domHelper.setText('non-existent', 'text');
-			expect(console.warn).toHaveBeenCalled();
+			expect(() => domHelper.setText(null, 'test')).not.toThrow();
+			expect(() => domHelper.setText('non-existent-id', 'test')).not.toThrow();
 		});
 	});
 
 	describe('CSS class manipulation', () => {
 		test('should add CSS class', () => {
-			domHelper.addClass(mockElement, 'test-class');
-			expect(mockElement.classList.contains('test-class')).toBe(true);
+			const testElement = document.createElement('div');
+			testElement.id = 'test-class';
+			document.body.appendChild(testElement);
+
+			domHelper.addClass(testElement, 'new-class');
+			expect(testElement.classList.contains('new-class')).toBe(true);
 		});
 
 		test('should remove CSS class', () => {
-			mockElement.classList.add('existing-class');
-			domHelper.removeClass(mockElement, 'existing-class');
-			expect(mockElement.classList.contains('existing-class')).toBe(false);
+			const testElement = document.createElement('div');
+			testElement.id = 'test-class-remove';
+			testElement.className = 'existing-class';
+			document.body.appendChild(testElement);
+
+			domHelper.removeClass(testElement, 'existing-class');
+			expect(testElement.classList.contains('existing-class')).toBe(false);
 		});
 
 		test('should toggle CSS class', () => {
-			domHelper.toggleClass(mockElement, 'toggle-class');
-			expect(mockElement.classList.contains('toggle-class')).toBe(true);
-			
-			domHelper.toggleClass(mockElement, 'toggle-class');
-			expect(mockElement.classList.contains('toggle-class')).toBe(false);
+			const testElement = document.createElement('div');
+			testElement.id = 'test-toggle';
+			document.body.appendChild(testElement);
+
+			// Toggle on
+			domHelper.toggleClass(testElement, 'toggle-class');
+			expect(testElement.classList.contains('toggle-class')).toBe(true);
+
+			// Toggle off
+			domHelper.toggleClass(testElement, 'toggle-class');
+			expect(testElement.classList.contains('toggle-class')).toBe(false);
 		});
 
 		test('should check if element has class', () => {
-			mockElement.classList.add('has-class');
-			expect(domHelper.hasClass(mockElement, 'has-class')).toBe(true);
-			expect(domHelper.hasClass(mockElement, 'no-class')).toBe(false);
+			const testElement = document.createElement('div');
+			testElement.id = 'test-has-class';
+			testElement.className = 'existing-class';
+			document.body.appendChild(testElement);
+
+			expect(domHelper.hasClass(testElement, 'existing-class')).toBe(true);
+			expect(domHelper.hasClass(testElement, 'non-existing-class')).toBe(false);
 		});
 	});
 
 	describe('Element enable/disable functionality', () => {
 		test('should enable element by removing disabled attribute', () => {
-			mockElement.setAttribute('disabled', 'disabled');
-			
-			domHelper.setEnabled(mockElement, true);
-			
-			expect(mockElement.hasAttribute('disabled')).toBe(false);
+			const testElement = document.createElement('button');
+			testElement.id = 'test-enable';
+			testElement.disabled = true;
+			document.body.appendChild(testElement);
+
+			domHelper.enable(testElement);
+			expect(testElement.disabled).toBe(false);
 		});
 
 		test('should disable element by adding disabled attribute', () => {
-			domHelper.setEnabled(mockElement, false);
-			
-			expect(mockElement.hasAttribute('disabled')).toBe(true);
-			expect(mockElement.getAttribute('disabled')).toBe('disabled');
+			const testElement = document.createElement('button');
+			testElement.id = 'test-disable';
+			document.body.appendChild(testElement);
+
+			domHelper.disable(testElement);
+			expect(testElement.disabled).toBe(true);
 		});
 
 		test('should work with element ID string', () => {
-			domHelper.setEnabled('test-id', false);
-			
-			expect(mockElement.hasAttribute('disabled')).toBe(true);
+			const testElement = document.createElement('input');
+			testElement.id = 'test-enable-id';
+			document.body.appendChild(testElement);
+
+			domHelper.disable('test-enable-id');
+			expect(testElement.disabled).toBe(true);
+
+			domHelper.enable('test-enable-id');
+			expect(testElement.disabled).toBe(false);
 		});
 
 		test('should handle null element gracefully', () => {
-			mockDocument.getElementById.mockReturnValue(null);
-			
-			expect(() => {
-				domHelper.setEnabled('non-existent', true);
-			}).not.toThrow();
+			expect(() => domHelper.enable(null)).not.toThrow();
+			expect(() => domHelper.disable(null)).not.toThrow();
 		});
 
 		test('should handle toggling enabled state', () => {
-			// Start enabled
-			domHelper.setEnabled(mockElement, true);
-			expect(mockElement.hasAttribute('disabled')).toBe(false);
-			
-			// Disable
-			domHelper.setEnabled(mockElement, false);
-			expect(mockElement.hasAttribute('disabled')).toBe(true);
-			
-			// Re-enable
-			domHelper.setEnabled(mockElement, true);
-			expect(mockElement.hasAttribute('disabled')).toBe(false);
+			const testElement = document.createElement('button');
+			testElement.id = 'test-toggle-enabled';
+			document.body.appendChild(testElement);
+
+			// Initially enabled
+			expect(testElement.disabled).toBe(false);
+
+			domHelper.disable(testElement);
+			expect(testElement.disabled).toBe(true);
+
+			domHelper.enable(testElement);
+			expect(testElement.disabled).toBe(false);
 		});
 	});
 
 	describe('Style manipulation', () => {
 		test('should set single style property', () => {
-			domHelper.setStyle(mockElement, 'color', 'red');
-			expect(mockElement.style.color).toBe('red');
+			const testElement = document.createElement('div');
+			testElement.id = 'test-style';
+			document.body.appendChild(testElement);
+
+			domHelper.setStyle(testElement, 'color', 'red');
+			expect(testElement.style.color).toBe('red');
 		});
 
 		test('should set multiple style properties', () => {
+			const testElement = document.createElement('div');
+			testElement.id = 'test-styles';
+			document.body.appendChild(testElement);
+
 			const styles = {
 				color: 'blue',
 				fontSize: '16px',
 				display: 'block'
 			};
-			
-			domHelper.setStyles(mockElement, styles);
-			
-			expect(mockElement.style.color).toBe('blue');
-			expect(mockElement.style.fontSize).toBe('16px');
-			expect(mockElement.style.display).toBe('block');
+
+			domHelper.setStyles(testElement, styles);
+			expect(testElement.style.color).toBe('blue');
+			expect(testElement.style.fontSize).toBe('16px');
+			expect(testElement.style.display).toBe('block');
 		});
 	});
 
 	describe('Cache management', () => {
 		test('should clear element cache', () => {
-			// Cache an element
-			domHelper.getElementById('test-id');
-			expect(mockDocument.getElementById).toHaveBeenCalledTimes(1);
-			
+			// Create and cache an element
+			const testElement = document.createElement('div');
+			testElement.id = 'test-cache-clear';
+			document.body.appendChild(testElement);
+
+			const cached = domHelper.getElementById('test-cache-clear');
+			expect(cached).toBe(testElement);
+
 			// Clear cache
 			domHelper.clearCache();
-			
-			// Should call getElementById again
-			domHelper.getElementById('test-id');
-			expect(mockDocument.getElementById).toHaveBeenCalledTimes(2);
+
+			// Remove element from DOM
+			testElement.remove();
+
+			// Should return null after cache clear and element removal
+			const afterClear = domHelper.getElementById('test-cache-clear');
+			expect(afterClear).toBeNull();
 		});
 	});
 });

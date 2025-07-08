@@ -1,23 +1,50 @@
 module.exports = {
-  // Test environment - use jsdom for DOM tests
-  testEnvironment: 'node',
-  
-  // Override test environment for specific files
-  testEnvironmentOptions: {},
-  
-  // Test file patterns
-  testMatch: [
-    '**/tests/**/*.test.js',
-    '**/tests/**/*.spec.js'
+  // Multiple project configurations for different environments
+  projects: [
+    {
+      displayName: 'node',
+      testEnvironment: 'node',
+      testMatch: [
+        '**/tests/unit/server-*.test.js',
+        '**/tests/unit/database*.test.js', 
+        '**/tests/unit/game-instance.test.js',
+        '**/tests/unit/game-logic.test.js',
+        '**/tests/integration/*.test.js',
+        '**/tests/e2e/*.test.js'
+      ],
+      // Setup and teardown for Node.js tests
+      setupFilesAfterEnv: ['<rootDir>/tests/helpers/setup.js'],
+    },
+    {
+      displayName: 'jsdom',
+      testEnvironment: 'jsdom',
+      testMatch: [
+        '**/tests/unit/connection-status.test.js',
+        '**/tests/unit/dom-helper.test.js',
+        '**/tests/unit/client-*.test.js'
+      ],
+      // Transform ES6 modules for frontend tests
+      transform: {
+        '^.+\\.m?js$': 'babel-jest'
+      },
+      transformIgnorePatterns: [
+        'node_modules/(?!(public)/)'
+      ],
+      // Setup for JSDOM tests
+      setupFilesAfterEnv: ['<rootDir>/tests/helpers/setup.js'],
+    }
   ],
   
   // Coverage configuration
   collectCoverage: false, // Enable only when needed
   collectCoverageFrom: [
     'database.js',
+    'lib/**/*.js',
+    'public/shared/**/*.js',
     '!node_modules/**',
     '!coverage/**',
     '!jest.config.js',
+    '!babel.config.js',
     '!tests/**',
     '!_server.js',
     '!server.js'
@@ -33,9 +60,6 @@ module.exports = {
     }
   },
   
-  // Setup and teardown
-  setupFilesAfterEnv: ['<rootDir>/tests/helpers/setup.js'],
-  
   // Test timeout (important for Socket.io tests)
   testTimeout: 10000,
   
@@ -47,9 +71,6 @@ module.exports = {
   
   // Module directories
   moduleDirectories: ['node_modules', '<rootDir>'],
-  
-  // Transform configuration (if needed for ES modules)
-  transform: {},
   
   // Global variables available in tests
   globals: {
