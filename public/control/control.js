@@ -27,7 +27,6 @@ class ControlApp {
 		this.playerCount = 0;
 		this.currentQuestion = 0;
 		this.moderatorToken = null;
-		this.isConnectedToGame = false;
 		
 		// UI state
 		this.questionsCollapsed = false;
@@ -61,8 +60,6 @@ class ControlApp {
 			'startGameBtn',
 			'pauseGameBtn',
 			'endGameBtn',
-			'statusIndicator',
-			'statusText',
 			'gamePinDisplay',
 			'playerCountDisplay',
 			'currentQuestionDisplay',
@@ -234,7 +231,6 @@ class ControlApp {
 	handleGameCreated(data) {
 		this.moderatorToken = data.moderatorToken;
 		this.gamePin = data.pin;
-		this.isConnectedToGame = true;
 		
 		// Store moderator token for reconnection
 		localStorage.setItem(`moderator_token_${this.gamePin}`, this.moderatorToken);
@@ -426,7 +422,6 @@ class ControlApp {
 		
 		this.setLoginLoading(false);
 		this.isLoggedIn = true;
-		this.isConnectedToGame = true;
 		this.moderatorToken = data.moderatorToken;
 		this.gameState = data.status || 'waiting';
 		this.playerCount = data.totalPlayers || 0;
@@ -461,7 +456,6 @@ class ControlApp {
 		
 		this.setLoginLoading(false);
 		this.isLoggedIn = false;
-		this.isConnectedToGame = false;
 		
 		console.log('Login error for game:', this.gamePin, error);
 		this.notifications.showError(error.message || 'Chyba pri prihlasovaní');
@@ -473,7 +467,6 @@ class ControlApp {
 		
 		// Reset state
 		this.isLoggedIn = false;
-		this.isConnectedToGame = false;
 		this.moderatorToken = null;
 		this.gameState = 'stopped';
 		this.playerCount = 0;
@@ -806,10 +799,6 @@ class ControlApp {
 			return;
 		}
 
-		if (!this.isConnectedToGame) {
-			this.notifications.showError('Nie ste pripojený k hre');
-			return;
-		}
 
 		// Start the first question via socket
 		this.socket.emit(SOCKET_EVENTS.START_QUESTION, { gamePin: this.gamePin });
@@ -844,36 +833,13 @@ class ControlApp {
 	}
 
 	updateGameControlUI() {
-		// Update status indicator and text
-		if (this.elements.statusIndicator && this.elements.statusText) {
-			this.elements.statusIndicator.className = 'status-indicator';
-			
-			if (!this.isConnectedToGame) {
-				this.elements.statusText.textContent = 'Nie ste pripojený ako moderátor';
-			} else {
-				switch (this.gameState) {
-					case 'running':
-						this.elements.statusIndicator.classList.add('active');
-						this.elements.statusText.textContent = 'Hra beží';
-						break;
-					case 'paused':
-						this.elements.statusIndicator.classList.add('paused');
-						this.elements.statusText.textContent = 'Hra je pozastavená';
-						break;
-					default:
-						this.elements.statusIndicator.classList.add('active');
-						this.elements.statusText.textContent = 'Pripojený ako moderátor';
-				}
-			}
-		}
-
 		// Update button states
 		if (this.elements.startGameBtn) {
-			this.elements.startGameBtn.disabled = !this.isConnectedToGame || this.gameState === 'running';
+			this.elements.startGameBtn.disabled = this.gameState === 'running';
 		}
 
 		if (this.elements.pauseGameBtn) {
-			this.elements.pauseGameBtn.disabled = !this.isConnectedToGame;
+			this.elements.pauseGameBtn.disabled = false;
 			const pauseText = this.elements.pauseGameBtn.querySelector('span:last-child');
 			if (pauseText) {
 				pauseText.textContent = this.gameState === 'running' ? 'Ukončiť otázku' : 'Spustiť otázku';
@@ -881,13 +847,12 @@ class ControlApp {
 		}
 
 		if (this.elements.endGameBtn) {
-			this.elements.endGameBtn.disabled = !this.isConnectedToGame;
+			this.elements.endGameBtn.disabled = false;
 		}
 
 		// Update game info
 		if (this.elements.gameInfo) {
-			const shouldShow = this.isConnectedToGame;
-			this.elements.gameInfo.style.display = shouldShow ? 'block' : 'none';
+			this.elements.gameInfo.style.display = 'block';
 		}
 
 		// Update game PIN display
@@ -902,11 +867,7 @@ class ControlApp {
 
 		// Update current question
 		if (this.elements.currentQuestionDisplay) {
-			if (!this.isConnectedToGame) {
-				this.elements.currentQuestionDisplay.textContent = '-';
-			} else {
-				this.elements.currentQuestionDisplay.textContent = `${this.currentQuestion + 1} / ${this.questions.length}`;
-			}
+			this.elements.currentQuestionDisplay.textContent = `${this.currentQuestion + 1} / ${this.questions.length}`;
 		}
 	}
 
