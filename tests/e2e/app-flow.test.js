@@ -38,6 +38,14 @@ describe('End-to-End Application Flow', () => {
       res.sendFile(path.join(__dirname, '../../public/panel/panel.html'));
     });
     
+    app.get('/app/:pin/stage', (req, res) => {
+      res.sendFile(path.join(__dirname, '../../public/stage/stage.html'));
+    });
+    
+    app.get('/app/:pin/dashboard', (req, res) => {
+      res.sendFile(path.join(__dirname, '../../public/dashboard/dashboard.html'));
+    });
+    
     // Mock API endpoint
     app.get('/api/game/:pin', (req, res) => {
       const pin = req.params.pin;
@@ -116,6 +124,26 @@ describe('End-to-End Application Flow', () => {
       expect(html).toContain('Quiz Panel - Fullscreen Display');
       expect(html).toContain('panel-container');
       expect(html).toContain('panel-leaderboard');
+    });
+
+    test('should serve stage with PIN and stage suffix', async () => {
+      const response = await fetch(`http://localhost:${port}/app/123456/stage`);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toContain('text/html');
+      
+      const html = await response.text();
+      expect(html).toContain('Final Leaderboard');
+      expect(html).toContain('Finálne výsledky');
+    });
+
+    test('should serve dashboard with PIN and dashboard suffix', async () => {
+      const response = await fetch(`http://localhost:${port}/app/123456/dashboard`);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toContain('text/html');
+      
+      const html = await response.text();
+      expect(html).toContain('Master Control Panel');
+      expect(html).toContain('Ovládanie hry');
     });
 
     test('should handle favicon requests', async () => {
