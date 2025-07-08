@@ -193,6 +193,10 @@ class ControlApp {
 			this.handleQuestionEnded(data);
 		});
 
+		this.socket.on(SOCKET_EVENTS.GAME_ENDED_DASHBOARD, (data) => {
+			this.handleGameEndedDashboard(data);
+		});
+
 		this.socket.on('start_question_error', (error) => {
 			this.notifications.showError(error.message || 'Chyba pri spustení otázky');
 		});
@@ -786,16 +790,51 @@ class ControlApp {
 
 	handleEndGame() {
 		if (confirm('Naozaj chcete ukončiť hru? Všetok postup bude stratený.')) {
-			// First end current question if running
-			if (this.gameState === 'running') {
-				this.socket.emit(SOCKET_EVENTS.END_QUESTION, { gamePin: this.gamePin });
-			}
+			// End the game using the new END_GAME event
+			this.socket.emit(SOCKET_EVENTS.END_GAME, { gamePin: this.gamePin });
 			
 			// Reset local state
-			this.gameState = 'waiting';
-			this.currentQuestion = 0;
+			this.gameState = 'finished';
 			this.updateGameControlUI();
 			this.notifications.showSuccess('Hra bola ukončená');
+		}
+	}
+
+	handleGameEndedDashboard(data) {
+		console.log('Game ended dashboard event:', data);
+		
+		// Update local state
+		this.gameState = 'finished';
+		this.updateGameControlUI();
+		
+		// Show final results notification
+		this.notifications.showSuccess(`Hra ukončená! Celkovo ${data.totalPlayers} hráčov dokončilo ${data.totalQuestions} otázok.`);
+		
+		// Update game info display with final statistics
+		this.updateGameInfoWithFinalStats(data);
+	}
+
+	updateGameInfoWithFinalStats(data) {
+		console.log('Updating game info with final stats:', data);
+		
+		// Make game info visible
+		if (this.elements.gameInfo) {
+			this.elements.gameInfo.style.display = 'block';
+		}
+
+		// Update game PIN display
+		if (this.elements.gamePinDisplay && this.gamePin) {
+			this.elements.gamePinDisplay.textContent = this.gamePin;
+		}
+
+		// Update player count with final count
+		if (this.elements.playerCountDisplay) {
+			this.elements.playerCountDisplay.textContent = data.totalPlayers || this.playerCount;
+		}
+
+		// Update current question display to show completion status
+		if (this.elements.currentQuestionDisplay) {
+			this.elements.currentQuestionDisplay.textContent = `Dokončené: ${data.totalQuestions || this.questions.length} otázok`;
 		}
 	}
 

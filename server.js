@@ -500,6 +500,14 @@ io.on('connection', (socket) => {
     endQuestion(game);
   });
 
+  // Dashboard: End game manually
+  socket.on('end_game', (data) => {
+    const game = activeGames.get(data.gamePin);
+    if (!game || game.moderatorSocket !== socket.id) return;
+    
+    endGame(game);
+  });
+
   // Player: Join game
   socket.on('join_game', async (data) => {
     try {
@@ -852,6 +860,42 @@ async function endQuestion(game) {
   await game.syncToDatabase();
   
   console.log(`Question ended in game ${game.gamePin}`);
+  
+  // Check if this was the last question and end the game
+  if (game.currentQuestionIndex >= game.questions.length - 1) {
+    console.log(`Last question completed in game ${game.gamePin}, ending game`);
+    setTimeout(async () => {
+      await endGame(game);
+    }, 5000); // Wait 5 seconds before ending the game to show results
+  }
+}
+
+// Helper function to end game
+async function endGame(game) {
+  game.phase = 'FINISHED';
+  const leaderboard = game.getLeaderboard();
+  
+  const gameEndData = {
+    leaderboard: leaderboard,
+    totalPlayers: Array.from(game.players.values()).filter(p => p.connected).length,
+    totalQuestions: game.questions.length
+  };
+  
+  // Send to all players
+  io.to(`game_${game.gamePin}`).emit('game_ended', gameEndData);
+  
+  // Send to dashboard
+  if (game.moderatorSocket) {
+    io.to(game.moderatorSocket).emit('game_ended_dashboard', gameEndData);
+  }
+  
+  // Send to panels
+  io.to(`game_${game.gamePin}_panel`).emit('panel_game_ended', gameEndData);
+  
+  // Sync to database
+  await game.syncToDatabase();
+  
+  console.log(`Game ended: ${game.gamePin}`);
 }
 
 // Helper function to update control panel stats

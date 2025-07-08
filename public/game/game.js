@@ -153,6 +153,11 @@ class App {
 			this.handleAnswerResult(data);
 		});
 
+		// Game end event
+		this.socket.on(SOCKET_EVENTS.GAME_ENDED, (data) => {
+			this.handleGameEnded(data);
+		});
+
 		// Latency measurement
 		this.socket.on(SOCKET_EVENTS.LATENCY_PING, (timestamp) => {
 			this.socket.emit(SOCKET_EVENTS.LATENCY_PONG, timestamp);
@@ -577,6 +582,33 @@ class App {
 				this.setWaitingState();
 			}
 		}, UI_CONSTANTS.QUESTION_RESULT_DISPLAY_TIME);
+	}
+
+	handleGameEnded(data) {
+		console.log('Game ended:', data);
+		
+		// Show game ended notification
+		this.notifications.showInfo('Hra skončila - zobrazujem výsledky');
+		
+		// Clear any running timers
+		if (this.timerInterval) {
+			clearInterval(this.timerInterval);
+			this.timerInterval = null;
+		}
+		
+		// Clear game timers
+		this.gameState.clearTimers();
+		
+		// Redirect to stage interface to show final leaderboard
+		const gamePin = this.gameState.gamePin;
+		if (gamePin) {
+			setTimeout(() => {
+				this.router.redirectToStage(gamePin);
+			}, 2000); // Wait 2 seconds to show notification
+		} else {
+			// Fallback if no game PIN
+			this.router.redirectToJoin();
+		}
 	}
 
 	leaveGame() {

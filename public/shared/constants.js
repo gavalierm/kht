@@ -24,6 +24,10 @@ export const SOCKET_EVENTS = {
 	ANSWER_RESULT: 'answer_result',
 	LEAVE_GAME: 'leave_game',
 	
+	// Game end events
+	GAME_ENDED: 'game_ended',
+	GAME_ENDED_DASHBOARD: 'game_ended_dashboard',
+	
 	// Panel events
 	JOIN_PANEL: 'join_panel',
 	PANEL_GAME_JOINED: 'panel_game_joined',
@@ -31,6 +35,7 @@ export const SOCKET_EVENTS = {
 	PANEL_QUESTION_STARTED: 'panel_question_started',
 	PANEL_QUESTION_ENDED: 'panel_question_ended',
 	PANEL_LEADERBOARD_UPDATE: 'panel_leaderboard_update',
+	PANEL_GAME_ENDED: 'panel_game_ended',
 	
 	// Moderator events
 	CREATE_GAME: 'create_game',

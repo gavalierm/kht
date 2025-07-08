@@ -127,6 +127,11 @@ class PanelApp {
 			this.showResults(data);
 		});
 
+		this.socket.on(SOCKET_EVENTS.PANEL_GAME_ENDED, (data) => {
+			console.log('Game ended:', data);
+			this.showGameEnded(data);
+		});
+
 		// Leaderboard updates
 		this.socket.on(SOCKET_EVENTS.PANEL_LEADERBOARD_UPDATE, (data) => {
 			console.log('Leaderboard update:', data);
@@ -420,6 +425,31 @@ class PanelApp {
 		if (this.elements.loadingText) {
 			this.dom.setText(this.elements.loadingText, message);
 		}
+	}
+
+	showGameEnded(data) {
+		console.log('Showing game ended view:', data);
+		
+		// Update status to finished
+		this.updateStatus(GAME_STATES.FINISHED);
+		
+		// Show final leaderboard
+		if (data.leaderboard && this.elements.panelLeaderboardList) {
+			this.displayLeaderboard(data.leaderboard);
+		}
+		
+		// Update question info to show game completed
+		if (this.elements.panelQuestionText) {
+			this.dom.setText(this.elements.panelQuestionText, `🏆 Hra ukončená! Celkovo ${data.totalQuestions} otázok.`);
+		}
+		
+		// Hide options since game is over
+		if (this.elements.panelOptionsGrid) {
+			this.dom.addClass(this.elements.panelOptionsGrid, 'hidden');
+		}
+		
+		// Show completion message
+		this.notifications.showSuccess('Hra bola úspešne ukončená!');
 	}
 
 	showPanelInterface() {
