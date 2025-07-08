@@ -37,8 +37,11 @@ jobs:
         fi
       continue-on-error: false
       
-    - name: Run unit tests
+    - name: Run unit tests (Node.js environment)
       run: npm run test:unit
+      
+    - name: Run frontend tests (JSDOM environment)  
+      run: npm run test:frontend
       
     - name: Run integration tests
       run: npm run test:integration
