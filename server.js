@@ -420,6 +420,23 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Dashboard: Moderator logout
+  socket.on('moderator_logout', (data) => {
+    try {
+      const moderatorInfo = socketToModerator.get(socket.id);
+      if (moderatorInfo && moderatorInfo.gamePin === data.gamePin) {
+        // Clean up moderator session
+        const game = activeGames.get(data.gamePin);
+        if (game && game.moderatorSocket === socket.id) {
+          game.moderatorSocket = null;
+        }
+        socketToModerator.delete(socket.id);
+      }
+    } catch (error) {
+      console.error('Moderator logout error:', error);
+    }
+  });
+
   // Dashboard: Start question
   socket.on('start_question', async (data) => {
     const game = activeGames.get(data.gamePin);

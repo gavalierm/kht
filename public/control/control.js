@@ -420,6 +420,11 @@ class ControlApp {
 			this.loginTimeout = null;
 		}
 		
+		// Notify server about logout
+		if (this.gamePin && this.socket.connected()) {
+			this.socket.emit('moderator_logout', { gamePin: this.gamePin });
+		}
+		
 		// Clear stored token
 		localStorage.removeItem(`moderator_token_${this.gamePin}`);
 		
@@ -430,9 +435,8 @@ class ControlApp {
 		this.playerCount = 0;
 		this.currentQuestion = 0;
 		
-		// Reset socket connection to ensure clean state
-		this.socket.disconnect();
-		this.socket.connect();
+		// Clear any loading states
+		this.setLoginLoading(false);
 		
 		// Clear form
 		if (this.elements.moderatorPassword) this.elements.moderatorPassword.value = '';
