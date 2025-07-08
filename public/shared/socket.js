@@ -22,6 +22,7 @@ export class SocketManager {
 
 		this.socket = io();
 		this.setupBaseEvents();
+		this.restoreEventHandlers();
 		return this.socket;
 	}
 
@@ -153,6 +154,19 @@ export class SocketManager {
 			this.socket.disconnect();
 			this.socket = null;
 			this.isConnected = false;
+		}
+	}
+
+	/**
+	 * Restore event handlers after socket reconnection
+	 */
+	restoreEventHandlers() {
+		if (!this.socket) return;
+		
+		for (const [event, handlers] of this.eventHandlers.entries()) {
+			for (const handler of handlers) {
+				this.socket.on(event, handler);
+			}
 		}
 	}
 
