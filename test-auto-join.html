@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Auto-Join</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-link {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 10px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        .test-link:hover {
+            background: #0056b3;
+        }
+        .explanation {
+            background: #e7f3ff;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Auto-Join Functionality</h1>
+    
+    <div class="test-section">
+        <h2>1. Test Auto-Join with Valid PIN</h2>
+        <div class="explanation">
+            <p><strong>Expected behavior:</strong> Should automatically join the game with PIN 123456 (test game)</p>
+            <p><strong>What happens:</strong> Page loads, shows "Pripájam sa automaticky..." message, then joins the game</p>
+        </div>
+        <a href="http://localhost:3000/app/123456/game" class="test-link" target="_blank">
+            Test Auto-Join → /app/123456/game
+        </a>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Test Auto-Join with Invalid PIN</h2>
+        <div class="explanation">
+            <p><strong>Expected behavior:</strong> Should show error message and redirect to login page</p>
+            <p><strong>What happens:</strong> Shows "Hra s PIN 999999 neexistuje" and redirects to /app</p>
+        </div>
+        <a href="http://localhost:3000/app/999999/game" class="test-link" target="_blank">
+            Test Invalid PIN → /app/999999/game
+        </a>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Test Normal Flow (Manual PIN Entry)</h2>
+        <div class="explanation">
+            <p><strong>Expected behavior:</strong> Should show PIN input form</p>
+            <p><strong>What happens:</strong> Normal join page where user enters PIN manually</p>
+        </div>
+        <a href="http://localhost:3000/app" class="test-link" target="_blank">
+            Test Normal Flow → /app
+        </a>
+    </div>
+    
+    <div class="test-section">
+        <h2>4. Test Direct PIN Route</h2>
+        <div class="explanation">
+            <p><strong>Expected behavior:</strong> Should use smart redirect logic</p>
+            <p><strong>What happens:</strong> Checks game status and redirects appropriately</p>
+        </div>
+        <a href="http://localhost:3000/app/123456" class="test-link" target="_blank">
+            Test Direct PIN → /app/123456
+        </a>
+    </div>
+
+    <div class="test-section">
+        <h2>Server Status</h2>
+        <p>Make sure the server is running at <a href="http://localhost:3000">http://localhost:3000</a></p>
+        <p>Test game PIN: <strong>123456</strong></p>
+    </div>
+</body>
+</html>

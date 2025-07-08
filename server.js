@@ -46,9 +46,8 @@ app.use(express.json());
 
 // Static files for each app
 app.use('/app', express.static(path.join(__dirname, 'public/game')));
-app.use('/app-dashboard', express.static(path.join(__dirname, 'public/app-dashboard')));
-app.use('/control', express.static(path.join(__dirname, 'public/control')));
 app.use('/dashboard', express.static(path.join(__dirname, 'public/dashboard')));
+app.use('/control', express.static(path.join(__dirname, 'public/control')));
 app.use('/panel', express.static(path.join(__dirname, 'public/panel')));
 app.use('/stage', express.static(path.join(__dirname, 'public/stage')));
 app.use('/shared', express.static(path.join(__dirname, 'public/shared')));
@@ -94,7 +93,7 @@ app.get('/app/:pin/stage', (req, res) => {
 
 // App dashboard page (game creation interface)
 app.get('/app/dashboard', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/app-dashboard/app-dashboard.html'));
+  res.sendFile(path.join(__dirname, 'public/dashboard/dashboard.html'));
 });
 
 // App control page (game control interface)

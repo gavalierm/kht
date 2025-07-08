@@ -198,22 +198,12 @@
 <body>
 	<div class="container">
 		<div class="header">
-			<h1 class="game-title" id="gameTitle">Dashboard</h1>
-			<div class="game-controls">
-				<div class="info-grid">
-					<div class="info-item">
-						<span>PIN: </span><span id="gamePin">------</span>
-					</div>
-					<div class="info-item">
-						<span>Status: </span><span id="gameStatus">Čakanie</span>
-					</div>
-				</div>
-			</div>
+			<h1 class="game-title" id="gameTitle">🎮 Vytvorenie novej hry</h1>
 		</div>
 
-		<div class="content dashboard-content">
+		<div class="content">
 			<!-- Game Creation Panel -->
-			<div id="gameCreationCard" class="card" style="display: none;">
+			<div id="gameCreationCard" class="card" style="display: block; max-width: 600px; margin: 0 auto;">
 				<h2 class="card-title">🎮 Vytvorenie hry</h2>
 				
 				<div class="control-section">
@@ -242,88 +232,6 @@
 					<button id="createGameBtn" class="btn btn-success btn-lg">
 						⚙️ Vytvoriť hru
 					</button>
-				</div>
-			</div>
-
-			<!-- Control Panel -->
-			<div id="gameControlCard" class="card">
-				<h2 class="card-title">🎮 Ovládanie hry</h2>
-
-				<div class="control-section">
-					<h3 class="section-title">Hra</h3>
-					<div class="control-buttons">
-						<button id="startGameBtn" class="btn btn-success btn-lg">
-							▶️ Spustiť hru
-						</button>
-						<button id="pauseGameBtn" class="btn btn-warning btn-lg" disabled>
-							⏸️ Pozastaviť hru
-						</button>
-						<button id="endGameBtn" class="btn btn-danger btn-lg" disabled>
-							⏹️ Ukončiť hru
-						</button>
-					</div>
-				</div>
-
-				<div class="control-section">
-					<h3 class="section-title">Otázky</h3>
-					<div class="control-buttons">
-						<button id="nextQuestionBtn" class="btn btn-primary btn-lg" disabled>
-							⏭️ Ďalšia otázka
-						</button>
-						<button id="endQuestionBtn" class="btn btn-warning btn-lg" disabled>
-							⏹️ Ukončiť otázku
-						</button>
-						<button id="showResultsBtn" class="btn btn-primary btn-lg" disabled>
-							📊 Zobraziť výsledky
-						</button>
-					</div>
-				</div>
-
-			</div>
-
-			<!-- Game Monitor -->
-			<div class="card">
-				<h2 class="card-title">📊 Monitor hry</h2>
-
-				<div class="stats-grid">
-					<div class="stat-item">
-						<div class="stat-value" id="totalPlayers">0</div>
-						<div class="stat-label">Celkom hráčov</div>
-					</div>
-					<div class="stat-item">
-						<div class="stat-value" id="activePlayers">0</div>
-						<div class="stat-label">Aktívni</div>
-					</div>
-					<div class="stat-item">
-						<div class="stat-value" id="currentQuestionIndex">0</div>
-						<div class="stat-label">Otázka</div>
-					</div>
-					<div class="stat-item">
-						<div class="stat-value" id="totalQuestions">0</div>
-						<div class="stat-label">Celkom</div>
-					</div>
-					<div class="stat-item">
-						<div class="stat-value" id="gameCategory">-</div>
-						<div class="stat-label">Kategória</div>
-					</div>
-				</div>
-
-				<div id="currentQuestionSection" class="current-question" style="display: none;">
-					<h4>Aktuálna otázka:</h4>
-					<div class="question-text" id="currentQuestionText">-</div>
-					<div class="question-options" id="currentQuestionOptions">
-						<!-- Options will be populated here -->
-					</div>
-				</div>
-
-				<div class="section-title">👥 Pripojení hráči</div>
-				<div id="playersList" class="players-list">
-					<!-- Players will be populated here -->
-				</div>
-
-				<div id="emptyPlayersState" class="empty-state">
-					<div>👤</div>
-					<p>Žiadni pripojení hráči</p>
 				</div>
 			</div>
 		</div>
