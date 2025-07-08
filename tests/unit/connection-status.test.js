@@ -176,13 +176,6 @@ global.setTimeout = jest.fn((fn, delay) => {
 
 global.clearTimeout = jest.fn();
 
-// Mock console to suppress warnings during tests
-global.console = {
-	warn: jest.fn(),
-	log: jest.fn(),
-	error: jest.fn()
-};
-
 describe('Connection Status Banner', () => {
 	let banner;
 
