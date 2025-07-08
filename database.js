@@ -152,11 +152,11 @@ class GameDatabase {
         }
       ];
 
-      // Create test game with no password
+      // Create test game with default password same as PIN
       const result = await this.createGame(
         '123456',
         testQuestions,
-        null // no password
+        '123456' // default password same as PIN
       );
 
       console.log('Test game created successfully with PIN: 123456');

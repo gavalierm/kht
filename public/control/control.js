@@ -73,7 +73,6 @@ class ControlApp {
 			'controlInterface',
 			'loginGamePin',
 			'moderatorPassword',
-			'moderatorToken',
 			'loginBtn',
 			'loginButtonText',
 			'logoutBtn'
@@ -157,13 +156,6 @@ class ControlApp {
 			});
 		}
 
-		if (this.elements.moderatorToken) {
-			this.elements.moderatorToken.addEventListener('keypress', (e) => {
-				if (e.key === 'Enter') {
-					this.handleLogin();
-				}
-			});
-		}
 
 		// Logout button
 		if (this.elements.logoutBtn) {
@@ -283,11 +275,12 @@ class ControlApp {
 		const moderatorToken = localStorage.getItem(`moderator_token_${this.gamePin}`);
 		
 		if (moderatorToken) {
-			// Try to auto-login with stored token
+			// Auto-login with stored token (automatic, no user interaction needed)
 			this.autoLoginWithToken(moderatorToken);
 		} else {
-			// Show login page
+			// Show login page with pre-filled password for test game
 			this.showLoginPage();
+			this.prefillTestGamePassword();
 		}
 	}
 
@@ -306,17 +299,21 @@ class ControlApp {
 
 	handleLogin() {
 		const password = this.elements.moderatorPassword?.value.trim();
-		const token = this.elements.moderatorToken?.value.trim();
+		
+		if (!password) {
+			this.notifications.showError('Zadajte heslo moderátora');
+			return;
+		}
 		
 		// Connect socket if not connected
 		this.socket.connect();
 		
 		// Wait for connection then attempt login
 		if (this.socket.connected()) {
-			this.attemptLogin(password, token);
+			this.attemptLogin(password, null);
 		} else {
 			this.socket.on(SOCKET_EVENTS.CONNECT, () => {
-				this.attemptLogin(password, token);
+				this.attemptLogin(password, null);
 			});
 		}
 	}
@@ -340,6 +337,13 @@ class ControlApp {
 		
 		// Emit reconnect moderator event
 		this.socket.emit(SOCKET_EVENTS.RECONNECT_MODERATOR, loginData);
+	}
+
+	prefillTestGamePassword() {
+		// Pre-fill password for test game 123456
+		if (this.gamePin === '123456' && this.elements.moderatorPassword) {
+			this.elements.moderatorPassword.value = '123456';
+		}
 	}
 
 	handleLoginSuccess(data) {
@@ -386,10 +390,10 @@ class ControlApp {
 		
 		// Clear form
 		if (this.elements.moderatorPassword) this.elements.moderatorPassword.value = '';
-		if (this.elements.moderatorToken) this.elements.moderatorToken.value = '';
 		
-		// Show login page
+		// Show login page and pre-fill test game password
 		this.showLoginPage();
+		this.prefillTestGamePassword();
 		
 		this.notifications.showInfo('Odhlásený');
 	}
