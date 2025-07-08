@@ -166,6 +166,9 @@ class ControlApp {
 	}
 
 	setupSocketListeners() {
+		// Ensure socket is connected before setting up listeners
+		this.socket.connect();
+		
 		// Game connection events
 		this.socket.on(SOCKET_EVENTS.GAME_CREATED, (data) => {
 			this.handleGameCreated(data);
@@ -175,12 +178,14 @@ class ControlApp {
 			this.notifications.showError(error.message || 'Chyba pri vytváraní hry');
 		});
 
-		// Moderator reconnection events
+		// Moderator reconnection events - add debugging
 		this.socket.on('moderator_reconnected', (data) => {
+			console.log('Received moderator_reconnected event:', data);
 			this.handleLoginSuccess(data);
 		});
 
 		this.socket.on('moderator_reconnect_error', (error) => {
+			console.log('Received moderator_reconnect_error event:', error);
 			this.handleLoginError(error);
 		});
 
@@ -211,14 +216,17 @@ class ControlApp {
 			this.handleLiveStats(data);
 		});
 		
-		// Test ping response
+		// Test ping response - add debugging
 		this.socket.on('test_pong', (data) => {
-			console.log('Received test pong:', data);
+			console.log('✅ Received test pong:', data);
 		});
 		
 		this.socket.on('test_pong_direct', (data) => {
-			console.log('Received direct test pong:', data);
+			console.log('✅ Received direct test pong:', data);
 		});
+		
+		// Add general event debugging
+		console.log('Socket listeners registered, socket connected:', this.socket.connected());
 	}
 
 
@@ -377,6 +385,8 @@ class ControlApp {
 		// Test socket communication with a simple ping
 		console.log('Socket manager:', this.socket);
 		console.log('Socket instance:', this.socket.getSocket());
+		console.log('Socket URL:', this.socket.getSocket()?.io?.uri);
+		console.log('Socket namespace:', this.socket.getSocket()?.nsp);
 		this.socket.emit('test_ping', { message: 'testing socket' });
 		
 		// Also try direct socket emit
