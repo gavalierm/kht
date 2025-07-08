@@ -115,9 +115,9 @@ describe('Game Logic Functions', () => {
   });
 
   describe('Question Loading', () => {
-    test('should return fallback questions when file not found', () => {
+    test('should return fallback questions when file not found', async () => {
       // Test the fallback behavior
-      const questions = loadQuestions('nonexistent-category');
+      const questions = await loadQuestions('nonexistent-category');
       
       expect(questions).toBeTruthy();
       expect(questions.quiz).toBeTruthy();

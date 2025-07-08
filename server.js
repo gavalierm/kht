@@ -143,7 +143,7 @@ io.on('connection', (socket) => {
         return;
       }
       
-      const questionsData = loadQuestions(data.category || 'general');
+      const questionsData = await loadQuestions(data.category || 'general');
       
       // Save to database
       const dbResult = await db.createGame(
