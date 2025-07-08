@@ -226,12 +226,7 @@ app.get('/api/games/:gamePin/questions', async (req, res) => {
     const gamePin = req.params.gamePin;
     
     // Get game and its questions from database
-    const gameData = await new Promise((resolve, reject) => {
-      gameDatabase.getGameByPin(gamePin, (err, game) => {
-        if (err) reject(err);
-        else resolve(game);
-      });
-    });
+    const gameData = await db.getGameByPin(gamePin);
     
     if (!gameData) {
       return res.status(404).json({ error: 'Game not found' });
@@ -259,12 +254,7 @@ app.put('/api/games/:gamePin/questions', async (req, res) => {
     }
     
     // Get game ID first
-    const gameData = await new Promise((resolve, reject) => {
-      gameDatabase.getGameByPin(gamePin, (err, game) => {
-        if (err) reject(err);
-        else resolve(game);
-      });
-    });
+    const gameData = await db.getGameByPin(gamePin);
     
     if (!gameData) {
       return res.status(404).json({ error: 'Game not found' });
@@ -272,7 +262,7 @@ app.put('/api/games/:gamePin/questions', async (req, res) => {
     
     // Update questions in database
     await new Promise((resolve, reject) => {
-      gameDatabase.updateGameQuestions(gameData.id, questions, (err) => {
+      db.updateGameQuestions(gameData.id, questions, (err) => {
         if (err) reject(err);
         else resolve();
       });
