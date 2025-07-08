@@ -265,13 +265,19 @@ class ControlApp {
 	handlePlayerJoined(data) {
 		this.playerCount++;
 		this.updateGameControlUI();
-		this.notifications.showInfo(`Hráč ${data.player.name} sa pripojil`);
+		
+		// Safe access to player name
+		const playerName = data.player?.name || data.name || 'neznámy hráč';
+		this.notifications.showInfo(`Hráč ${playerName} sa pripojil`);
 	}
 
 	handlePlayerLeft(data) {
 		this.playerCount--;
 		this.updateGameControlUI();
-		this.notifications.showInfo(`Hráč ${data.player.name} opustil hru`);
+		
+		// Safe access to player name
+		const playerName = data.player?.name || data.name || 'neznámy hráč';
+		this.notifications.showInfo(`Hráč ${playerName} opustil hru`);
 	}
 
 	handleLiveStats(data) {
