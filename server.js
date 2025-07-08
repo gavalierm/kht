@@ -153,13 +153,18 @@ app.post('/api/question-templates', async (req, res) => {
     
     // Validate questions structure
     const isValidQuestions = questions.every(q => 
+      q && 
+      typeof q === 'object' &&
       q.question && 
+      typeof q.question === 'string' &&
       Array.isArray(q.options) && 
       q.options.length === 4 && 
+      q.options.every(opt => typeof opt === 'string') &&
       typeof q.correct === 'number' && 
       q.correct >= 0 && 
       q.correct <= 3 &&
-      typeof q.timeLimit === 'number'
+      typeof q.timeLimit === 'number' &&
+      q.timeLimit > 0
     );
     
     if (!isValidQuestions) {
@@ -189,13 +194,18 @@ app.put('/api/question-templates/:id', async (req, res) => {
     
     // Validate questions structure
     const isValidQuestions = questions.every(q => 
+      q && 
+      typeof q === 'object' &&
       q.question && 
+      typeof q.question === 'string' &&
       Array.isArray(q.options) && 
       q.options.length === 4 && 
+      q.options.every(opt => typeof opt === 'string') &&
       typeof q.correct === 'number' && 
       q.correct >= 0 && 
       q.correct <= 3 &&
-      typeof q.timeLimit === 'number'
+      typeof q.timeLimit === 'number' &&
+      q.timeLimit > 0
     );
     
     if (!isValidQuestions) {

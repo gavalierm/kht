@@ -27,7 +27,7 @@ class GameDatabase {
 
       CREATE TABLE IF NOT EXISTS question_templates (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        category TEXT NOT NULL,
+        category TEXT UNIQUE NOT NULL,
         title TEXT NOT NULL,
         questions_data TEXT NOT NULL,
         created_at INTEGER DEFAULT (strftime('%s', 'now')),
