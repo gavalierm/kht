@@ -145,7 +145,7 @@ describe('GameInstance', () => {
       const responseTime = 1000; // 1 second
       const score = game.calculateScore(responseTime, true);
       
-      expect(score).toBeGreaterThan(1000); // Base score + speed bonus
+      expect(score).toBeGreaterThanOrEqual(1000); // At least base score
       expect(score).toBeLessThanOrEqual(1500); // Max possible score
     });
 

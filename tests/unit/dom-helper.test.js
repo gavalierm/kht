@@ -128,7 +128,7 @@ describe('DOMHelper', () => {
 			testElement.disabled = true;
 			document.body.appendChild(testElement);
 
-			domHelper.enable(testElement);
+			domHelper.setEnabled(testElement, true);
 			expect(testElement.disabled).toBe(false);
 		});
 
@@ -137,7 +137,7 @@ describe('DOMHelper', () => {
 			testElement.id = 'test-disable';
 			document.body.appendChild(testElement);
 
-			domHelper.disable(testElement);
+			domHelper.setEnabled(testElement, false);
 			expect(testElement.disabled).toBe(true);
 		});
 
@@ -146,16 +146,16 @@ describe('DOMHelper', () => {
 			testElement.id = 'test-enable-id';
 			document.body.appendChild(testElement);
 
-			domHelper.disable('test-enable-id');
+			domHelper.setEnabled('test-enable-id', false);
 			expect(testElement.disabled).toBe(true);
 
-			domHelper.enable('test-enable-id');
+			domHelper.setEnabled('test-enable-id', true);
 			expect(testElement.disabled).toBe(false);
 		});
 
 		test('should handle null element gracefully', () => {
-			expect(() => domHelper.enable(null)).not.toThrow();
-			expect(() => domHelper.disable(null)).not.toThrow();
+			expect(() => domHelper.setEnabled(null, true)).not.toThrow();
+			expect(() => domHelper.setEnabled(null, false)).not.toThrow();
 		});
 
 		test('should handle toggling enabled state', () => {
@@ -166,10 +166,10 @@ describe('DOMHelper', () => {
 			// Initially enabled
 			expect(testElement.disabled).toBe(false);
 
-			domHelper.disable(testElement);
+			domHelper.setEnabled(testElement, false);
 			expect(testElement.disabled).toBe(true);
 
-			domHelper.enable(testElement);
+			domHelper.setEnabled(testElement, true);
 			expect(testElement.disabled).toBe(false);
 		});
 	});

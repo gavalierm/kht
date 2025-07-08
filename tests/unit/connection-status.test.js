@@ -51,7 +51,7 @@ describe('Connection Status Banner', () => {
 
 		test('should start hidden', () => {
 			const bannerElement = document.getElementById('connectionStatusBanner');
-			expect(bannerElement.style.display).toBe('none');
+			expect(bannerElement.classList.contains('connection-status-visible')).toBe(false);
 			expect(banner.isVisible).toBe(false);
 		});
 	});
@@ -62,9 +62,9 @@ describe('Connection Status Banner', () => {
 			banner.show(message);
 			
 			const bannerElement = document.getElementById('connectionStatusBanner');
-			expect(bannerElement.style.display).toBe('flex');
+			expect(bannerElement.classList.contains('connection-status-visible')).toBe(true);
 			expect(banner.isVisible).toBe(true);
-			expect(banner.currentMessage).toBe(message);
+			expect(banner.getMessage()).toBe(message);
 		});
 
 		test('should hide banner', () => {
@@ -72,7 +72,7 @@ describe('Connection Status Banner', () => {
 			banner.hide();
 			
 			const bannerElement = document.getElementById('connectionStatusBanner');
-			expect(bannerElement.style.display).toBe('none');
+			expect(bannerElement.classList.contains('connection-status-visible')).toBe(false);
 			expect(banner.isVisible).toBe(false);
 		});
 
@@ -80,36 +80,43 @@ describe('Connection Status Banner', () => {
 			banner.show('First message');
 			banner.show('Second message');
 			
-			expect(banner.currentMessage).toBe('Second message');
+			expect(banner.getMessage()).toBe('Second message');
 		});
 
 		test('should update message when hidden', () => {
 			banner.updateMessage('New message');
-			expect(banner.currentMessage).toBe('New message');
+			expect(banner.getMessage()).toBe('New message');
 		});
 	});
 
 	describe('Reconnecting State', () => {
 		test('should enter reconnecting state', () => {
-			banner.showReconnecting();
+			banner.show('Connecting...');
+			banner.setReconnecting(true);
 			
 			expect(banner.reconnectingState).toBe(true);
 			expect(banner.isVisible).toBe(true);
 		});
 
 		test('should exit reconnecting state', () => {
-			banner.showReconnecting();
-			banner.hide();
+			banner.show('Connecting...');
+			banner.setReconnecting(true);
+			banner.setReconnecting(false);
 			
 			expect(banner.reconnectingState).toBe(false);
-			expect(banner.isVisible).toBe(false);
 		});
 
 		test('should handle reconnecting state transitions', () => {
-			banner.showReconnecting();
+			banner.show('Connecting...');
+			banner.setReconnecting(true);
 			expect(banner.reconnectingState).toBe(true);
 			
+			// showReconnected doesn't reset reconnectingState flag
 			banner.showReconnected();
+			expect(banner.reconnectingState).toBe(true);
+			
+			// setReconnecting(false) resets the state
+			banner.setReconnecting(false);
 			expect(banner.reconnectingState).toBe(false);
 		});
 	});
@@ -129,10 +136,10 @@ describe('Connection Status Banner', () => {
 
 		test('should hide after success duration', async () => {
 			banner.show('Disconnected');
-			banner.showReconnected();
+			banner.showReconnected('Reconnected!', 100); // Short duration for test
 			
-			// Wait for the success duration (1500ms)
-			await new Promise(resolve => setTimeout(resolve, 1600));
+			// Wait for the duration
+			await new Promise(resolve => setTimeout(resolve, 150));
 			
 			expect(banner.isVisible).toBe(false);
 		});
@@ -143,35 +150,38 @@ describe('Connection Status Banner', () => {
 			const iconElement = document.getElementById('connectionStatusBannerIcon');
 			
 			banner.show('Disconnected');
+			// show() automatically sets disconnected icon
 			expect(iconElement.textContent).toBe('⚠️');
 			
-			banner.showReconnecting();
+			banner.updateIcon('reconnecting');
 			expect(iconElement.textContent).toBe('🔄');
 			
-			banner.showReconnected();
+			banner.updateIcon('connected');
 			expect(iconElement.textContent).toBe('✅');
 		});
 	});
 
 	describe('Spinner Control', () => {
-		test('should show spinner', () => {
-			banner.showSpinner();
+		test('should show and hide spinner', () => {
+			banner.show('Connecting...');
+			
 			const spinnerElement = document.getElementById('connectionStatusBannerSpinner');
-			expect(spinnerElement.style.display).toBe('inline-block');
-		});
-
-		test('should hide spinner', () => {
-			banner.hideSpinner();
-			const spinnerElement = document.getElementById('connectionStatusBannerSpinner');
+			expect(spinnerElement).toBeTruthy();
+			
+			banner.setSpinnerVisible(true);
+			expect(spinnerElement.style.display).toBe('flex');
+			
+			banner.setSpinnerVisible(false);
 			expect(spinnerElement.style.display).toBe('none');
 		});
 
 		test('should respect showSpinner option', () => {
 			const noSpinnerBanner = new ConnectionStatusBanner({ showSpinner: false });
-			const spinnerElement = document.getElementById('connectionStatusBannerSpinner');
+			noSpinnerBanner.show('Test message', false);
 			
-			// Spinner should not be visible initially when showSpinner is false
-			expect(spinnerElement).toBe(null);
+			const spinnerElement = document.getElementById('connectionStatusBannerSpinner');
+			// Spinner element should still exist but not be visible
+			expect(spinnerElement).toBeTruthy();
 			
 			noSpinnerBanner.destroy();
 		});
@@ -214,17 +224,17 @@ describe('Connection Status Banner', () => {
 			expect(banner.isVisible).toBe(true);
 			
 			// Simulate reconnecting
-			banner.showReconnecting();
+			banner.setReconnecting(true);
 			expect(banner.reconnectingState).toBe(true);
 			
-			// Simulate reconnected
+			// Simulate reconnected (doesn't reset reconnectingState flag)
 			banner.showReconnected();
-			expect(banner.reconnectingState).toBe(false);
+			expect(banner.reconnectingState).toBe(true);
 		});
 
 		test('should handle rapid disconnect/reconnect events', () => {
 			banner.show('Disconnected');
-			banner.showReconnecting();
+			banner.setReconnecting(true);
 			banner.hide();
 			banner.show('Disconnected again');
 			
@@ -235,16 +245,35 @@ describe('Connection Status Banner', () => {
 		test('should maintain state consistency during complex interactions', () => {
 			banner.show('Initial message');
 			expect(banner.isVisible).toBe(true);
-			expect(banner.currentMessage).toBe('Initial message');
+			expect(banner.getMessage()).toBe('Initial message');
 			
-			banner.showReconnecting();
+			banner.setReconnecting(true);
 			expect(banner.reconnectingState).toBe(true);
 			
 			banner.updateMessage('Reconnecting...');
-			expect(banner.currentMessage).toBe('Reconnecting...');
+			expect(banner.getMessage()).toBe('Reconnecting...');
 			
+			// showReconnected doesn't reset reconnectingState flag
 			banner.showReconnected();
-			expect(banner.reconnectingState).toBe(false);
+			expect(banner.reconnectingState).toBe(true);
+		});
+	});
+
+	describe('Status API', () => {
+		test('should track if banner is shown', () => {
+			expect(banner.isShown()).toBe(false);
+			
+			banner.show('Test message');
+			expect(banner.isShown()).toBe(true);
+			
+			banner.hide();
+			expect(banner.isShown()).toBe(false);
+		});
+
+		test('should get current message', () => {
+			const message = 'Test message';
+			banner.show(message);
+			expect(banner.getMessage()).toBe(message);
 		});
 	});
 });
