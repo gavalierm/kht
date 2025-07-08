@@ -32,17 +32,19 @@
 			color: white;
 			background: #666;
 			font-weight: bold;
+			white-space: nowrap;
+			flex-shrink: 0;
 		}
 
 		.page,
-		.phase {
+		.content-wrapper {
 			display: none;
 			text-align: center;
 			flex: 1;
 		}
 
 		.page.visible,
-		.phase.visible {
+		.content-wrapper.visible {
 			display: flex;
 		}
 
@@ -118,7 +120,29 @@
 			align-items: center;
 		}
 
-		.phase {
+		.header-right {
+			display: flex;
+			align-items: center;
+			gap: 1rem;
+		}
+
+		.leave-btn {
+			background-color: #dc3545;
+			border: none;
+			color: white;
+			padding: 0.5rem 1rem;
+			border-radius: 0.3rem;
+			cursor: pointer;
+			font-size: 0.9rem;
+			font-weight: bold;
+			transition: background-color 0.2s;
+		}
+
+		.leave-btn:hover {
+			background-color: #c82333;
+		}
+
+		.content-wrapper {
 			flex: 1;
 			font-size: 2em;
 			background: white;
@@ -375,13 +399,9 @@
 
 <body>
 
-	<div class="page visible" id="login">
+	<div class="page visible" id="loading">
 		<div class="vertical_center">
-			<div class="logo">Zahraj si s nami kvízovú hru!</div>
-			<div class="pin-box">
-				<input id="gamePinInput" type="tel" pattern="\d{6}" maxlength="6" inputmode="numeric" placeholder="Zadajte 6-miestny PIN" />
-				<button id="joinGameBtn">Pripojiť sa</button>
-			</div>
+			<div class="spinner" style="margin: 0 auto;"></div>
 		</div>
 	</div>
 	
@@ -389,10 +409,13 @@
 		<div class="vertical_space">
 			<div id="header">
 				<h1 id="gameCode">#kod</h1>
-				<span class="badge status" id="gameStatus">Hráč</span>
+				<div class="header-right">
+					<span class="badge status" id="gameStatus">Hráč</span>
+					<button id="leaveGameBtn" class="leave-btn">Opustiť hru</button>
+				</div>
 			</div>
 			
-			<div class="phase visible" id="playground">
+			<div class="content-wrapper visible" id="playground">
 				<p class="question" id="questionText">
 					Čakám na otázku...
 				</p>
@@ -418,7 +441,7 @@
 				</div>
 			</div>
 			
-			<div class="phase" id="scoreboard">
+			<div class="content-wrapper" id="result">
 				<p class="question" id="questionText2">
 					Správna odpoveď
 				</p>

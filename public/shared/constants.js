@@ -22,6 +22,7 @@ export const SOCKET_EVENTS = {
 	QUESTION_ENDED: 'question_ended',
 	SUBMIT_ANSWER: 'submit_answer',
 	ANSWER_RESULT: 'answer_result',
+	LEAVE_GAME: 'leave_game',
 	
 	// Panel events
 	JOIN_PANEL: 'join_panel',
@@ -126,7 +127,7 @@ export const ELEMENT_IDS = {
 	TIMER: 'timer',
 	OPTIONS: 'options',
 	PLAYGROUND: 'playground',
-	SCOREBOARD: 'scoreboard',
+	RESULT: 'result',
 	ANSWER_TEXT: 'answerText',
 	STATUS_ICON: 'statusIcon',
 	PLAYER_TIME: 'playerTime',

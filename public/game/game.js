@@ -4,6 +4,7 @@ import { defaultNotificationManager } from '../shared/notifications.js';
 import { defaultGameState } from '../shared/gameState.js';
 import { defaultRouter } from '../shared/router.js';
 import { defaultDOMHelper } from '../shared/dom.js';
+import { defaultSessionChecker } from '../shared/sessionChecker.js';
 import { SOCKET_EVENTS, GAME_STATES, ANSWER_OPTIONS, ANSWER_OPTION_CLASSES, ELEMENT_IDS, UI_CONSTANTS } from '../shared/constants.js';
 
 class App {
@@ -15,6 +16,7 @@ class App {
 		this.gameState = defaultGameState;
 		this.router = defaultRouter;
 		this.dom = defaultDOMHelper;
+		this.sessionChecker = defaultSessionChecker;
 		this.api = new GameAPI();
 		
 		// Timer intervals
@@ -30,14 +32,16 @@ class App {
 		this.bindEvents();
 		this.setupSocketEvents();
 		this.setupLatencyMeasurement();
-		this.checkInitialRoute();
+		
+		// Delay initial route check to ensure router has handled the route first
+		setTimeout(() => {
+			this.checkInitialRoute();
+		}, 0);
 	}
 
 	bindEvents() {
 		// Cache elements
 		this.elements = this.dom.cacheElements([
-			ELEMENT_IDS.JOIN_GAME_BTN,
-			ELEMENT_IDS.GAME_PIN_INPUT,
 			ELEMENT_IDS.HEADER,
 			ELEMENT_IDS.GAME_CODE,
 			ELEMENT_IDS.GAME_STATUS,
@@ -45,18 +49,16 @@ class App {
 			ELEMENT_IDS.TIMER,
 			ELEMENT_IDS.OPTIONS,
 			ELEMENT_IDS.PLAYGROUND,
-			ELEMENT_IDS.SCOREBOARD,
+			ELEMENT_IDS.RESULT,
 			ELEMENT_IDS.ANSWER_TEXT,
 			ELEMENT_IDS.STATUS_ICON,
 			ELEMENT_IDS.PLAYER_TIME,
 			ELEMENT_IDS.PLAYER_POSITION,
 			ELEMENT_IDS.LATENCY_DISPLAY,
-			ELEMENT_IDS.PLAYER_ID_DISPLAY
+			ELEMENT_IDS.PLAYER_ID_DISPLAY,
+			'leaveGameBtn'
 		]);
 
-		// Event listeners
-		this.dom.addEventListener(this.elements.joinGameBtn, 'click', () => this.joinGame());
-		
 		// Handle option clicks
 		this.dom.addEventListener(this.elements.options, 'click', (e) => {
 			const option = e.target.closest('.option');
@@ -66,6 +68,11 @@ class App {
 					this.submitAnswer(answer);
 				}
 			}
+		});
+
+		// Handle leave game button
+		this.dom.addEventListener(this.elements.leaveGameBtn, 'click', () => {
+			this.leaveGame();
 		});
 
 		// Handle back navigation
@@ -94,22 +101,21 @@ class App {
 			this.gameState.setPlayerId(data.playerId);
 			
 			this.notifications.showSuccess(`Pripojené ako Hráč ${data.playerId}`);
-			this.router.navigateTo(`/game/${this.gameState.gamePin}`);
-			this.updateGameHeader();
+			// Transition from loading to game interface with proper state
+			this.showGameInterface();
 		});
 
 		this.socket.on(SOCKET_EVENTS.JOIN_ERROR, (data) => {
 			this.notifications.showError(data.message);
-			this.enableJoinButton();
 			this.gameState.setGamePin(null);
-			this.redirectToLogin();
+			this.router.redirectToJoin();
 		});
 
 		this.socket.on(SOCKET_EVENTS.PLAYER_RECONNECTED, (data) => {
 			this.gameState.setPlayerId(data.playerId);
 			// Connection banner handles reconnection success notification
-			this.router.navigateTo(`/game/${this.gameState.gamePin}`);
-			this.updateGameHeader();
+			// Transition from loading to game interface with proper state
+			this.showGameInterface();
 			
 			if (data.gameStatus === GAME_STATES.QUESTION_ACTIVE) {
 				this.notifications.showInfo('Otázka práve prebieha');
@@ -119,7 +125,7 @@ class App {
 		this.socket.on(SOCKET_EVENTS.RECONNECT_ERROR, (data) => {
 			this.notifications.showError(data.message);
 			this.gameState.clearSavedSession();
-			this.redirectToLogin();
+			this.router.redirectToJoin();
 		});
 
 		// Question events
@@ -152,13 +158,14 @@ class App {
 		const path = window.location.pathname;
 		
 		// Handle /game route - main gameplay route, check for saved session
+		// Router already shows loading page, don't override it
 		if (path === '/game') {
 			this.handleGameRouteWithSession();
 			return;
 		}
 		
 		// Handle specific routes like /game/:pin - auto-join with PIN from URL
-		if (path.startsWith('/game/') || path.startsWith('/panel/') || path.startsWith('/stage/') || path.startsWith('/control/')) {
+		if (path.startsWith('/game/')) {
 			const gamePin = this.router.extractGamePin(path);
 			if (gamePin) {
 				this.gameState.setGamePin(gamePin);
@@ -171,7 +178,7 @@ class App {
 					this.handleAutoJoin(gamePin);
 				}
 			} else {
-				this.redirectToLogin();
+				this.router.redirectToJoin();
 			}
 		}
 		
@@ -185,15 +192,12 @@ class App {
 
 	async handleSmartRedirect(gamePin) {
 		try {
-			// Show loading state
-			this.showLoadingState('Kontrolujem stav hry...');
-			
-			// Fetch game data
+			// Fetch game data (already in loading state)
 			const gameData = await this.api.getGame(gamePin);
 			
 			if (!gameData) {
 				this.notifications.showError('Hra nenájdená');
-				this.redirectToLogin();
+				this.router.redirectToJoin();
 				return;
 			}
 
@@ -217,28 +221,25 @@ class App {
 				default:
 					// Unknown status - show error
 					this.notifications.showError(`Neznámy stav hry: ${gameData.status}`);
-					this.redirectToLogin();
+					this.router.redirectToJoin();
 					break;
 			}
 		} catch (error) {
 			console.error('Smart redirect error:', error);
 			this.notifications.showError('Chyba pri načítavaní údajov o hre');
-			this.redirectToLogin();
+			this.router.redirectToJoin();
 		}
 	}
 
 	async handleAutoJoin(gamePin) {
 		try {
-			// Show loading state
-			this.showLoadingState('Pripájam sa automaticky...');
-			
-			// Check if game exists via API
+			// Check if game exists via API (already in loading state)
 			const game = await GameAPI.getGame(gamePin);
 
 			if (!game) {
 				this.notifications.showError(`Hra s PIN ${gamePin} neexistuje`);
 				this.gameState.setGamePin(null);
-				this.redirectToLogin();
+				this.router.redirectToJoin();
 				return;
 			}
 
@@ -263,59 +264,24 @@ class App {
 		} catch (error) {
 			console.error('Auto-join error:', error);
 			this.notifications.showError('Chyba pri automatickom pripojení');
-			this.redirectToLogin();
+			this.router.redirectToJoin();
 		}
 	}
 
-	showLoadingState(message) {
-		// Show login page with loading message
-		this.router.showPage('login');
-		this.notifications.showInfo(message);
-		
-		// Populate PIN input field if gamePin is set
-		if (this.gameState.gamePin && this.elements.gamePinInput) {
-			this.elements.gamePinInput.value = this.gameState.gamePin;
-		}
-		
-		// Disable join button during loading
-		if (this.elements.joinGameBtn) {
-			this.elements.joinGameBtn.disabled = true;
-			this.dom.setText(this.elements.joinGameBtn, 'Načítavam...');
-		}
-	}
 
 	async handleGameRouteWithSession() {
-		// Check if user has a saved game PIN (even without full session)
-		const savedPin = this.gameState.gamePin; // Already loaded from localStorage
+		const result = await this.sessionChecker.checkSavedSession();
 		
-		if (savedPin) {
-			try {
-				// Validate the saved game PIN via API
-				this.showLoadingState('Kontrolujem uloženú hru...');
-				const game = await GameAPI.getGame(savedPin);
-				
-				if (game && (game.status === 'waiting' || game.status === 'running')) {
-					// Game is still active - redirect to game with PIN
-					this.notifications.showInfo('Pokračujem v uloženej hre');
-					this.router.navigateTo(`/game/${savedPin}`);
-					return;
-				} else {
-					// Game ended or doesn't exist - clear all game state and show join form
-					this.gameState.clearGame();
-					this.gameState.clearSavedSession();
-					this.notifications.showWarning('Uložená hra už skončila');
-				}
-			} catch (error) {
-				console.error('Error validating saved session:', error);
-				this.gameState.clearGame();
-				this.gameState.clearSavedSession();
-				this.notifications.showError('Chyba pri kontrole uloženej hry');
+		if (result.shouldRedirect) {
+			this.sessionChecker.showSessionMessage(result);
+			this.router.navigateTo(result.redirectUrl);
+		} else {
+			// No valid session - redirect to join interface
+			if (result.message) {
+				this.sessionChecker.showSessionMessage(result);
 			}
+			this.router.redirectToJoin();
 		}
-		
-		// Show join form if no saved PIN or invalid game
-		this.router.showPage('login');
-		this.enableJoinButton();
 	}
 
 	async checkForSavedSessionWithValidation() {
@@ -372,9 +338,6 @@ class App {
 		this.router.handleRouteChange(path);
 	}
 
-	redirectToLogin() {
-		this.router.navigateTo('/game');
-	}
 
 	enableJoinButton() {
 		if (this.elements.joinGameBtn) {
@@ -424,6 +387,13 @@ class App {
 		});
 	}
 
+	showGameInterface() {
+		// Transition from loading to game interface
+		this.router.hideAllPages(); // Hide all pages first
+		this.router.showPage('game');
+		this.updateGameHeader();
+	}
+
 	updateGameHeader() {
 		if (this.elements.gameCode) {
 			this.dom.setText(this.elements.gameCode, `#${this.gameState.gamePin}`);
@@ -467,7 +437,7 @@ class App {
 
 	showQuestion(data) {
 		// Switch to playground phase
-		this.dom.removeClass(this.elements.scoreboard, 'visible');
+		this.dom.removeClass(this.elements.result, 'visible');
 		this.dom.addClass(this.elements.playground, 'visible');
 
 		// Update game state
@@ -564,9 +534,9 @@ class App {
 			clearInterval(this.timerInterval);
 		}
 
-		// Switch to scoreboard phase
+		// Switch to result display
 		this.dom.removeClass(this.elements.playground, 'visible');
-		this.dom.addClass(this.elements.scoreboard, 'visible');
+		this.dom.addClass(this.elements.result, 'visible');
 
 		// Update correct answer display
 		if (this.elements.answerText && this.gameState.currentQuestion) {
@@ -601,11 +571,35 @@ class App {
 		// Auto-reset after delay
 		setTimeout(() => {
 			if (data.gameStatus !== GAME_STATES.FINISHED) {
-				this.dom.removeClass(this.elements.scoreboard, 'visible');
+				this.dom.removeClass(this.elements.result, 'visible');
 				this.dom.addClass(this.elements.playground, 'visible');
 				this.setWaitingState();
 			}
 		}, UI_CONSTANTS.QUESTION_RESULT_DISPLAY_TIME);
+	}
+
+	leaveGame() {
+		// Notify server to remove player from game and cleanup tokens
+		if (this.socket && this.socket.connected && this.gameState.playerToken) {
+			this.socket.emit(SOCKET_EVENTS.LEAVE_GAME, {
+				gamePin: this.gameState.gamePin,
+				playerToken: this.gameState.playerToken
+			});
+		}
+		
+		// Clear all stored game data
+		this.gameState.clearGame();
+		this.gameState.clearSavedSession();
+		
+		// Clean up any timers
+		if (this.timerInterval) {
+			clearInterval(this.timerInterval);
+		}
+		this.gameState.clearTimers();
+		
+		// Show confirmation and redirect to join page
+		this.notifications.showInfo('Opustili ste hru');
+		this.router.redirectToJoin();
 	}
 
 	// Cleanup method

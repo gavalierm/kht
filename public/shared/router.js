@@ -75,11 +75,11 @@ export class Router {
 	handlePatternRoute(path) {
 		// Check for common patterns
 		if (path.startsWith('/game/')) {
-			this.showPage('game');
-			this.showPhase('playground');
+			// Stay on loading page until game state is determined
+			this.showPage('loading');
 		} else if (path === '/game') {
 			// Handle /game route - main gameplay route, will be handled by game.js checkInitialRoute
-			this.showPage('login');
+			this.showPage('loading');
 		} else if (path.startsWith('/panel/')) {
 			this.showPage('panel');
 		} else if (path === '/' || path === '') {

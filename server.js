@@ -48,6 +48,7 @@ app.use(express.json());
 app.use('/control', express.static(path.join(__dirname, 'public/control')));
 app.use('/panel', express.static(path.join(__dirname, 'public/panel')));
 app.use('/stage', express.static(path.join(__dirname, 'public/stage')));
+app.use('/join', express.static(path.join(__dirname, 'public/join')));
 app.use('/shared', express.static(path.join(__dirname, 'public/shared')));
 app.use(express.static(path.join(__dirname, 'public/game')));
 
@@ -63,10 +64,15 @@ const socketToModerator = new Map(); // socketId -> {gamePin, gameId}
 
 // Routes
 app.get('/', (req, res) => {
-  res.redirect('/game');
+  res.redirect('/join');
 });
 
-// Game page - main player interface
+// Join page - PIN entry interface
+app.get('/join', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/join/join.html'));
+});
+
+// Game page - main player interface (check session like join does)
 app.get('/game', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/game/game.html'));
 });
