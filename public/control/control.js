@@ -210,6 +210,11 @@ class ControlApp {
 		this.socket.on('live_stats', (data) => {
 			this.handleLiveStats(data);
 		});
+		
+		// Test ping response
+		this.socket.on('test_pong', (data) => {
+			console.log('Received test pong:', data);
+		});
 	}
 
 
@@ -359,7 +364,14 @@ class ControlApp {
 		this.loginTimeout = loginTimeout;
 		
 		// Emit reconnect moderator event
+		console.log('Socket connected status:', this.socket.connected());
+		console.log('Emitting reconnect_moderator event with data:', loginData);
+		console.log('Event name constant:', SOCKET_EVENTS.RECONNECT_MODERATOR);
 		this.socket.emit(SOCKET_EVENTS.RECONNECT_MODERATOR, loginData);
+		console.log('Event emitted, waiting for response...');
+		
+		// Test socket communication with a simple ping
+		this.socket.emit('test_ping', { message: 'testing socket' });
 	}
 
 	prefillTestGamePassword() {

@@ -343,6 +343,12 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Test ping for debugging socket communication
+  socket.on('test_ping', (data) => {
+    console.log('Received test ping:', data);
+    socket.emit('test_pong', { message: 'pong received' });
+  });
+
   // Dashboard: Reconnect moderator
   socket.on('reconnect_moderator', async (data) => {
     try {
