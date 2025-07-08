@@ -146,8 +146,7 @@
 			font-size: 3rem;
 			margin-right: 1.5rem;
 			min-width: 4rem;
-			background: white;
-			color: inherit;
+			color: white;
 			border-radius: 50%;
 			width: 4rem;
 			height: 4rem;
@@ -155,6 +154,22 @@
 			align-items: center;
 			justify-content: center;
 			font-weight: bold;
+		}
+
+		.panel-option-a .panel-option-letter {
+			background: var(--option-red);
+		}
+
+		.panel-option-b .panel-option-letter {
+			background: var(--option-blue);
+		}
+
+		.panel-option-c .panel-option-letter {
+			background: var(--option-yellow);
+		}
+
+		.panel-option-d .panel-option-letter {
+			background: var(--option-green);
 		}
 
 		.panel-option-text {
@@ -225,8 +240,8 @@
 		}
 
 		.panel-option.correct .panel-option-letter {
-			background: black;
-			color: #00ff00;
+			background: #00ff00;
+			color: black;
 		}
 
 		.panel-option.selected {
