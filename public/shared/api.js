@@ -46,3 +46,6 @@ export class GameAPI {
 // Export individual methods for convenience
 export const getGame = GameAPI.getGame.bind(GameAPI);
 export const apiCall = GameAPI.call.bind(GameAPI);
+
+// Export default API object with static methods
+export const defaultAPI = GameAPI;

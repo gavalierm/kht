@@ -112,7 +112,7 @@ class StageApp {
 				this.updateGameInfo(gameData);
 				
 				// If game is not ended, redirect to appropriate view
-				if (gameData.status === GAME_STATES.RUNNING) {
+				if (gameData.status === GAME_STATES.RUNNING || gameData.status === GAME_STATES.WAITING) {
 					this.router.navigateToGame(this.gamePin);
 					return;
 				}
@@ -168,8 +168,8 @@ class StageApp {
 		if (data.status) {
 			this.gameStatus = data.status;
 			
-			// If game status changed from ended to running, redirect
-			if (data.status === GAME_STATES.RUNNING) {
+			// If game status changed from ended to running or waiting, redirect
+			if (data.status === GAME_STATES.RUNNING || data.status === GAME_STATES.WAITING) {
 				this.router.navigateToGame(this.gamePin);
 			}
 		}
