@@ -968,4 +968,5 @@ server.listen(PORT, () => {
   console.log(`Player app: http://localhost:${PORT}/app`);
   console.log(`Dashboard: http://localhost:${PORT}/dashboard`);
   console.log(`Panel: http://localhost:${PORT}/panel`);
-});
+});// Force restart
+
