@@ -2,6 +2,7 @@ import { defaultSocketManager } from '../shared/socket.js';
 import { defaultNotificationManager } from '../shared/notifications.js';
 import { defaultDOMHelper } from '../shared/dom.js';
 import { defaultGameState } from '../shared/gameState.js';
+import { redirectToGameControl } from '../shared/navigation.js';
 import { SOCKET_EVENTS } from '../shared/constants.js';
 
 class DashboardApp {
@@ -137,7 +138,7 @@ class DashboardApp {
 		
 		// Redirect to control interface after short delay to show success message
 		setTimeout(() => {
-			window.location.href = `/app/${data.gamePin}/control`;
+			redirectToGameControl(data.gamePin);
 		}, 1500);
 	}
 

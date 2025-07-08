@@ -1,8 +1,8 @@
 import { defaultSocketManager } from '../shared/socket.js';
 import { defaultNotificationManager } from '../shared/notifications.js';
-import { defaultRouter } from '../shared/router.js';
 import { defaultDOMHelper } from '../shared/dom.js';
 import { defaultGameState } from '../shared/gameState.js';
+import { extractGamePin, redirectToGameCreation } from '../shared/navigation.js';
 import { SOCKET_EVENTS, GAME_STATES, DEFAULTS } from '../shared/constants.js';
 
 class GameControl {
@@ -10,7 +10,6 @@ class GameControl {
 		// Initialize managers
 		this.socket = defaultSocketManager.connect();
 		this.notifications = defaultNotificationManager;
-		this.router = defaultRouter;
 		this.dom = defaultDOMHelper;
 		this.gameState = defaultGameState;
 		
@@ -158,7 +157,7 @@ class GameControl {
 
 	initializeFromRoute() {
 		// Extract game PIN from URL
-		this.gamePin = this.router.extractGamePin(window.location.pathname);
+		this.gamePin = extractGamePin(window.location.pathname);
 		
 		if (this.gamePin) {
 			this.updateGamePin(this.gamePin);
@@ -167,7 +166,7 @@ class GameControl {
 			// No game PIN in URL - redirect to creation page
 			this.notifications.showError('Nebolo možné nájsť PIN hry');
 			setTimeout(() => {
-				window.location.href = '/app/dashboard';
+				redirectToGameCreation();
 			}, 2000);
 		}
 	}
@@ -274,7 +273,7 @@ class GameControl {
 		// Redirect to creation page if game doesn't exist
 		if (error.message && error.message.includes('neexistuje')) {
 			setTimeout(() => {
-				window.location.href = '/app/dashboard';
+				redirectToGameCreation();
 			}, 2000);
 		}
 	}

@@ -44,14 +44,6 @@ function validateQuestions(questions) {
 // Middleware
 app.use(express.json());
 
-// Static files for each app
-app.use('/app', express.static(path.join(__dirname, 'public/game')));
-app.use('/dashboard', express.static(path.join(__dirname, 'public/dashboard')));
-app.use('/control', express.static(path.join(__dirname, 'public/control')));
-app.use('/panel', express.static(path.join(__dirname, 'public/panel')));
-app.use('/stage', express.static(path.join(__dirname, 'public/stage')));
-app.use('/shared', express.static(path.join(__dirname, 'public/shared')));
-
 // Global variables
 const activeGames = new Map(); // gamePin -> GameInstance (in-memory for performance)
 const playerLatencies = new Map(); // socketId -> latency
@@ -62,77 +54,61 @@ const socketToModerator = new Map(); // socketId -> {gamePin, gameId}
 
 // Helper functions moved to ./lib/gameUtils.js
 
-// Routes
+// ===================================================================
+// PAGE ROUTES (Simple Navigation)
+// ===================================================================
+
+// Root redirect
 app.get('/', (req, res) => {
   res.redirect('/app');
 });
 
-// Player app routes (SPA)
+// Main app pages
 app.get('/app', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/game/game.html'));
 });
 
-app.get('/app/:pin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/game/game.html'));
-});
-
-// App game page (after joining with PIN)
-app.get('/app/:pin/game', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/game/game.html'));
-});
-
-// App panel page (fullscreen display for venues)
-app.get('/app/:pin/panel', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/panel/panel.html'));
-});
-
-// App stage page (post-game leaderboard)
-app.get('/app/:pin/stage', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/stage/stage.html'));
-});
-
-// App dashboard page (game creation interface)
 app.get('/app/dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/dashboard/dashboard.html'));
 });
 
-// App control page (game control interface)
+// Game-specific pages
+app.get('/app/:pin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/game/game.html'));
+});
+
+app.get('/app/:pin/game', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/game/game.html'));
+});
+
 app.get('/app/:pin/control', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/control/control.html'));
 });
 
-// Legacy dashboard routes (maintained for backward compatibility during transition)
-app.get('/app/:pin/dashboard', (req, res) => {
-  // Redirect to new control interface
-  res.redirect(`/app/${req.params.pin}/control`);
+app.get('/app/:pin/panel', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/panel/panel.html'));
 });
 
-app.get('/dashboard', (req, res) => {
-  // Redirect to new creation interface
-  res.redirect('/app/dashboard');
+app.get('/app/:pin/stage', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/stage/stage.html'));
 });
 
-app.get('/dashboard/:pin', (req, res) => {
-  // Redirect to new control interface
-  res.redirect(`/app/${req.params.pin}/control`);
-});
+// Legacy redirects (backward compatibility)
+app.get('/dashboard', (req, res) => res.redirect('/app/dashboard'));
+app.get('/dashboard/:pin', (req, res) => res.redirect(`/app/${req.params.pin}/control`));
+app.get('/app/:pin/dashboard', (req, res) => res.redirect(`/app/${req.params.pin}/control`));
+app.get('/panel/:pin', (req, res) => res.redirect(`/app/${req.params.pin}/panel`));
+app.get('/panel', (req, res) => res.redirect('/app/dashboard'));
 
-// Panel routes - only with PIN (no standalone panel makes sense)
-app.get('/panel/:pin', (req, res) => {
-  res.redirect(`/app/${req.params.pin}/panel`);
-});
+// Favicon
+app.get('/favicon.ico', (req, res) => res.status(204).end());
 
-// Legacy panel redirect
-app.get('/panel', (req, res) => {
-  res.redirect('/app/dashboard');
-});
 
-// Favicon fallback
-app.get('/favicon.ico', (req, res) => {
-  res.status(204).end();
-});
+// ===================================================================
+// API ROUTES (Client Communication)
+// ===================================================================
 
-// API route for game recovery
+// Game recovery API
 app.get('/api/game/:pin', async (req, res) => {
   try {
     const gameData = await db.getGameByPin(req.params.pin);
@@ -931,6 +907,20 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
   gracefulShutdown('unhandledRejection');
 });
+
+// ===================================================================
+// STATIC FILES (Simple, No Conflicts)
+// ===================================================================
+
+// Shared resources (CSS, JS utilities)
+app.use('/shared', express.static(path.join(__dirname, 'public/shared')));
+
+// App-specific static files  
+app.use('/dashboard', express.static(path.join(__dirname, 'public/dashboard')));
+app.use('/control', express.static(path.join(__dirname, 'public/control')));
+app.use('/panel', express.static(path.join(__dirname, 'public/panel')));
+app.use('/stage', express.static(path.join(__dirname, 'public/stage')));
+app.use('/app', express.static(path.join(__dirname, 'public/game')));
 
 // Start server only if this is the main module
 if (require.main === module) {
