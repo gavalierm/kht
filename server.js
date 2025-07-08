@@ -146,6 +146,80 @@ app.get('/api/game/:pin', async (req, res) => {
   }
 });
 
+// Question Templates API endpoints
+app.get('/api/question-templates/:templateId', async (req, res) => {
+  try {
+    const templateId = req.params.templateId;
+    const fs = require('fs').promises;
+    const path = require('path');
+    
+    // Read the template file
+    const templatePath = path.join(__dirname, 'questions', `${templateId}.json`);
+    const templateData = await fs.readFile(templatePath, 'utf8');
+    const template = JSON.parse(templateData);
+    
+    // Transform the structure to match frontend expectations
+    const response = {
+      id: templateId,
+      title: templateId.charAt(0).toUpperCase() + templateId.slice(1),
+      category: templateId,
+      questions: template.quiz ? template.quiz.questions : (template.questions || [])
+    };
+    
+    res.json(response);
+  } catch (error) {
+    console.error('Error loading question template:', error);
+    if (error.code === 'ENOENT') {
+      res.status(404).json({ error: 'Question template not found' });
+    } else {
+      res.status(500).json({ error: 'Failed to load question template' });
+    }
+  }
+});
+
+app.put('/api/question-templates/:templateId', async (req, res) => {
+  try {
+    const templateId = req.params.templateId;
+    const { questions } = req.body;
+    const fs = require('fs').promises;
+    const path = require('path');
+    
+    if (!questions || !Array.isArray(questions)) {
+      return res.status(400).json({ error: 'Questions array is required' });
+    }
+    
+    // Read the current template to preserve structure
+    const templatePath = path.join(__dirname, 'questions', `${templateId}.json`);
+    let template;
+    try {
+      const templateData = await fs.readFile(templatePath, 'utf8');
+      template = JSON.parse(templateData);
+    } catch (error) {
+      // If template doesn't exist, create a new one with the expected structure
+      template = {
+        quiz: {
+          questions: []
+        }
+      };
+    }
+    
+    // Update the questions while preserving the original structure
+    if (template.quiz) {
+      template.quiz.questions = questions;
+    } else {
+      template.questions = questions;
+    }
+    
+    // Write the updated template back to file
+    await fs.writeFile(templatePath, JSON.stringify(template, null, 2));
+    
+    res.json({ success: true, message: 'Questions updated successfully' });
+  } catch (error) {
+    console.error('Error saving question template:', error);
+    res.status(500).json({ error: 'Failed to save question template' });
+  }
+});
+
 
 // Socket.io connection handling
 io.on('connection', (socket) => {
