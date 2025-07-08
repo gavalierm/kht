@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="sk">
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Vytvorenie hry - Quiz Dashboard</title>
+	<link rel="stylesheet" href="/shared/common.css">
+	<style>
+		html,
+		body {
+			margin: 0;
+			height: 100%;
+			width: 100%;
+			font-family: Arial, sans-serif;
+		}
+
+		.game-title {
+			font-size: 2.5rem;
+			font-weight: bold;
+		}
+
+		.control-section {
+			margin-bottom: 2rem;
+		}
+
+		.section-title {
+			font-size: 1.3rem;
+			font-weight: bold;
+			margin-bottom: 1rem;
+			color: var(--primary-color);
+		}
+
+		.form-group {
+			margin-bottom: 1.5rem;
+		}
+
+		.form-group label {
+			display: block;
+			font-weight: bold;
+			margin-bottom: 0.5rem;
+			color: var(--text-color);
+		}
+
+		.form-group small {
+			font-size: 0.9rem;
+			color: var(--text-secondary);
+			margin-top: 0.25rem;
+			display: block;
+		}
+
+		.form-control {
+			width: 100%;
+			padding: 0.75rem;
+			border: 1px solid var(--border-color);
+			border-radius: 0.375rem;
+			font-size: 1rem;
+			background: var(--bg-secondary);
+			color: var(--text-color);
+			box-sizing: border-box;
+		}
+
+		.form-control:focus {
+			outline: none;
+			border-color: var(--primary-color);
+			box-shadow: 0 0 0 0.2rem rgba(70, 16, 158, 0.25);
+		}
+
+		.btn {
+			padding: 0.75rem 1.5rem;
+			border: none;
+			border-radius: 0.375rem;
+			cursor: pointer;
+			font-size: 1rem;
+			font-weight: bold;
+			text-decoration: none;
+			display: inline-block;
+			text-align: center;
+			transition: all 0.2s ease;
+		}
+
+		.btn:disabled {
+			opacity: 0.6;
+			cursor: not-allowed;
+		}
+
+		.btn-success {
+			background-color: #28a745;
+			color: white;
+		}
+
+		.btn-success:hover:not(:disabled) {
+			background-color: #218838;
+		}
+
+		.btn-lg {
+			padding: 1rem 2rem;
+			font-size: 1.2rem;
+		}
+
+		.card {
+			background: var(--bg-secondary);
+			border-radius: 0.5rem;
+			padding: 2rem;
+			box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+			border: 1px solid var(--border-color);
+		}
+
+		.card-title {
+			font-size: 1.5rem;
+			font-weight: bold;
+			margin-bottom: 1.5rem;
+			color: var(--text-color);
+		}
+
+		.creation-container {
+			max-width: 600px;
+			margin: 2rem auto;
+			padding: 2rem;
+		}
+
+		.header {
+			text-align: center;
+			margin-bottom: 2rem;
+		}
+
+		/* Responsive adjustments */
+		@media (max-width: 768px) {
+			.creation-container {
+				margin: 1rem auto;
+				padding: 1rem;
+			}
+
+			.game-title {
+				font-size: 1.8rem;
+			}
+
+			.card {
+				padding: 1.5rem;
+			}
+		}
+	</style>
+</head>
+
+<body>
+	<div class="container">
+		<div class="header">
+			<h1 class="game-title">🎮 Vytvorenie novej hry</h1>
+		</div>
+
+		<div class="creation-container">
+			<div class="card">
+				<h2 class="card-title">Nastavenia hry</h2>
+				
+				<div class="control-section">
+					<div class="form-group">
+						<label for="gameCategory">Kategória otázok:</label>
+						<select id="gameCategory" class="form-control">
+							<option value="general">Všeobecné vedomosti</option>
+							<option value="history">História</option>
+							<option value="science">Veda a technika</option>
+						</select>
+						<small>Vyberte kategóriu otázok pre vašu hru</small>
+					</div>
+					
+					<div class="form-group">
+						<label for="customPin">Vlastný PIN (voliteľný):</label>
+						<input type="text" id="customPin" class="form-control" placeholder="Nechajte prázdne pre automatický PIN" maxlength="6" pattern="[0-9]{6}">
+						<small>6 číslic alebo nechajte prázdne pre automatický PIN</small>
+					</div>
+					
+					<div class="form-group">
+						<label for="moderatorPassword">Heslo moderátora (voliteľné):</label>
+						<input type="password" id="moderatorPassword" class="form-control" placeholder="Nechajte prázdne ak nechcete heslo">
+						<small>Ak nastavite heslo, budete ho potrebovať pri pripojení</small>
+					</div>
+					
+					<button id="createGameBtn" class="btn btn-success btn-lg" style="width: 100%;">
+						⚙️ Vytvoriť hru
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Message container for notifications -->
+	<div id="messageBox"></div>
+
+	<script src="/socket.io/socket.io.js"></script>
+	<script type="module" src="/shared/connectionStatus.js"></script>
+	<script type="module" src="/app-dashboard/app-dashboard.js"></script>
+</body>
+
+</html>

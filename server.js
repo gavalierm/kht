@@ -46,6 +46,8 @@ app.use(express.json());
 
 // Static files for each app
 app.use('/app', express.static(path.join(__dirname, 'public/game')));
+app.use('/app-dashboard', express.static(path.join(__dirname, 'public/app-dashboard')));
+app.use('/control', express.static(path.join(__dirname, 'public/control')));
 app.use('/dashboard', express.static(path.join(__dirname, 'public/dashboard')));
 app.use('/panel', express.static(path.join(__dirname, 'public/panel')));
 app.use('/stage', express.static(path.join(__dirname, 'public/stage')));
@@ -90,18 +92,30 @@ app.get('/app/:pin/stage', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/stage/stage.html'));
 });
 
-// App dashboard page (moderator control panel)
-app.get('/app/:pin/dashboard', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/dashboard/dashboard.html'));
+// App dashboard page (game creation interface)
+app.get('/app/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/app-dashboard/app-dashboard.html'));
 });
 
-// Dashboard routes (legacy - will be phased out)
+// App control page (game control interface)
+app.get('/app/:pin/control', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/control/control.html'));
+});
+
+// Legacy dashboard routes (maintained for backward compatibility during transition)
+app.get('/app/:pin/dashboard', (req, res) => {
+  // Redirect to new control interface
+  res.redirect(`/app/${req.params.pin}/control`);
+});
+
 app.get('/dashboard', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/dashboard/dashboard.html'));
+  // Redirect to new creation interface
+  res.redirect('/app/dashboard');
 });
 
 app.get('/dashboard/:pin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/dashboard/dashboard.html'));
+  // Redirect to new control interface
+  res.redirect(`/app/${req.params.pin}/control`);
 });
 
 // Panel routes

@@ -309,11 +309,41 @@ export class Router {
 	}
 
 	/**
-	 * Navigate to dashboard view
+	 * Navigate to app dashboard (game creation)
+	 */
+	navigateToAppDashboard() {
+		this.navigateTo('/app/dashboard');
+	}
+
+	/**
+	 * Navigate to control view (game control)
+	 * @param {string} pin - Game PIN
+	 */
+	navigateToControl(pin) {
+		this.navigateTo(`/app/${pin}/control`);
+	}
+
+	/**
+	 * Navigate to dashboard view (legacy - redirects to control)
 	 * @param {string} pin - Game PIN
 	 */
 	navigateToDashboard(pin) {
 		this.navigateTo(`/app/${pin}/dashboard`);
+	}
+
+	/**
+	 * Redirect to app dashboard (game creation)
+	 */
+	redirectToAppDashboard() {
+		window.location.href = '/app/dashboard';
+	}
+
+	/**
+	 * Redirect to control view (game control)
+	 * @param {string} pin - Game PIN
+	 */
+	redirectToControl(pin) {
+		window.location.href = `/app/${pin}/control`;
 	}
 }
 
@@ -332,11 +362,15 @@ export const navigateToJoin = defaultRouter.navigateToJoin.bind(defaultRouter);
 export const navigateToGame = defaultRouter.navigateToGame.bind(defaultRouter);
 export const navigateToPanel = defaultRouter.navigateToPanel.bind(defaultRouter);
 export const navigateToStage = defaultRouter.navigateToStage.bind(defaultRouter);
+export const navigateToAppDashboard = defaultRouter.navigateToAppDashboard.bind(defaultRouter);
+export const navigateToControl = defaultRouter.navigateToControl.bind(defaultRouter);
 export const navigateToDashboard = defaultRouter.navigateToDashboard.bind(defaultRouter);
 
 // Export redirect methods (full page redirects)
 export const redirectToGame = defaultRouter.redirectToGame.bind(defaultRouter);
 export const redirectToPanel = defaultRouter.redirectToPanel.bind(defaultRouter);
 export const redirectToStage = defaultRouter.redirectToStage.bind(defaultRouter);
+export const redirectToAppDashboard = defaultRouter.redirectToAppDashboard.bind(defaultRouter);
+export const redirectToControl = defaultRouter.redirectToControl.bind(defaultRouter);
 export const redirectToDashboard = defaultRouter.redirectToDashboard.bind(defaultRouter);
 export const redirectToJoin = defaultRouter.redirectToJoin.bind(defaultRouter);
