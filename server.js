@@ -131,7 +131,6 @@ app.get('/api/game/:pin', async (req, res) => {
 
     res.json({
       pin: gameData.pin,
-      title: gameData.title,
       status: gameData.status,
       currentQuestionIndex: gameData.current_question_index,
       questionCount: gameData.questions.length
@@ -170,10 +169,10 @@ app.get('/api/question-templates/:category', async (req, res) => {
 
 app.post('/api/question-templates', async (req, res) => {
   try {
-    const { category, title, questions } = req.body;
+    const { category, questions } = req.body;
     
-    if (!category || !title || !questions) {
-      return res.status(400).json({ error: 'Missing required fields: category, title, questions' });
+    if (!category || !questions) {
+      return res.status(400).json({ error: 'Missing required fields: category, questions' });
     }
     
     // Validate questions structure
@@ -181,8 +180,8 @@ app.post('/api/question-templates', async (req, res) => {
       return res.status(400).json({ error: 'Invalid question format' });
     }
     
-    const templateId = await db.createQuestionTemplate(category, title, questions);
-    res.json({ id: templateId, category, title, questions });
+    const templateId = await db.createQuestionTemplate(category, questions);
+    res.json({ id: templateId, category, questions });
   } catch (error) {
     console.error('Error creating question template:', error);
     if (error.code === 'SQLITE_CONSTRAINT') {
@@ -196,10 +195,10 @@ app.post('/api/question-templates', async (req, res) => {
 app.put('/api/question-templates/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, questions } = req.body;
+    const { questions } = req.body;
     
-    if (!title || !questions) {
-      return res.status(400).json({ error: 'Missing required fields: title, questions' });
+    if (!questions) {
+      return res.status(400).json({ error: 'Missing required field: questions' });
     }
     
     // Validate questions structure
@@ -207,7 +206,7 @@ app.put('/api/question-templates/:id', async (req, res) => {
       return res.status(400).json({ error: 'Invalid question format' });
     }
     
-    const updated = await db.updateQuestionTemplate(id, title, questions);
+    const updated = await db.updateQuestionTemplate(id, questions);
     
     if (!updated) {
       return res.status(404).json({ error: 'Question template not found' });
@@ -276,7 +275,6 @@ io.on('connection', (socket) => {
       // Save to database
       const dbResult = await db.createGame(
         gamePin, 
-        questionTemplate.title, 
         questionTemplate.questions,
         data.moderatorPassword
       );
@@ -296,7 +294,6 @@ io.on('connection', (socket) => {
       socket.join(`game_${gamePin}_moderator`);
       socket.emit('game_created', {
         gamePin: gamePin,
-        title: questionTemplate.title,
         questionCount: questionTemplate.questions.length,
         moderatorToken: dbResult.moderatorToken
       });
@@ -379,7 +376,6 @@ io.on('connection', (socket) => {
       
       socket.emit('moderator_reconnected', {
         gamePin: data.gamePin,
-        title: gameData.title,
         questionCount: gameData.questions.length,
         currentQuestionIndex: gameData.current_question_index,
         status: gameData.status,

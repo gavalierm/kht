@@ -4,7 +4,6 @@
 
 const sampleQuestions = {
   quiz: {
-    title: "Sample Quiz for Testing",
     questions: [
       {
         id: 1,
@@ -144,7 +143,6 @@ const sampleAnswers = [
 
 const sampleGameData = {
   pin: "123456",
-  title: "Test Game",
   questions: sampleQuestions.quiz.questions,
   moderatorPassword: null,
   status: "waiting",

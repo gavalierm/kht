@@ -61,9 +61,13 @@
 
 		.panel-container {
 			height: 100vh;
-			display: flex;
+			display: none;
 			flex-direction: column;
 			padding: 1.5vh 2vw;
+		}
+
+		.panel-container.visible {
+			display: flex;
 		}
 
 		.panel-header {
@@ -94,13 +98,6 @@
 			text-align: center;
 		}
 
-		.panel-game-title {
-			font-size: 3.5vw;
-			color: white;
-			margin: 0;
-			text-align: center;
-			font-weight: bold;
-		}
 
 		.panel-game-info {
 			display: flex;
@@ -196,7 +193,7 @@
 			border-radius: 1vh;
 			font-size: 4vw;
 			font-weight: bold;
-			border: 0.3vh solid white;
+			background: rgba(255, 255, 255, 0.1);
 			transition: all 0.3s ease;
 			color: white;
 			min-height: 8vh;
@@ -311,10 +308,6 @@
 			font-style: italic;
 		}
 
-		.panel-waiting .panel-option {
-			opacity: 0.6;
-			border-color: rgba(255, 255, 255, 0.5);
-		}
 
 		/* Add spin animation for spinner */
 		@keyframes spin {
@@ -387,9 +380,8 @@
 			<div class="panel-pin-display">
 				<span class="panel-pin-code" id="panelPinCode">#------</span>
 			</div>
-			<h1 class="panel-game-title" id="panelGameTitle">Kvízová hra</h1>
 			<div class="panel-game-info">
-				<div class="panel-question-number" id="panelQuestionNumber">Otázka -/-</div>
+				<div class="panel-question-number" id="panelQuestionNumber">-/-</div>
 				<div class="panel-countdown" id="panelCountdown" style="display: none;">
 					<span class="timer-text">30</span>
 					<div class="spinner"></div>

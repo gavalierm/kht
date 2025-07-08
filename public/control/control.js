@@ -18,7 +18,6 @@ class ControlApp {
 		
 		// Control state
 		this.gamePin = null;
-		this.gameTitle = 'Control';
 		this.gameStatus = GAME_STATES.WAITING;
 		this.gameCategory = null;
 		this.players = [];
@@ -37,7 +36,7 @@ class ControlApp {
 	init() {
 		// Cache elements
 		this.elements = this.dom.cacheElements([
-			'gameTitle',
+			'pageTitle',
 			'gamePin',
 			'gameStatus',
 			'totalPlayers',
@@ -234,14 +233,12 @@ class ControlApp {
 	}
 
 	updateGameInfo(gameData) {
-		this.gameTitle = gameData.title || DEFAULTS.GAME_TITLE;
 		this.gameStatus = gameData.status || GAME_STATES.WAITING;
 		this.questionIndex = gameData.currentQuestionIndex || 0;
 		this.totalQuestions = gameData.questionCount || 0;
 		this.gameCategory = gameData.category || null;
 		
 		// Update UI
-		this.dom.setText(this.elements.gameTitle, this.gameTitle);
 		this.dom.setText(this.elements.gameStatus, this.getStatusText(this.gameStatus));
 		if (this.gameCategory) {
 			const template = this.availableTemplates.find(t => t.category === this.gameCategory);
@@ -517,7 +514,7 @@ class ControlApp {
 		if (this.elements.gameControlCard) {
 			this.elements.gameControlCard.style.display = 'none';
 		}
-		this.dom.setText(this.elements.gameTitle, 'Vytvorenie novej hry');
+		this.dom.setText(this.elements.pageTitle, 'Vytvorenie novej hry');
 	}
 
 	showGameControl() {
@@ -527,7 +524,7 @@ class ControlApp {
 		if (this.elements.gameControlCard) {
 			this.elements.gameControlCard.style.display = 'block';
 		}
-		this.dom.setText(this.elements.gameTitle, 'Control');
+		this.dom.setText(this.elements.pageTitle, 'Control');
 	}
 
 	async handleCreateGame() {
@@ -572,7 +569,6 @@ class ControlApp {
 		
 		// Update game state
 		this.gamePin = data.gamePin;
-		this.gameTitle = data.title;
 		this.totalQuestions = data.questionCount;
 		this.isModerator = true;
 		
@@ -589,7 +585,6 @@ class ControlApp {
 		this.updateGamePin(data.gamePin);
 		this.showGameControl();
 		this.updateGameInfo({
-			title: data.title,
 			status: GAME_STATES.WAITING,
 			currentQuestionIndex: 0,
 			questionCount: data.questionCount
@@ -626,7 +621,6 @@ class ControlApp {
 		console.log('Moderator reconnected:', data);
 		
 		// Update game info
-		if (data.title) this.gameTitle = data.title;
 		if (data.questionCount !== undefined) this.totalQuestions = data.questionCount;
 		if (data.currentQuestionIndex !== undefined) this.questionIndex = data.currentQuestionIndex;
 		if (data.status) this.gameStatus = data.status.toUpperCase();
@@ -649,7 +643,6 @@ class ControlApp {
 		
 		// Update UI
 		this.updateGameInfo({ 
-			title: this.gameTitle, 
 			status: this.gameStatus, 
 			currentQuestionIndex: this.questionIndex, 
 			questionCount: this.totalQuestions 

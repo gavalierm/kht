@@ -14,7 +14,6 @@ class PanelApp {
 		
 		// Panel state
 		this.gamePin = null;
-		this.gameTitle = DEFAULTS.GAME_TITLE;
 		this.currentQuestion = null;
 		this.gameStatus = GAME_STATES.WAITING;
 		this.countdownTimer = null;
@@ -35,7 +34,7 @@ class PanelApp {
 			'panelPinCode',
 			'panelCountdown',
 			'panelLoadingOverlay',
-			ELEMENT_IDS.PANEL_GAME_TITLE,
+			ELEMENT_IDS.PANEL_TITLE,
 			ELEMENT_IDS.PANEL_QUESTION_NUMBER,
 			ELEMENT_IDS.PANEL_QUESTION_TEXT,
 			ELEMENT_IDS.PANEL_OPTION_A,
@@ -48,6 +47,7 @@ class PanelApp {
 
 		// Get container and loading elements
 		this.elements.container = this.dom.querySelector('.panel-container');
+		this.elements.panelLoadingOverlay = this.dom.querySelector('#panelLoadingOverlay');
 		this.elements.loadingText = this.dom.querySelector('.panel-loading-text');
 		this.elements.timerText = this.dom.querySelector('.timer-text');
 		
@@ -95,11 +95,19 @@ class PanelApp {
 		// Panel join events
 		this.socket.on(SOCKET_EVENTS.PANEL_GAME_JOINED, (data) => {
 			console.log('Panel joined game:', data);
-			this.gameTitle = data.title || DEFAULTS.GAME_TITLE;
 			this.gamePin = data.gamePin;
-			this.hideLoading();
+			this.showPanelInterface();
 			this.updateGameInfo();
-			this.updateStatus(GAME_STATES.WAITING);
+			// Only update status if server provides current game status, otherwise keep current state
+			if (data.gameStatus) {
+				this.updateStatus(data.gameStatus);
+			} else {
+				// If no game status provided, assume waiting state only for initial connection
+				if (!this.gameStatus || this.gameStatus === 'disconnected') {
+					this.updateStatus(GAME_STATES.WAITING);
+				}
+				// Otherwise keep the current state (question active, results, etc.)
+			}
 		});
 
 		this.socket.on(SOCKET_EVENTS.PANEL_JOIN_ERROR, (data) => {
@@ -128,12 +136,12 @@ class PanelApp {
 		// Connection events
 		this.socket.on(SOCKET_EVENTS.DISCONNECT, () => {
 			console.log('Panel disconnected from server');
-			this.updateStatus('disconnected');
+			// Connection banner handles disconnect notifications
 		});
 
 		this.socket.on(SOCKET_EVENTS.RECONNECT, () => {
 			console.log('Panel reconnected to server');
-			this.showLoading('Obnovujem pripojenie...');
+			// Connection banner handles reconnection notifications
 			if (this.gamePin) {
 				this.joinPanel();
 			}
@@ -153,9 +161,6 @@ class PanelApp {
 	}
 
 	updateGameInfo() {
-		if (this.elements.panelGameTitle) {
-			this.dom.setText(this.elements.panelGameTitle, this.gameTitle);
-		}
 	}
 
 	updateStatus(status) {
@@ -199,7 +204,7 @@ class PanelApp {
 		// Update question number
 		if (this.elements.panelQuestionNumber) {
 			this.dom.setText(this.elements.panelQuestionNumber, 
-				`Otázka ${data.questionNumber}/${data.totalQuestions}`);
+				`${data.questionNumber}/${data.totalQuestions}`);
 		}
 
 		// Update question text
@@ -414,6 +419,23 @@ class PanelApp {
 	updateLoadingText(message) {
 		if (this.elements.loadingText) {
 			this.dom.setText(this.elements.loadingText, message);
+		}
+	}
+
+	showPanelInterface() {
+		// Hide loading overlay
+		this.hideLoading();
+		
+		// Show panel container
+		if (this.elements.container) {
+			this.dom.addClass(this.elements.container, 'visible');
+		}
+	}
+
+	hidePanelInterface() {
+		// Hide panel container
+		if (this.elements.container) {
+			this.dom.removeClass(this.elements.container, 'visible');
 		}
 	}
 }

@@ -48,7 +48,6 @@ describe('End-to-End Application Flow', () => {
       if (pin === '123456') {
         res.json({
           pin: pin,
-          title: 'Test Game',
           status: 'waiting',
           currentQuestionIndex: 0,
           questionCount: 5
@@ -155,7 +154,6 @@ describe('End-to-End Application Flow', () => {
       
       const gameData = await response.json();
       expect(gameData.pin).toBe('123456');
-      expect(gameData.title).toBe('Test Game');
       expect(gameData.status).toBe('waiting');
       expect(gameData.questionCount).toBe(5);
     });

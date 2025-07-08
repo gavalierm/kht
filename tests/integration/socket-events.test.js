@@ -86,7 +86,6 @@ describe('Socket.io Event Integration', () => {
 
       clientSocket.on('game_created', (response) => {
         expect(response.gamePin).toBe(gameData.customPin);
-        expect(response.title).toBeDefined();
         expect(response.questionCount).toBeGreaterThan(0);
         expect(response.moderatorToken).toBeDefined();
         done();
@@ -103,7 +102,6 @@ describe('Socket.io Event Integration', () => {
         
         serverSocket.emit('game_created', {
           gamePin: data.customPin,
-          title: 'Test Quiz',
           questionCount: questions.length,
           moderatorToken: 'test-moderator-token-' + Date.now()
         });
@@ -320,7 +318,6 @@ describe('Socket.io Event Integration', () => {
 
       clientSocket.on('moderator_reconnected', (response) => {
         expect(response.gamePin).toBe(reconnectData.gamePin);
-        expect(response.title).toBeDefined();
         expect(response.questionCount).toBeGreaterThan(0);
         expect(response.status).toBeDefined();
         expect(Array.isArray(response.players)).toBe(true);
@@ -332,7 +329,6 @@ describe('Socket.io Event Integration', () => {
       serverSocket.on('reconnect_moderator', (data) => {
         serverSocket.emit('moderator_reconnected', {
           gamePin: data.gamePin,
-          title: 'Test Quiz',
           questionCount: 5,
           currentQuestionIndex: 0,
           status: 'waiting',
@@ -352,7 +348,6 @@ describe('Socket.io Event Integration', () => {
 
       clientSocket.on('panel_game_joined', (response) => {
         expect(response.gamePin).toBe(gamePin);
-        expect(response.title).toBeDefined();
         expect(response.questionCount).toBeGreaterThan(0);
         expect(response.currentState).toBeDefined();
         done();
@@ -362,7 +357,6 @@ describe('Socket.io Event Integration', () => {
       serverSocket.on('join_panel', (data) => {
         serverSocket.emit('panel_game_joined', {
           gamePin: data.gamePin,
-          title: 'Test Quiz',
           questionCount: 5,
           currentState: 'waiting'
         });

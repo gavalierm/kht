@@ -18,7 +18,6 @@ class StageApp {
 		
 		// Stage state
 		this.gamePin = null;
-		this.gameTitle = DEFAULTS.GAME_TITLE;
 		this.leaderboard = [];
 		this.gameStatus = GAME_STATES.ENDED;
 
@@ -31,7 +30,7 @@ class StageApp {
 	init() {
 		// Cache elements
 		this.elements = this.dom.cacheElements([
-			'gameTitle',
+			'stageTitle',
 			'gamePin',
 			'playerCount', 
 			'leaderboard',
@@ -144,11 +143,9 @@ class StageApp {
 	}
 
 	updateGameInfo(gameData) {
-		this.gameTitle = gameData.title || DEFAULTS.GAME_TITLE;
 		this.gameStatus = gameData.status;
 		
 		// Update UI
-		this.dom.setText(this.elements.gameTitle, this.gameTitle);
 		this.dom.setText(this.elements.playerCount, gameData.playerCount || 0);
 	}
 

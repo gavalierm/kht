@@ -136,7 +136,7 @@ export const ELEMENT_IDS = {
 	PLAYER_ID_DISPLAY: 'player_id',
 	
 	// Panel page
-	PANEL_GAME_TITLE: 'panelGameTitle',
+	PANEL_TITLE: 'panelTitle',
 	PANEL_GAME_STATUS: 'panelGameStatus',
 	PANEL_PLAYER_COUNT: 'panelPlayerCount',
 	PANEL_QUESTION_NUMBER: 'panelQuestionNumber',
@@ -165,7 +165,6 @@ export const ROUTE_PATTERNS = {
 
 // Default values
 export const DEFAULTS = {
-	GAME_TITLE: 'Quiz Game',
 	QUESTION_TIME_LIMIT: 30,
 	LEADERBOARD_DISPLAY_COUNT: 10,
 	ANSWER_OPTION_COUNT: 4

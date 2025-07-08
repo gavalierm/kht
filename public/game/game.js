@@ -66,6 +66,19 @@ class App {
 				if (answer !== -1) {
 					this.submitAnswer(answer);
 				}
+			} else if (option && this.gameState.isWaiting) {
+				// Player clicked during waiting state - show excited notification!
+				console.log('Player clicked option during waiting state - they are excited to play!');
+				const excitedMessages = [
+					'Wow! Nemôžem sa dočkať! 🔥',
+					'Pripravený na víťazstvo! 🏆',
+					'Toto bude epické! ⚡',
+					'Ideme na to! 🚀',
+					'Súťaživý duch! 💪',
+					'Chcem vyhrať! 🎯'
+				];
+				const randomMessage = excitedMessages[Math.floor(Math.random() * excitedMessages.length)];
+				this.notifications.showInfo(randomMessage);
 			}
 		});
 
@@ -413,14 +426,6 @@ class App {
 		// Show spinner in timer
 		this.dom.addClass(this.elements.timer, 'waiting');
 		
-		// Disable all options
-		this.elements.options?.querySelectorAll('.option').forEach(el => {
-			this.dom.setStyles(el, {
-				opacity: '0.3',
-				pointerEvents: 'none',
-				cursor: 'not-allowed'
-			});
-		});
 		
 		// Reset option texts
 		const optionElements = this.elements.options?.querySelectorAll('.option p');

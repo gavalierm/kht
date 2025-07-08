@@ -39,7 +39,6 @@ describe('GameDatabase', () => {
         
         const result = await db.createGame(
           pin,
-          'Test Quiz',
           questions,
           'testpassword'
         );
@@ -56,7 +55,6 @@ describe('GameDatabase', () => {
         
         const result = await db.createGame(
           pin,
-          'Test Quiz',
           questions,
           null
         );
@@ -71,11 +69,11 @@ describe('GameDatabase', () => {
         const questions = createSampleQuestions();
         
         // Create first game
-        await db.createGame(pin, 'Test Quiz 1', questions);
+        await db.createGame(pin, questions);
         
         // Try to create second game with same PIN - should fail
         await expect(
-          db.createGame(pin, 'Test Quiz 2', questions)
+          db.createGame(pin, questions)
         ).rejects.toThrow();
       });
     });
@@ -85,12 +83,11 @@ describe('GameDatabase', () => {
         const pin = generateTestPin();
         const questions = createSampleQuestions();
         
-        await db.createGame(pin, 'Test Quiz', questions);
+        await db.createGame(pin, questions);
         const game = await db.getGameByPin(pin);
 
         expect(game).toBeDefined();
         expect(game.pin).toBe(pin);
-        expect(game.title).toBe('Test Quiz');
         expect(game.questions).toEqual(questions);
       });
 
@@ -106,7 +103,7 @@ describe('GameDatabase', () => {
         const questions = createSampleQuestions();
         const password = 'testpassword';
         
-        await db.createGame(pin, 'Test Quiz', questions, password);
+        await db.createGame(pin, questions, password);
         const validation = await db.validateModerator(pin, password, null);
 
         expect(validation).toBeDefined();
@@ -117,7 +114,7 @@ describe('GameDatabase', () => {
         const pin = generateTestPin();
         const questions = createSampleQuestions();
         
-        const result = await db.createGame(pin, 'Test Quiz', questions, 'password');
+        const result = await db.createGame(pin, questions, 'password');
         const validation = await db.validateModerator(pin, null, result.moderatorToken);
 
         expect(validation).toBeDefined();
@@ -128,7 +125,7 @@ describe('GameDatabase', () => {
         const pin = generateTestPin();
         const questions = createSampleQuestions();
         
-        await db.createGame(pin, 'Test Quiz', questions, 'correctpassword');
+        await db.createGame(pin, questions, 'correctpassword');
         const validation = await db.validateModerator(pin, 'wrongpassword', null);
 
         expect(validation).toBeFalsy();
@@ -138,7 +135,7 @@ describe('GameDatabase', () => {
         const pin = generateTestPin();
         const questions = createSampleQuestions();
         
-        await db.createGame(pin, 'Test Quiz', questions, null);
+        await db.createGame(pin, questions, null);
         const validation = await db.validateModerator(pin, null, null);
 
         expect(validation).toBeDefined();
@@ -153,7 +150,7 @@ describe('GameDatabase', () => {
     beforeEach(async () => {
       const pin = generateTestPin();
       const questions = createSampleQuestions();
-      const result = await db.createGame(pin, 'Test Quiz', questions);
+      const result = await db.createGame(pin, questions);
       gameId = result.gameId;
     });
 
@@ -235,7 +232,7 @@ describe('GameDatabase', () => {
     beforeEach(async () => {
       const pin = generateTestPin();
       const questions = createSampleQuestions();
-      const gameResult = await db.createGame(pin, 'Test Quiz', questions);
+      const gameResult = await db.createGame(pin, questions);
       gameId = gameResult.gameId;
 
       const playerResult = await db.addPlayer(gameId);
@@ -275,7 +272,7 @@ describe('GameDatabase', () => {
     beforeEach(async () => {
       const pin = generateTestPin();
       const questions = createSampleQuestions();
-      const result = await db.createGame(pin, 'Test Quiz', questions);
+      const result = await db.createGame(pin, questions);
       gameId = result.gameId;
     });
 
@@ -317,7 +314,7 @@ describe('GameDatabase', () => {
     beforeEach(async () => {
       const pin = generateTestPin();
       const questions = createSampleQuestions();
-      const gameResult = await db.createGame(pin, 'Test Quiz', questions);
+      const gameResult = await db.createGame(pin, questions);
       gameId = gameResult.gameId;
 
       const playerResult = await db.addPlayer(gameId);

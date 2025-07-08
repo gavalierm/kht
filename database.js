@@ -15,7 +15,6 @@ class GameDatabase {
       CREATE TABLE IF NOT EXISTS games (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         pin TEXT UNIQUE NOT NULL,
-        title TEXT NOT NULL,
         moderator_password_hash TEXT,
         moderator_token TEXT UNIQUE,
         status TEXT DEFAULT 'waiting',
@@ -29,7 +28,6 @@ class GameDatabase {
       CREATE TABLE IF NOT EXISTS question_templates (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         category TEXT UNIQUE NOT NULL,
-        title TEXT NOT NULL,
         questions_data TEXT NOT NULL,
         created_at INTEGER DEFAULT (strftime('%s', 'now')),
         updated_at INTEGER DEFAULT (strftime('%s', 'now'))
@@ -152,7 +150,6 @@ class GameDatabase {
       // Create test game with no password
       const result = await this.createGame(
         '123456',
-        'Testovacia hra',
         testQuestions,
         null // no password
       );
@@ -170,18 +167,18 @@ class GameDatabase {
   }
 
   // Create new game
-  async createGame(pin, title, questions, moderatorPassword = null) {
+  async createGame(pin, questions, moderatorPassword = null) {
     return new Promise((resolve, reject) => {
       const passwordHash = moderatorPassword ? bcrypt.hashSync(moderatorPassword, 10) : null;
       const moderatorToken = this.generateToken();
       const questionsJson = JSON.stringify(questions);
 
       const sql = `
-        INSERT INTO games (pin, title, moderator_password_hash, moderator_token, questions_data)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO games (pin, moderator_password_hash, moderator_token, questions_data)
+        VALUES (?, ?, ?, ?)
       `;
 
-      this.db.run(sql, [pin, title, passwordHash, moderatorToken, questionsJson], function(err) {
+      this.db.run(sql, [pin, passwordHash, moderatorToken, questionsJson], function(err) {
         if (err) {
           reject(err);
         } else {
@@ -476,7 +473,6 @@ class GameDatabase {
       const templates = [
         {
           category: 'general',
-          title: 'Všeobecné vedomosti',
           questions: [
             {
               id: 1,
@@ -517,7 +513,6 @@ class GameDatabase {
         },
         {
           category: 'history',
-          title: 'História',
           questions: [
             {
               id: 1,
@@ -551,7 +546,6 @@ class GameDatabase {
         },
         {
           category: 'science',
-          title: 'Veda a technika',
           questions: [
             {
               id: 1,
@@ -587,7 +581,7 @@ class GameDatabase {
 
       // Insert templates
       for (const template of templates) {
-        await this.createQuestionTemplate(template.category, template.title, template.questions);
+        await this.createQuestionTemplate(template.category, template.questions);
       }
 
       console.log('Default question templates created successfully');
@@ -597,15 +591,15 @@ class GameDatabase {
   }
 
   // Create question template
-  async createQuestionTemplate(category, title, questions) {
+  async createQuestionTemplate(category, questions) {
     return new Promise((resolve, reject) => {
       const questionsJson = JSON.stringify(questions);
       const sql = `
-        INSERT INTO question_templates (category, title, questions_data)
-        VALUES (?, ?, ?)
+        INSERT INTO question_templates (category, questions_data)
+        VALUES (?, ?)
       `;
 
-      this.db.run(sql, [category, title, questionsJson], function(err) {
+      this.db.run(sql, [category, questionsJson], function(err) {
         if (err) {
           reject(err);
         } else {
@@ -649,16 +643,16 @@ class GameDatabase {
   }
 
   // Update question template
-  async updateQuestionTemplate(id, title, questions) {
+  async updateQuestionTemplate(id, questions) {
     return new Promise((resolve, reject) => {
       const questionsJson = JSON.stringify(questions);
       const sql = `
         UPDATE question_templates 
-        SET title = ?, questions_data = ?, updated_at = strftime('%s', 'now')
+        SET questions_data = ?, updated_at = strftime('%s', 'now')
         WHERE id = ?
       `;
 
-      this.db.run(sql, [title, questionsJson, id], function(err) {
+      this.db.run(sql, [questionsJson, id], function(err) {
         if (err) {
           reject(err);
         } else {

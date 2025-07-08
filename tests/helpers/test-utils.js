@@ -63,7 +63,6 @@ function createSamplePlayer() {
 function createSampleGame() {
   return {
     pin: Math.floor(100000 + Math.random() * 900000).toString(),
-    title: "Test Quiz Game",
     questions: createSampleQuestions(),
     moderatorPassword: null
   };

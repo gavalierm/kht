@@ -50,10 +50,10 @@ describe('Dashboard API Integration', () => {
 
     app.post('/api/question-templates', async (req, res) => {
       try {
-        const { category, title, questions } = req.body;
+        const { category, questions } = req.body;
         
-        if (!category || !title || !questions || !Array.isArray(questions)) {
-          return res.status(400).json({ error: 'Missing required fields: category, title, questions' });
+        if (!category || !questions || !Array.isArray(questions)) {
+          return res.status(400).json({ error: 'Missing required fields: category, questions' });
         }
         
         // Validate questions structure
@@ -76,8 +76,8 @@ describe('Dashboard API Integration', () => {
           return res.status(400).json({ error: 'Invalid question format' });
         }
         
-        const templateId = await database.createQuestionTemplate(category, title, questions);
-        res.json({ id: templateId, category, title, questions });
+        const templateId = await database.createQuestionTemplate(category, questions);
+        res.json({ id: templateId, category, questions });
       } catch (error) {
         if (error.code === 'SQLITE_CONSTRAINT') {
           res.status(409).json({ error: 'Category already exists' });
@@ -90,13 +90,13 @@ describe('Dashboard API Integration', () => {
     app.put('/api/question-templates/:id', async (req, res) => {
       try {
         const { id } = req.params;
-        const { title, questions } = req.body;
+        const { questions } = req.body;
         
-        if (!title || !questions || !Array.isArray(questions)) {
-          return res.status(400).json({ error: 'Missing required fields: title, questions' });
+        if (!questions || !Array.isArray(questions)) {
+          return res.status(400).json({ error: 'Missing required fields: questions' });
         }
         
-        const updated = await database.updateQuestionTemplate(id, title, questions);
+        const updated = await database.updateQuestionTemplate(id, questions);
         
         if (!updated) {
           return res.status(404).json({ error: 'Question template not found' });
@@ -144,8 +144,8 @@ describe('Dashboard API Integration', () => {
 
     test('should return all question templates', async () => {
       // Create test templates
-      await database.createQuestionTemplate('general', 'General Knowledge', sampleQuestions.quiz.questions);
-      await database.createQuestionTemplate('history', 'History', sampleQuestions.quiz.questions.slice(0, 2));
+      await database.createQuestionTemplate('general', sampleQuestions.quiz.questions);
+      await database.createQuestionTemplate('history', sampleQuestions.quiz.questions.slice(0, 2));
 
       const response = await request(app)
         .get('/api/question-templates')
@@ -159,14 +159,13 @@ describe('Dashboard API Integration', () => {
 
   describe('GET /api/question-templates/:category', () => {
     test('should return specific question template', async () => {
-      await database.createQuestionTemplate('test-get', 'Test Questions', sampleQuestions.quiz.questions);
+      await database.createQuestionTemplate('test-get', sampleQuestions.quiz.questions);
       
       const response = await request(app)
         .get('/api/question-templates/test-get')
         .expect(200);
 
       expect(response.body.category).toBe('test-get');
-      expect(response.body.title).toBe('Test Questions');
       expect(response.body.questions).toHaveLength(sampleQuestions.quiz.questions.length);
     });
 
@@ -183,7 +182,6 @@ describe('Dashboard API Integration', () => {
     test('should create new question template', async () => {
       const templateData = {
         category: 'science',
-        title: 'Science Questions',
         questions: sampleQuestions.quiz.questions.slice(0, 3)
       };
 
@@ -194,13 +192,12 @@ describe('Dashboard API Integration', () => {
 
       expect(response.body.id).toBeGreaterThan(0);
       expect(response.body.category).toBe('science');
-      expect(response.body.title).toBe('Science Questions');
     });
 
     test('should validate required fields', async () => {
       const invalidData = {
         category: 'invalid'
-        // missing title and questions
+        // missing questions
       };
 
       const response = await request(app)
@@ -214,7 +211,6 @@ describe('Dashboard API Integration', () => {
     test('should validate questions format', async () => {
       const invalidData = {
         category: 'invalid',
-        title: 'Invalid Questions',
         questions: [
           {
             question: 'Invalid question',
@@ -236,7 +232,6 @@ describe('Dashboard API Integration', () => {
     test('should handle duplicate category', async () => {
       const templateData = {
         category: 'duplicate',
-        title: 'First Template',
         questions: sampleQuestions.quiz.questions
       };
 
@@ -247,7 +242,6 @@ describe('Dashboard API Integration', () => {
         .expect(200);
 
       // Try to create duplicate
-      templateData.title = 'Second Template';
       const response = await request(app)
         .post('/api/question-templates')
         .send(templateData)
@@ -259,10 +253,9 @@ describe('Dashboard API Integration', () => {
 
   describe('PUT /api/question-templates/:id', () => {
     test('should update question template', async () => {
-      const templateId = await database.createQuestionTemplate('updatetest-1', 'Original Title', sampleQuestions.quiz.questions);
+      const templateId = await database.createQuestionTemplate('updatetest-1', sampleQuestions.quiz.questions);
       
       const updateData = {
-        title: 'Updated Title',
         questions: sampleQuestions.quiz.questions.slice(0, 2)
       };
 
@@ -275,13 +268,11 @@ describe('Dashboard API Integration', () => {
 
       // Verify update
       const template = await database.getQuestionTemplate('updatetest-1');
-      expect(template.title).toBe('Updated Title');
       expect(template.questions).toHaveLength(2);
     });
 
     test('should return 404 for non-existent template', async () => {
       const updateData = {
-        title: 'Updated Title',
         questions: sampleQuestions.quiz.questions
       };
 
@@ -298,7 +289,7 @@ describe('Dashboard API Integration', () => {
     let templateId;
 
     beforeEach(async () => {
-      templateId = await database.createQuestionTemplate('deletetest', 'To Delete', sampleQuestions.quiz.questions);
+      templateId = await database.createQuestionTemplate('deletetest', sampleQuestions.quiz.questions);
     });
 
     test('should delete question template', async () => {
