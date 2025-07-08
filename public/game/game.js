@@ -55,7 +55,6 @@ class App {
 			ELEMENT_IDS.PLAYER_TIME,
 			ELEMENT_IDS.PLAYER_POSITION,
 			ELEMENT_IDS.LATENCY_DISPLAY,
-			ELEMENT_IDS.PLAYER_ID_DISPLAY,
 			'leaveGameBtn'
 		]);
 
@@ -400,9 +399,6 @@ class App {
 		}
 		if (this.elements.gameStatus) {
 			this.dom.setText(this.elements.gameStatus, `Hráč ${this.gameState.playerId || '?'}`);
-		}
-		if (this.elements.playerIdDisplay) {
-			this.dom.setText(this.elements.playerIdDisplay, this.gameState.playerId || '-');
 		}
 		
 		this.setWaitingState();
