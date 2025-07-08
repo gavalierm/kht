@@ -444,8 +444,8 @@ class App {
 		// Update question text
 		this.dom.setText(this.elements.questionText, 'Čakám na otázku...');
 		
-		// Reset timer
-		this.dom.setText(this.elements.timer, '-');
+		// Show spinner in timer
+		this.dom.addClass(this.elements.timer, 'waiting');
 		
 		// Disable all options
 		this.elements.options?.querySelectorAll('.option').forEach(el => {
@@ -507,8 +507,11 @@ class App {
 			clearInterval(this.timerInterval);
 		}
 
+		// Hide spinner and show timer text
+		this.dom.removeClass(this.elements.timer, 'waiting');
+
 		const updateTimer = () => {
-			this.dom.setText(this.elements.timer, timeLeft);
+			this.dom.setText(this.elements.timer?.querySelector('.timer-text'), timeLeft);
 			
 			if (timeLeft <= 0) {
 				clearInterval(this.timerInterval);

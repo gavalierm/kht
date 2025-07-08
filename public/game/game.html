@@ -160,6 +160,28 @@
 			font-size: 1.5em;
 		}
 
+		/* Timer states - show/hide content based on waiting class */
+		#timer .timer-text {
+			display: block;
+		}
+
+		#timer .spinner {
+			display: none;
+			/* Override spinner colors for better contrast on white background */
+			width: 1em;
+			height: 1em;
+			border: 2px solid #ddd;
+			border-top-color: var(--primary-purple);
+		}
+
+		#timer.waiting .timer-text {
+			display: none;
+		}
+
+		#timer.waiting .spinner {
+			display: block;
+		}
+
 		#playground #options {
 			flex: 1;
 			display: grid;
@@ -375,7 +397,10 @@
 					Čakám na otázku...
 				</p>
 				<div class="options_container">
-					<div id="timer">-</div>
+					<div id="timer" class="waiting">
+						<span class="timer-text">-</span>
+						<div class="spinner"></div>
+					</div>
 					<div id="options">
 						<div class="option option_a">
 							<p>-</p>
