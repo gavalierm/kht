@@ -263,7 +263,8 @@ class ControlApp {
 	}
 
 	handlePlayerJoined(data) {
-		this.playerCount++;
+		// Use exact count from server if available, otherwise increment
+		this.playerCount = data.totalPlayers || (this.playerCount + 1);
 		this.updateGameControlUI();
 		
 		// Safe access to player name
@@ -272,7 +273,8 @@ class ControlApp {
 	}
 
 	handlePlayerLeft(data) {
-		this.playerCount--;
+		// Use exact count from server if available, otherwise decrement
+		this.playerCount = data.totalPlayers || (this.playerCount - 1);
 		this.updateGameControlUI();
 		
 		// Safe access to player name
@@ -426,8 +428,8 @@ class ControlApp {
 		this.isLoggedIn = true;
 		this.isConnectedToGame = true;
 		this.moderatorToken = data.moderatorToken;
-		this.gameState = data.game?.state || 'waiting';
-		this.playerCount = data.game?.players?.length || 0;
+		this.gameState = data.status || 'waiting';
+		this.playerCount = data.totalPlayers || 0;
 		
 		console.log('Login successful for game:', this.gamePin);
 		console.log('Received moderator token:', this.moderatorToken);
