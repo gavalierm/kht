@@ -4,7 +4,7 @@
 <head>
 	<meta charset="UTF-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<title>Quiz Dashboard - Master Control Panel</title>
+	<title>Quiz Control - Master Control Panel</title>
 	<link rel="stylesheet" href="/shared/common.css">
 	<style>
 		html,
@@ -26,7 +26,7 @@
 			align-items: center;
 		}
 
-		.dashboard-content {
+		.control-content {
 			grid-template-columns: 1fr 1fr;
 		}
 
@@ -164,13 +164,13 @@
 
 		/* Responsive adjustments */
 		@media (max-width: 1024px) {
-			.dashboard-content {
+			.control-content {
 				grid-template-columns: 1fr;
 			}
 		}
 
 		@media (max-width: 768px) {
-			.dashboard-container {
+			.control-container {
 				padding: 1rem;
 			}
 
@@ -178,7 +178,7 @@
 				font-size: 1.8rem;
 			}
 
-			.dashboard-header {
+			.control-header {
 				flex-direction: column;
 				align-items: stretch;
 			}
@@ -211,7 +211,7 @@
 			</div>
 		</div>
 
-		<div class="content dashboard-content">
+		<div class="content control-content">
 			<!-- Game Creation Panel -->
 			<div id="gameCreationCard" class="card" style="display: none;">
 				<h2 class="card-title">🎮 Vytvorenie hry</h2>
@@ -334,7 +334,7 @@
 
 	<script src="/socket.io/socket.io.js"></script>
 	<script type="module" src="/shared/connectionStatus.js"></script>
-	<script type="module" src="/dashboard/dashboard.js"></script>
+	<script type="module" src="/control/control.js"></script>
 </body>
 
 </html>

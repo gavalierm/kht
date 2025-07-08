@@ -6,7 +6,7 @@ import { defaultGameState } from '../shared/gameState.js';
 import { defaultAPI } from '../shared/api.js';
 import { SOCKET_EVENTS, GAME_STATES, ELEMENT_IDS, CSS_CLASSES, DEFAULTS } from '../shared/constants.js';
 
-class DashboardApp {
+class ControlApp {
 	constructor() {
 		// Initialize managers
 		this.socket = defaultSocketManager.connect();
@@ -16,9 +16,9 @@ class DashboardApp {
 		this.gameState = defaultGameState;
 		this.api = defaultAPI;
 		
-		// Dashboard state
+		// Control state
 		this.gamePin = null;
-		this.gameTitle = 'Dashboard';
+		this.gameTitle = 'Control';
 		this.gameStatus = GAME_STATES.WAITING;
 		this.gameCategory = null;
 		this.players = [];
@@ -527,7 +527,7 @@ class DashboardApp {
 		if (this.elements.gameControlCard) {
 			this.elements.gameControlCard.style.display = 'block';
 		}
-		this.dom.setText(this.elements.gameTitle, 'Dashboard');
+		this.dom.setText(this.elements.gameTitle, 'Control');
 	}
 
 	async handleCreateGame() {
@@ -582,7 +582,7 @@ class DashboardApp {
 		}
 		
 		// Update URL without page reload
-		const newUrl = `/app/${data.gamePin}/dashboard`;
+		const newUrl = `/control/${data.gamePin}`;
 		window.history.pushState(null, '', newUrl);
 		
 		// Update UI
@@ -606,19 +606,19 @@ class DashboardApp {
 	}
 
 	onSocketConnect() {
-		console.log('Dashboard: Connected to server');
+		console.log('Control: Connected to server');
 		if (this.gamePin && this.isModerator) {
 			this.connectAsModerator();
 		}
 	}
 
 	onSocketDisconnect() {
-		console.log('Dashboard: Disconnected from server');
+		console.log('Control: Disconnected from server');
 		// Connection banner handles disconnect notifications
 	}
 
 	handleSocketError(error) {
-		console.error('Dashboard socket error:', error);
+		console.error('Control socket error:', error);
 		this.notifications.showError('Chyba komunikácie so serverom');
 	}
 
@@ -682,16 +682,16 @@ class DashboardApp {
 	}
 }
 
-// Initialize the dashboard app when DOM is loaded
+// Initialize the control app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-	window.dashboardApp = new DashboardApp();
+	window.controlApp = new ControlApp();
 });
 
 // Cleanup when page unloads
 window.addEventListener('beforeunload', () => {
-	if (window.dashboardApp) {
-		window.dashboardApp.cleanup();
+	if (window.controlApp) {
+		window.controlApp.cleanup();
 	}
 });
 
-export { DashboardApp };
+export { ControlApp };

@@ -13,7 +13,7 @@ describe('End-to-End Application Flow', () => {
     
     // Static file serving
     app.use('/app', express.static(path.join(__dirname, '../../public/game')));
-    app.use('/dashboard', express.static(path.join(__dirname, '../../public/dashboard')));
+    app.use('/control', express.static(path.join(__dirname, '../../public/control')));
     app.use('/panel', express.static(path.join(__dirname, '../../public/panel')));
     app.use('/shared', express.static(path.join(__dirname, '../../public/shared')));
     
@@ -22,28 +22,24 @@ describe('End-to-End Application Flow', () => {
       res.redirect('/app');
     });
     
-    app.get('/app', (req, res) => {
+    app.get('/', (req, res) => {
       res.sendFile(path.join(__dirname, '../../public/game/game.html'));
     });
     
-    app.get('/app/:pin', (req, res) => {
+    app.get('/game/:pin', (req, res) => {
       res.sendFile(path.join(__dirname, '../../public/game/game.html'));
     });
     
-    app.get('/app/:pin/game', (req, res) => {
-      res.sendFile(path.join(__dirname, '../../public/game/game.html'));
-    });
-    
-    app.get('/app/:pin/panel', (req, res) => {
+    app.get('/panel/:pin', (req, res) => {
       res.sendFile(path.join(__dirname, '../../public/panel/panel.html'));
     });
     
-    app.get('/app/:pin/stage', (req, res) => {
+    app.get('/stage/:pin', (req, res) => {
       res.sendFile(path.join(__dirname, '../../public/stage/stage.html'));
     });
     
-    app.get('/app/:pin/dashboard', (req, res) => {
-      res.sendFile(path.join(__dirname, '../../public/dashboard/dashboard.html'));
+    app.get('/control/:pin', (req, res) => {
+      res.sendFile(path.join(__dirname, '../../public/control/control.html'));
     });
     
     // Mock API endpoint
@@ -80,7 +76,7 @@ describe('End-to-End Application Flow', () => {
 
   describe('Static File Serving', () => {
     test('should serve the main app page', async () => {
-      const response = await fetch(`http://localhost:${port}/app/`);
+      const response = await fetch(`http://localhost:${port}/`);
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toContain('text/html');
       
@@ -98,7 +94,7 @@ describe('End-to-End Application Flow', () => {
     });
 
     test('should serve app with PIN in URL', async () => {
-      const response = await fetch(`http://localhost:${port}/app/123456`);
+      const response = await fetch(`http://localhost:${port}/game/123456`);
       expect(response.status).toBe(200);
       
       const html = await response.text();
@@ -106,7 +102,7 @@ describe('End-to-End Application Flow', () => {
     });
 
     test('should serve app with PIN and game suffix', async () => {
-      const response = await fetch(`http://localhost:${port}/app/123456/game`);
+      const response = await fetch(`http://localhost:${port}/game/123456`);
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toContain('text/html');
       
@@ -116,7 +112,7 @@ describe('End-to-End Application Flow', () => {
     });
 
     test('should serve panel with PIN and panel suffix', async () => {
-      const response = await fetch(`http://localhost:${port}/app/123456/panel`);
+      const response = await fetch(`http://localhost:${port}/panel/123456`);
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toContain('text/html');
       
@@ -127,7 +123,7 @@ describe('End-to-End Application Flow', () => {
     });
 
     test('should serve stage with PIN and stage suffix', async () => {
-      const response = await fetch(`http://localhost:${port}/app/123456/stage`);
+      const response = await fetch(`http://localhost:${port}/stage/123456`);
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toContain('text/html');
       
@@ -136,8 +132,8 @@ describe('End-to-End Application Flow', () => {
       expect(html).toContain('Finálne výsledky');
     });
 
-    test('should serve dashboard with PIN and dashboard suffix', async () => {
-      const response = await fetch(`http://localhost:${port}/app/123456/dashboard`);
+    test('should serve control with PIN and control suffix', async () => {
+      const response = await fetch(`http://localhost:${port}/control/123456`);
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toContain('text/html');
       
@@ -205,7 +201,7 @@ describe('End-to-End Application Flow', () => {
       expect(html).toContain('socket.io/socket.io.js');
       
       // Check for app script
-      expect(html).toContain('/app/game.js');
+      expect(html).toContain('/game.js');
     });
 
     test('should have responsive meta tag', async () => {
@@ -224,7 +220,7 @@ describe('End-to-End Application Flow', () => {
     });
 
     test('should handle requests to missing static files', async () => {
-      const response = await fetch(`http://localhost:${port}/app/nonexistent.js`);
+      const response = await fetch(`http://localhost:${port}/nonexistent.js`);
       // Express static might serve the main HTML for SPA routing, so check for reasonable response
       expect([200, 404]).toContain(response.status);
       

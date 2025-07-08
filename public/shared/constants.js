@@ -157,9 +157,9 @@ export const STORAGE_KEYS = {
 
 // Route patterns
 export const ROUTE_PATTERNS = {
-	APP_ROOT: '/app',
-	APP_GAME: '/app/:pin/game',
-	APP_PANEL: '/app/:pin/panel'
+	APP_ROOT: '/',
+	APP_GAME: '/game/:pin',
+	APP_PANEL: '/panel/:pin'
 };
 
 // Default values

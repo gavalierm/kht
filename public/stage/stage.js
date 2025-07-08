@@ -254,8 +254,8 @@ class StageApp {
 	}
 
 	handleNewGame() {
-		// Navigate to dashboard to create new game
-		this.router.redirectToDashboard(this.gamePin);
+		// Navigate to control to create new game
+		this.router.redirectToControl(this.gamePin);
 	}
 
 	handleBackToJoin() {

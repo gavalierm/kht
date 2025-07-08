@@ -74,17 +74,14 @@ export class Router {
 	 */
 	handlePatternRoute(path) {
 		// Check for common patterns
-		if (path.startsWith('/app/') && path.includes('/game')) {
+		if (path.startsWith('/game/')) {
 			this.showPage('game');
 			this.showPhase('playground');
-		} else if (path.startsWith('/app/') && path.includes('/panel')) {
+		} else if (path.startsWith('/panel/')) {
 			this.showPage('panel');
-		} else if (path === '/app' || path === '/app/') {
-			// Show the join/login page for base /app route
+		} else if (path === '/' || path === '') {
+			// Show the join/login page for base route
 			this.showPage('login');
-		} else if (path.startsWith('/app/')) {
-			// Other /app/ routes - let the app handle them
-			this.showPage('game');
 		} else {
 			console.warn('Unknown route:', path);
 			this.showPage('login');
@@ -223,16 +220,10 @@ export class Router {
 	 * @returns {string|null} Game PIN or null
 	 */
 	extractGamePin(path = this.currentPath) {
-		// Pattern: /app/123456/game, /app/123456/panel, /app/123456/stage, /app/123456/dashboard
-		const match = path.match(/\/app\/(\d+)\/(game|panel|stage|dashboard)/);
+		// Pattern: /game/123456, /panel/123456, /stage/123456, /control/123456
+		const match = path.match(/\/(game|panel|stage|control)\/(\d+)/);
 		if (match) {
-			return match[1];
-		}
-		
-		// Pattern: /app/123456
-		const simpleMatch = path.match(/\/app\/(\d+)/);
-		if (simpleMatch) {
-			return simpleMatch[1];
+			return match[2];
 		}
 		
 		return null;
@@ -242,7 +233,7 @@ export class Router {
 	 * Navigate to join screen
 	 */
 	navigateToJoin() {
-		this.navigateTo('/app');
+		this.navigateTo('/');
 	}
 
 	/**
@@ -250,7 +241,7 @@ export class Router {
 	 * @param {string} pin - Game PIN
 	 */
 	navigateToGame(pin) {
-		this.navigateTo(`/app/${pin}/game`);
+		this.navigateTo(`/game/${pin}`);
 	}
 
 	/**
@@ -258,7 +249,7 @@ export class Router {
 	 * @param {string} pin - Game PIN
 	 */
 	redirectToGame(pin) {
-		window.location.href = `/app/${pin}/game`;
+		window.location.href = `/game/${pin}`;
 	}
 
 	/**
@@ -266,7 +257,7 @@ export class Router {
 	 * @param {string} pin - Game PIN
 	 */
 	redirectToPanel(pin) {
-		window.location.href = `/app/${pin}/panel`;
+		window.location.href = `/panel/${pin}`;
 	}
 
 	/**
@@ -274,22 +265,30 @@ export class Router {
 	 * @param {string} pin - Game PIN
 	 */
 	redirectToStage(pin) {
-		window.location.href = `/app/${pin}/stage`;
+		window.location.href = `/stage/${pin}`;
 	}
 
 	/**
-	 * Redirect to dashboard view (full page redirect)
+	 * Redirect to control view (full page redirect)
+	 * @param {string} pin - Game PIN
+	 */
+	redirectToControl(pin) {
+		window.location.href = `/control/${pin}`;
+	}
+
+	/**
+	 * Redirect to dashboard view (full page redirect) - LEGACY
 	 * @param {string} pin - Game PIN
 	 */
 	redirectToDashboard(pin) {
-		window.location.href = `/app/${pin}/dashboard`;
+		window.location.href = `/control/${pin}`;
 	}
 
 	/**
 	 * Redirect to join screen (full page redirect)
 	 */
 	redirectToJoin() {
-		window.location.href = '/app';
+		window.location.href = '/';
 	}
 
 	/**
@@ -297,7 +296,7 @@ export class Router {
 	 * @param {string} pin - Game PIN
 	 */
 	navigateToPanel(pin) {
-		this.navigateTo(`/app/${pin}/panel`);
+		this.navigateTo(`/panel/${pin}`);
 	}
 
 	/**
@@ -305,15 +304,23 @@ export class Router {
 	 * @param {string} pin - Game PIN
 	 */
 	navigateToStage(pin) {
-		this.navigateTo(`/app/${pin}/stage`);
+		this.navigateTo(`/stage/${pin}`);
 	}
 
 	/**
-	 * Navigate to dashboard view
+	 * Navigate to control view
+	 * @param {string} pin - Game PIN
+	 */
+	navigateToControl(pin) {
+		this.navigateTo(`/control/${pin}`);
+	}
+
+	/**
+	 * Navigate to dashboard view - LEGACY
 	 * @param {string} pin - Game PIN
 	 */
 	navigateToDashboard(pin) {
-		this.navigateTo(`/app/${pin}/dashboard`);
+		this.navigateTo(`/control/${pin}`);
 	}
 }
 
@@ -332,11 +339,13 @@ export const navigateToJoin = defaultRouter.navigateToJoin.bind(defaultRouter);
 export const navigateToGame = defaultRouter.navigateToGame.bind(defaultRouter);
 export const navigateToPanel = defaultRouter.navigateToPanel.bind(defaultRouter);
 export const navigateToStage = defaultRouter.navigateToStage.bind(defaultRouter);
+export const navigateToControl = defaultRouter.navigateToControl.bind(defaultRouter);
 export const navigateToDashboard = defaultRouter.navigateToDashboard.bind(defaultRouter);
 
 // Export redirect methods (full page redirects)
 export const redirectToGame = defaultRouter.redirectToGame.bind(defaultRouter);
 export const redirectToPanel = defaultRouter.redirectToPanel.bind(defaultRouter);
 export const redirectToStage = defaultRouter.redirectToStage.bind(defaultRouter);
+export const redirectToControl = defaultRouter.redirectToControl.bind(defaultRouter);
 export const redirectToDashboard = defaultRouter.redirectToDashboard.bind(defaultRouter);
 export const redirectToJoin = defaultRouter.redirectToJoin.bind(defaultRouter);

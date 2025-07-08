@@ -67,7 +67,7 @@ class PanelApp {
 
 	extractGamePin() {
 		const path = window.location.pathname;
-		// Extract PIN from /app/123456/panel
+		// Extract PIN from /panel/123456
 		const gamePin = this.router.extractGamePin(path);
 		if (gamePin) {
 			this.gamePin = gamePin;

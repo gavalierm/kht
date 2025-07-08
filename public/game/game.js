@@ -94,7 +94,7 @@ class App {
 			this.gameState.setPlayerId(data.playerId);
 			
 			this.notifications.showSuccess(`Pripojené ako Hráč ${data.playerId}`);
-			this.router.navigateTo(`/app/${this.gameState.gamePin}/game`);
+			this.router.navigateTo(`/game/${this.gameState.gamePin}`);
 			this.updateGameHeader();
 		});
 
@@ -108,7 +108,7 @@ class App {
 		this.socket.on(SOCKET_EVENTS.PLAYER_RECONNECTED, (data) => {
 			this.gameState.setPlayerId(data.playerId);
 			// Connection banner handles reconnection success notification
-			this.router.navigateTo(`/app/${this.gameState.gamePin}/game`);
+			this.router.navigateTo(`/game/${this.gameState.gamePin}`);
 			this.updateGameHeader();
 			
 			if (data.gameStatus === GAME_STATES.QUESTION_ACTIVE) {
@@ -151,24 +151,15 @@ class App {
 	checkInitialRoute() {
 		const path = window.location.pathname;
 		
-		// Handle /app or /app/ as the join page - no redirect needed
-		if (path === '/app' || path === '/app/') {
+		// Handle / as the join page - no redirect needed
+		if (path === '/' || path === '') {
 			// Already on the join page, just show it
 			this.router.showPage('login');
 			return;
 		}
 		
-		// Handle direct /app/:pin route - smart redirect logic
-		if (path.match(/^\/app\/\d{6}$/)) {
-			const gamePin = this.router.extractGamePin(path);
-			if (gamePin) {
-				this.handleSmartRedirect(gamePin);
-				return;
-			}
-		}
-		
-		// Handle specific routes like /app/:pin/game - auto-join with PIN from URL
-		if (path.startsWith('/app/') && path.length > 5) {
+		// Handle specific routes like /game/:pin - auto-join with PIN from URL
+		if (path.startsWith('/game/') || path.startsWith('/panel/') || path.startsWith('/stage/') || path.startsWith('/control/')) {
 			const gamePin = this.router.extractGamePin(path);
 			if (gamePin) {
 				this.gameState.setGamePin(gamePin);

@@ -45,11 +45,11 @@ function validateQuestions(questions) {
 app.use(express.json());
 
 // Static files for each app
-app.use('/app', express.static(path.join(__dirname, 'public/game')));
-app.use('/dashboard', express.static(path.join(__dirname, 'public/dashboard')));
+app.use('/control', express.static(path.join(__dirname, 'public/control')));
 app.use('/panel', express.static(path.join(__dirname, 'public/panel')));
 app.use('/stage', express.static(path.join(__dirname, 'public/stage')));
 app.use('/shared', express.static(path.join(__dirname, 'public/shared')));
+app.use(express.static(path.join(__dirname, 'public/game')));
 
 // Global variables
 const activeGames = new Map(); // gamePin -> GameInstance (in-memory for performance)
@@ -63,53 +63,45 @@ const socketToModerator = new Map(); // socketId -> {gamePin, gameId}
 
 // Routes
 app.get('/', (req, res) => {
-  res.redirect('/app');
-});
-
-// Player app routes (SPA)
-app.get('/app', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/game/game.html'));
 });
 
-app.get('/app/:pin', (req, res) => {
+// Game page - player interface
+app.get('/game/:pin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/game/game.html'));
 });
 
-// App game page (after joining with PIN)
-app.get('/app/:pin/game', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/game/game.html'));
-});
-
-// App panel page (fullscreen display for venues)
-app.get('/app/:pin/panel', (req, res) => {
+// Panel page (fullscreen display for venues)
+app.get('/panel/:pin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/panel/panel.html'));
 });
 
-// App stage page (post-game leaderboard)
-app.get('/app/:pin/stage', (req, res) => {
+// Stage page (post-game leaderboard)
+app.get('/stage/:pin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/stage/stage.html'));
 });
 
-// App dashboard page (moderator control panel)
-app.get('/app/:pin/dashboard', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/dashboard/dashboard.html'));
+// Control page (moderator control panel)
+app.get('/control/:pin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/control/control.html'));
+});
+
+// Control routes (legacy - will be phased out)
+app.get('/control', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/control/control.html'));
 });
 
 // Dashboard routes (legacy - will be phased out)
 app.get('/dashboard', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/dashboard/dashboard.html'));
+  res.sendFile(path.join(__dirname, 'public/control/control.html'));
 });
 
 app.get('/dashboard/:pin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/dashboard/dashboard.html'));
+  res.sendFile(path.join(__dirname, 'public/control/control.html'));
 });
 
-// Panel routes
+// Panel routes (legacy - will be phased out)
 app.get('/panel', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/panel/panel.html'));
-});
-
-app.get('/panel/:pin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/panel/panel.html'));
 });
 
@@ -812,7 +804,7 @@ async function endQuestion(game) {
   console.log(`Question ended in game ${game.gamePin}`);
 }
 
-// Helper function to update dashboard stats
+// Helper function to update control panel stats
 function updateDashboardStats(game) {
   if (!game.moderatorSocket) return;
   
@@ -923,8 +915,8 @@ if (require.main === module) {
   const PORT = process.env.PORT || 3000;
   server.listen(PORT, () => {
     console.log(`Quiz server running on http://localhost:${PORT}`);
-    console.log(`Player app: http://localhost:${PORT}/app`);
-    console.log(`Dashboard: http://localhost:${PORT}/dashboard`);
+    console.log(`Player app: http://localhost:${PORT}/`);
+    console.log(`Control: http://localhost:${PORT}/control`);
     console.log(`Panel: http://localhost:${PORT}/panel`);
   });
 }

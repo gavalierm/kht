@@ -10,7 +10,7 @@ describe('Connection Banner Integration', () => {
 	describe('HTML Pages Include Connection Banner', () => {
 		test('game page includes connection banner script', async () => {
 			const response = await request(app)
-				.get('/app/123456/game')
+				.get('/game/123456')
 				.expect(200);
 
 			const html = response.text;
@@ -18,9 +18,9 @@ describe('Connection Banner Integration', () => {
 			expect(html).toContain('/shared/common.css');
 		});
 
-		test('dashboard page includes connection banner script', async () => {
+		test('control page includes connection banner script', async () => {
 			const response = await request(app)
-				.get('/app/123456/dashboard')
+				.get('/control/123456')
 				.expect(200);
 
 			const html = response.text;
@@ -30,7 +30,7 @@ describe('Connection Banner Integration', () => {
 
 		test('panel page includes connection banner script', async () => {
 			const response = await request(app)
-				.get('/app/123456/panel')
+				.get('/panel/123456')
 				.expect(200);
 
 			const html = response.text;
@@ -40,7 +40,7 @@ describe('Connection Banner Integration', () => {
 
 		test('stage page includes connection banner script', async () => {
 			const response = await request(app)
-				.get('/app/123456/stage')
+				.get('/stage/123456')
 				.expect(200);
 
 			const html = response.text;
@@ -112,7 +112,7 @@ describe('Connection Banner Integration', () => {
 	describe('No Duplicate Notification Systems', () => {
 		test('game.js does not contain duplicate connection notifications', async () => {
 			const response = await request(app)
-				.get('/app/game.js')
+				.get('/game.js')
 				.expect(200);
 
 			const js = response.text;
@@ -126,9 +126,9 @@ describe('Connection Banner Integration', () => {
 			expect(js).toContain('Connection banner handles');
 		});
 
-		test('dashboard.js does not contain duplicate connection notifications', async () => {
+		test('control.js does not contain duplicate connection notifications', async () => {
 			const response = await request(app)
-				.get('/dashboard/dashboard.js')
+				.get('/control/control.js')
 				.expect(200);
 
 			const js = response.text;
@@ -158,7 +158,7 @@ describe('Connection Banner Integration', () => {
 	describe('Preserved Game-Specific Notifications', () => {
 		test('game.js preserves non-connection notifications', async () => {
 			const response = await request(app)
-				.get('/app/game.js')
+				.get('/game.js')
 				.expect(200);
 
 			const js = response.text;
