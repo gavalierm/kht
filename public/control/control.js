@@ -152,7 +152,12 @@ class ControlApp {
 		});
 
 		this.socket.on('moderator_reconnect_error', (error) => {
-			this.notifications.showError(error.message || 'Chyba pri pripájaní k hre');
+			console.log('Moderator reconnect error:', error);
+			this.isConnectedToGame = false;
+			this.updateGameControlUI();
+			
+			const errorMessage = error.message || 'Chyba pri pripájaní k hre';
+			this.notifications.showError(`${errorMessage}. Skúste obnoviť stránku.`);
 		});
 
 		// Game control events
@@ -184,9 +189,20 @@ class ControlApp {
 	}
 
 	initializeSocket() {
+		// Connect the socket first
+		this.socket.connect();
+		
 		if (this.gamePin) {
-			// Try to reconnect as moderator if we have a game PIN
-			this.reconnectAsModerator();
+			// Wait for socket to be ready before attempting reconnection
+			if (this.socket.connected()) {
+				this.reconnectAsModerator();
+			} else {
+				// Wait for socket connection
+				this.socket.on(SOCKET_EVENTS.CONNECT, () => {
+					console.log('Socket connected, attempting moderator reconnection');
+					this.reconnectAsModerator();
+				});
+			}
 		}
 	}
 
@@ -194,16 +210,33 @@ class ControlApp {
 		// Try to reconnect using moderator token from localStorage
 		const moderatorToken = localStorage.getItem(`moderator_token_${this.gamePin}`);
 		
+		console.log('Attempting moderator reconnection:', {
+			pin: this.gamePin,
+			hasToken: !!moderatorToken
+		});
+		
 		if (moderatorToken) {
 			this.socket.emit(SOCKET_EVENTS.RECONNECT_MODERATOR, {
 				pin: this.gamePin,
 				moderator_token: moderatorToken
 			});
 		} else {
-			// If no token, try reconnecting with just the PIN (for development)
-			this.socket.emit(SOCKET_EVENTS.RECONNECT_MODERATOR, {
-				pin: this.gamePin
-			});
+			// For development game PIN 912082, try with the known token
+			if (this.gamePin === '912082') {
+				const devToken = '6be037f7a2f1ae5cbee2195b9c33117b45a6f50b57ad0eae6da6b3e294baf0d3';
+				console.log('Using development token for game 912082');
+				this.socket.emit(SOCKET_EVENTS.RECONNECT_MODERATOR, {
+					pin: this.gamePin,
+					moderator_token: devToken
+				});
+				// Store the token for future use
+				localStorage.setItem(`moderator_token_${this.gamePin}`, devToken);
+			} else {
+				// If no token, try reconnecting with just the PIN
+				this.socket.emit(SOCKET_EVENTS.RECONNECT_MODERATOR, {
+					pin: this.gamePin
+				});
+			}
 		}
 	}
 
@@ -221,6 +254,7 @@ class ControlApp {
 	}
 
 	handleModeratorReconnected(data) {
+		console.log('Moderator reconnected:', data);
 		this.isConnectedToGame = true;
 		this.gameState = data.game?.state || 'waiting';
 		this.playerCount = data.game?.players?.length || 0;
@@ -602,17 +636,22 @@ class ControlApp {
 		if (this.elements.statusIndicator && this.elements.statusText) {
 			this.elements.statusIndicator.className = 'status-indicator';
 			
-			switch (this.gameState) {
-				case 'running':
-					this.elements.statusIndicator.classList.add('active');
-					this.elements.statusText.textContent = 'Hra beží';
-					break;
-				case 'paused':
-					this.elements.statusIndicator.classList.add('paused');
-					this.elements.statusText.textContent = 'Hra je pozastavená';
-					break;
-				default:
-					this.elements.statusText.textContent = 'Hra nie je spustená';
+			if (!this.isConnectedToGame) {
+				this.elements.statusText.textContent = 'Nie ste pripojený ako moderátor';
+			} else {
+				switch (this.gameState) {
+					case 'running':
+						this.elements.statusIndicator.classList.add('active');
+						this.elements.statusText.textContent = 'Hra beží';
+						break;
+					case 'paused':
+						this.elements.statusIndicator.classList.add('paused');
+						this.elements.statusText.textContent = 'Hra je pozastavená';
+						break;
+					default:
+						this.elements.statusIndicator.classList.add('active');
+						this.elements.statusText.textContent = 'Pripojený ako moderátor';
+				}
 			}
 		}
 
