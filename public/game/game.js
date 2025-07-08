@@ -9,7 +9,8 @@ import { SOCKET_EVENTS, GAME_STATES, ANSWER_OPTIONS, ANSWER_OPTION_CLASSES, ELEM
 class App {
 	constructor() {
 		// Initialize managers
-		this.socket = defaultSocketManager.connect();
+		this.socketManager = defaultSocketManager;
+		this.socket = this.socketManager.connect();
 		this.notifications = defaultNotificationManager;
 		this.gameState = defaultGameState;
 		this.router = defaultRouter;
@@ -142,7 +143,7 @@ class App {
 	setupLatencyMeasurement() {
 		if (this.elements.latencyDisplay) {
 			// Use the SocketManager's latency measurement
-			this.socket.setupLatencyMeasurement(this.elements.latencyDisplay);
+			this.socketManager.setupLatencyMeasurement(this.elements.latencyDisplay);
 		}
 	}
 
