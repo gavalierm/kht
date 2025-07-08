@@ -117,13 +117,14 @@ app.get('/dashboard/:pin', (req, res) => {
   res.redirect(`/app/${req.params.pin}/control`);
 });
 
-// Panel routes
-app.get('/panel', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/panel/panel.html'));
+// Panel routes - only with PIN (no standalone panel makes sense)
+app.get('/panel/:pin', (req, res) => {
+  res.redirect(`/app/${req.params.pin}/panel`);
 });
 
-app.get('/panel/:pin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/panel/panel.html'));
+// Legacy panel redirect
+app.get('/panel', (req, res) => {
+  res.redirect('/app/dashboard');
 });
 
 // Favicon fallback
@@ -938,7 +939,7 @@ if (require.main === module) {
     console.log(`Quiz server running on http://localhost:${PORT}`);
     console.log(`Player app: http://localhost:${PORT}/app`);
     console.log(`Dashboard: http://localhost:${PORT}/dashboard`);
-    console.log(`Panel: http://localhost:${PORT}/panel`);
+    console.log(`Panel: http://localhost:${PORT}/app/:pin/panel`);
   });
 }
 
