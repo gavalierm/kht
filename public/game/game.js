@@ -15,6 +15,7 @@ class App {
 		this.gameState = defaultGameState;
 		this.router = defaultRouter;
 		this.dom = defaultDOMHelper;
+		this.api = new GameAPI();
 		
 		// Timer intervals
 		this.timerInterval = null;
@@ -166,12 +167,19 @@ class App {
 			}
 		}
 		
-		// Handle specific routes like /app/:pin/game
+		// Handle specific routes like /app/:pin/game - auto-join with PIN from URL
 		if (path.startsWith('/app/') && path.length > 5) {
 			const gamePin = this.router.extractGamePin(path);
 			if (gamePin) {
 				this.gameState.setGamePin(gamePin);
-				this.checkForSavedSession();
+				
+				// Check if player has saved session first
+				if (this.gameState.hasSavedSession()) {
+					this.checkForSavedSession();
+				} else {
+					// Auto-join with PIN from URL if game is not ended/finished
+					this.handleAutoJoin(gamePin);
+				}
 			} else {
 				this.redirectToLogin();
 			}
@@ -222,10 +230,55 @@ class App {
 		}
 	}
 
+	async handleAutoJoin(gamePin) {
+		try {
+			// Show loading state
+			this.showLoadingState('Pripájam sa automaticky...');
+			
+			// Check if game exists via API
+			const game = await GameAPI.getGame(gamePin);
+
+			if (!game) {
+				this.notifications.showError(`Hra s PIN ${gamePin} neexistuje`);
+				this.gameState.setGamePin(null);
+				this.redirectToLogin();
+				return;
+			}
+
+			if (game.status === GAME_STATES.FINISHED) {
+				this.notifications.showWarning('Hra už skončila');
+				this.router.redirectToStage(gamePin);
+				return;
+			}
+
+			if (game.status === GAME_STATES.ENDED) {
+				this.notifications.showInfo('Hra skončila - zobrazujem výsledky');
+				this.router.redirectToStage(gamePin);
+				return;
+			}
+
+			// Auto-join the game via socket
+			this.gameState.setGamePin(gamePin);
+			this.socket.emit(SOCKET_EVENTS.JOIN_GAME, {
+				gamePin: gamePin
+			});
+
+		} catch (error) {
+			console.error('Auto-join error:', error);
+			this.notifications.showError('Chyba pri automatickom pripojení');
+			this.redirectToLogin();
+		}
+	}
+
 	showLoadingState(message) {
 		// Show login page with loading message
 		this.router.showPage('login');
 		this.notifications.showInfo(message);
+		
+		// Populate PIN input field if gamePin is set
+		if (this.gameState.gamePin && this.elements.gamePinInput) {
+			this.elements.gamePinInput.value = this.gameState.gamePin;
+		}
 		
 		// Disable join button during loading
 		if (this.elements.joinGameBtn) {
