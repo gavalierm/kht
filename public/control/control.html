@@ -550,6 +550,82 @@
 			transform: rotate(-90deg);
 		}
 
+		/* Login Page Styles */
+		.login-container {
+			display: flex;
+			flex-direction: column;
+			min-height: 100vh;
+			width: 100%;
+			max-width: 600px;
+			margin: 0 auto;
+			padding: 40px 20px;
+		}
+
+		.login-header {
+			color: white;
+			text-align: center;
+			margin-bottom: 40px;
+		}
+
+		.login-title {
+			font-size: 2.5rem;
+			font-weight: bold;
+			margin-bottom: 10px;
+		}
+
+		.login-subtitle {
+			font-size: 1.1rem;
+			opacity: 0.8;
+		}
+
+		.login-content {
+			flex: 1;
+			display: flex;
+			justify-content: center;
+			align-items: flex-start;
+		}
+
+		.login-box {
+			width: 100%;
+			max-width: 500px;
+			padding: 40px;
+			background: white;
+			border-radius: 12px;
+			box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+		}
+
+		.login-form .form-group {
+			margin-bottom: 25px;
+		}
+
+		.login-form .form-group:last-of-type {
+			margin-bottom: 30px;
+		}
+
+		.login-help {
+			margin-top: 30px;
+			padding: 20px;
+			background: #f8f9fa;
+			border-radius: 8px;
+			font-size: 0.9rem;
+			color: #666;
+		}
+
+		.login-help p {
+			margin: 5px 0;
+		}
+
+		.login-help strong {
+			color: #47109e;
+		}
+
+		.control-header-content {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			width: 100%;
+		}
+
 		/* Game Control Styles */
 		.game-control-header {
 			display: flex;
@@ -710,10 +786,57 @@
 </head>
 
 <body>
-	<div class="control-container">
+	<!-- Moderator Login Page -->
+	<div id="loginPage" class="login-container">
+		<div class="login-header">
+			<h1 class="login-title">Prihlásenie moderátora</h1>
+			<p class="login-subtitle">Prihláste sa na ovládanie hry PIN: <span id="loginGamePin">-</span></p>
+		</div>
+
+		<div class="login-content">
+			<div class="login-box">
+				<div class="login-form">
+					<div class="form-group">
+						<label for="moderatorPassword">Heslo moderátora</label>
+						<input type="password" id="moderatorPassword" placeholder="Zadajte heslo moderátora" required>
+						<small>Ak hra nemá nastavené heslo, nechajte prázdne a kliknite Prihlásiť</small>
+					</div>
+
+					<div class="form-group">
+						<label for="moderatorToken">Alebo moderátorsky token</label>
+						<input type="text" id="moderatorToken" placeholder="Zadajte moderátorsky token (voliteľne)">
+						<small>Token sa použije ak je zadaný, inak sa použije heslo</small>
+					</div>
+
+					<div class="form-actions">
+						<button id="loginBtn" class="btn-primary">
+							<span class="loading-spinner"></span>
+							<span id="loginButtonText">Prihlásiť sa</span>
+						</button>
+					</div>
+
+					<div class="login-help">
+						<p><strong>Pre vývojárov:</strong></p>
+						<p>• Hra PIN 123456: Bez hesla (nechajte prázdne)</p>
+						<p>• Iné hry: Použite heslo nastavené pri vytvorení hry</p>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Main Control Interface (hidden initially) -->
+	<div id="controlInterface" class="control-container" style="display: none;">
 		<div class="control-header">
-			<h1 class="control-title">Správa otázok</h1>
-			<p class="control-subtitle">Pridávanie a upravovanie otázok pre kvíz</p>
+			<div class="control-header-content">
+				<div>
+					<h1 class="control-title">Správa otázok</h1>
+					<p class="control-subtitle">Pridávanie a upravovanie otázok pre kvíz</p>
+				</div>
+				<button id="logoutBtn" class="btn-secondary btn-sm">
+					Odhlásiť sa
+				</button>
+			</div>
 		</div>
 
 		<div class="control-content">

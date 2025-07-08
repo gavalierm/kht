@@ -31,6 +31,7 @@ class ControlApp {
 		
 		// UI state
 		this.questionsCollapsed = false;
+		this.isLoggedIn = false;
 
 		// Element references
 		this.elements = {};
@@ -67,7 +68,15 @@ class ControlApp {
 			'currentQuestionDisplay',
 			'gameInfo',
 			'toggleQuestionsBtn',
-			'questionsContent'
+			'questionsContent',
+			'loginPage',
+			'controlInterface',
+			'loginGamePin',
+			'moderatorPassword',
+			'moderatorToken',
+			'loginBtn',
+			'loginButtonText',
+			'logoutBtn'
 		]);
 
 		// Extract game PIN from URL
@@ -79,14 +88,11 @@ class ControlApp {
 		// Setup socket listeners
 		this.setupSocketListeners();
 		
-		// Initialize socket connection
-		this.initializeSocket();
+		// Initialize login UI
+		this.initializeLogin();
 		
-		// Initialize game control UI
-		this.updateGameControlUI();
-		
-		// Load questions
-		this.loadQuestions();
+		// Check if already logged in
+		this.checkExistingLogin();
 	}
 
 	setupEventListeners() {
@@ -134,6 +140,37 @@ class ControlApp {
 				this.toggleQuestionsSection();
 			});
 		}
+
+		// Login form
+		if (this.elements.loginBtn) {
+			this.elements.loginBtn.addEventListener('click', () => {
+				this.handleLogin();
+			});
+		}
+
+		// Allow Enter key to submit login form
+		if (this.elements.moderatorPassword) {
+			this.elements.moderatorPassword.addEventListener('keypress', (e) => {
+				if (e.key === 'Enter') {
+					this.handleLogin();
+				}
+			});
+		}
+
+		if (this.elements.moderatorToken) {
+			this.elements.moderatorToken.addEventListener('keypress', (e) => {
+				if (e.key === 'Enter') {
+					this.handleLogin();
+				}
+			});
+		}
+
+		// Logout button
+		if (this.elements.logoutBtn) {
+			this.elements.logoutBtn.addEventListener('click', () => {
+				this.handleLogout();
+			});
+		}
 	}
 
 	setupSocketListeners() {
@@ -148,16 +185,11 @@ class ControlApp {
 
 		// Moderator reconnection events
 		this.socket.on('moderator_reconnected', (data) => {
-			this.handleModeratorReconnected(data);
+			this.handleLoginSuccess(data);
 		});
 
 		this.socket.on('moderator_reconnect_error', (error) => {
-			console.log('Moderator reconnect error:', error);
-			this.isConnectedToGame = false;
-			this.updateGameControlUI();
-			
-			const errorMessage = error.message || 'Chyba pri pripájaní k hre';
-			this.notifications.showError(`${errorMessage}. Skúste obnoviť stránku.`);
+			this.handleLoginError(error);
 		});
 
 		// Game control events
@@ -188,57 +220,6 @@ class ControlApp {
 		});
 	}
 
-	initializeSocket() {
-		// Connect the socket first
-		this.socket.connect();
-		
-		if (this.gamePin) {
-			// Wait for socket to be ready before attempting reconnection
-			if (this.socket.connected()) {
-				this.reconnectAsModerator();
-			} else {
-				// Wait for socket connection
-				this.socket.on(SOCKET_EVENTS.CONNECT, () => {
-					console.log('Socket connected, attempting moderator reconnection');
-					this.reconnectAsModerator();
-				});
-			}
-		}
-	}
-
-	reconnectAsModerator() {
-		// Try to reconnect using moderator token from localStorage
-		const moderatorToken = localStorage.getItem(`moderator_token_${this.gamePin}`);
-		
-		console.log('Attempting moderator reconnection:', {
-			pin: this.gamePin,
-			hasToken: !!moderatorToken
-		});
-		
-		if (moderatorToken) {
-			this.socket.emit(SOCKET_EVENTS.RECONNECT_MODERATOR, {
-				pin: this.gamePin,
-				moderator_token: moderatorToken
-			});
-		} else {
-			// For development game PIN 912082, try with the known token
-			if (this.gamePin === '912082') {
-				const devToken = '6be037f7a2f1ae5cbee2195b9c33117b45a6f50b57ad0eae6da6b3e294baf0d3';
-				console.log('Using development token for game 912082');
-				this.socket.emit(SOCKET_EVENTS.RECONNECT_MODERATOR, {
-					pin: this.gamePin,
-					moderator_token: devToken
-				});
-				// Store the token for future use
-				localStorage.setItem(`moderator_token_${this.gamePin}`, devToken);
-			} else {
-				// If no token, try reconnecting with just the PIN
-				this.socket.emit(SOCKET_EVENTS.RECONNECT_MODERATOR, {
-					pin: this.gamePin
-				});
-			}
-		}
-	}
 
 	// Socket event handlers
 	handleGameCreated(data) {
@@ -253,15 +234,6 @@ class ControlApp {
 		this.updateGameControlUI();
 	}
 
-	handleModeratorReconnected(data) {
-		console.log('Moderator reconnected:', data);
-		this.isConnectedToGame = true;
-		this.gameState = data.game?.state || 'waiting';
-		this.playerCount = data.game?.players?.length || 0;
-		
-		this.notifications.showSuccess('Pripojený k hre ako moderátor');
-		this.updateGameControlUI();
-	}
 
 	handleQuestionStarted(data) {
 		this.gameState = 'running';
@@ -296,6 +268,152 @@ class ControlApp {
 	handleLiveStats(data) {
 		// Update real-time stats during question if needed
 		// This could show answer counts, etc.
+	}
+
+	// Login Management Methods
+	initializeLogin() {
+		// Show game PIN in login form
+		if (this.elements.loginGamePin && this.gamePin) {
+			this.elements.loginGamePin.textContent = this.gamePin;
+		}
+	}
+
+	checkExistingLogin() {
+		// Check if we have a stored moderator token
+		const moderatorToken = localStorage.getItem(`moderator_token_${this.gamePin}`);
+		
+		if (moderatorToken) {
+			// Try to auto-login with stored token
+			this.autoLoginWithToken(moderatorToken);
+		} else {
+			// Show login page
+			this.showLoginPage();
+		}
+	}
+
+	autoLoginWithToken(token) {
+		this.socket.connect();
+		
+		// Wait for socket connection then try auto-login
+		if (this.socket.connected()) {
+			this.attemptLogin(null, token);
+		} else {
+			this.socket.on(SOCKET_EVENTS.CONNECT, () => {
+				this.attemptLogin(null, token);
+			});
+		}
+	}
+
+	handleLogin() {
+		const password = this.elements.moderatorPassword?.value.trim();
+		const token = this.elements.moderatorToken?.value.trim();
+		
+		// Connect socket if not connected
+		this.socket.connect();
+		
+		// Wait for connection then attempt login
+		if (this.socket.connected()) {
+			this.attemptLogin(password, token);
+		} else {
+			this.socket.on(SOCKET_EVENTS.CONNECT, () => {
+				this.attemptLogin(password, token);
+			});
+		}
+	}
+
+	attemptLogin(password, token) {
+		// Show loading state
+		this.setLoginLoading(true);
+		
+		const loginData = {
+			pin: this.gamePin
+		};
+		
+		// Add credentials if provided
+		if (token) {
+			loginData.moderator_token = token;
+		} else if (password) {
+			loginData.password = password;
+		}
+		
+		console.log('Attempting login with:', { pin: this.gamePin, hasPassword: !!password, hasToken: !!token });
+		
+		// Emit reconnect moderator event
+		this.socket.emit(SOCKET_EVENTS.RECONNECT_MODERATOR, loginData);
+	}
+
+	handleLoginSuccess(data) {
+		this.isLoggedIn = true;
+		this.isConnectedToGame = true;
+		this.moderatorToken = data.moderator_token;
+		this.gameState = data.game?.state || 'waiting';
+		this.playerCount = data.game?.players?.length || 0;
+		
+		// Store token for future use
+		if (this.moderatorToken) {
+			localStorage.setItem(`moderator_token_${this.gamePin}`, this.moderatorToken);
+		}
+		
+		// Show control interface
+		this.showControlInterface();
+		
+		// Initialize control UI and load questions
+		this.updateGameControlUI();
+		this.loadQuestions();
+		
+		this.notifications.showSuccess('Úspešne prihlásený ako moderátor');
+	}
+
+	handleLoginError(error) {
+		this.setLoginLoading(false);
+		this.isLoggedIn = false;
+		this.isConnectedToGame = false;
+		
+		console.log('Login error:', error);
+		this.notifications.showError(error.message || 'Chyba pri prihlasovaní');
+	}
+
+	handleLogout() {
+		// Clear stored token
+		localStorage.removeItem(`moderator_token_${this.gamePin}`);
+		
+		// Reset state
+		this.isLoggedIn = false;
+		this.isConnectedToGame = false;
+		this.moderatorToken = null;
+		this.gameState = 'stopped';
+		this.playerCount = 0;
+		
+		// Clear form
+		if (this.elements.moderatorPassword) this.elements.moderatorPassword.value = '';
+		if (this.elements.moderatorToken) this.elements.moderatorToken.value = '';
+		
+		// Show login page
+		this.showLoginPage();
+		
+		this.notifications.showInfo('Odhlásený');
+	}
+
+	showLoginPage() {
+		if (this.elements.loginPage) this.elements.loginPage.style.display = 'flex';
+		if (this.elements.controlInterface) this.elements.controlInterface.style.display = 'none';
+	}
+
+	showControlInterface() {
+		if (this.elements.loginPage) this.elements.loginPage.style.display = 'none';
+		if (this.elements.controlInterface) this.elements.controlInterface.style.display = 'flex';
+	}
+
+	setLoginLoading(loading) {
+		if (this.elements.loginBtn) {
+			if (loading) {
+				this.elements.loginBtn.classList.add('loading');
+				this.elements.loginBtn.disabled = true;
+			} else {
+				this.elements.loginBtn.classList.remove('loading');
+				this.elements.loginBtn.disabled = false;
+			}
+		}
 	}
 
 	// Question Management Methods
