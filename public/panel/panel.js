@@ -309,7 +309,7 @@ class PanelApp {
 		this.updateStatus(GAME_STATES.WAITING);
 		
 		if (this.elements.panelQuestionText) {
-			this.dom.setText(this.elements.panelQuestionText, 'Čakáme na ďalšiu otázku...');
+			this.dom.setText(this.elements.panelQuestionText, 'Pripravte sa na ďalšiu otázku!');
 		}
 
 		// Reset options
