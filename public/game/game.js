@@ -158,6 +158,12 @@ class App {
 			this.handleGameEnded(data);
 		});
 
+		// Game state updates
+		this.socket.on(SOCKET_EVENTS.GAME_STATE_UPDATE, (data) => {
+			console.log('Game state update:', data);
+			this.handleGameStateUpdate(data);
+		});
+
 		// Latency measurement
 		this.socket.on(SOCKET_EVENTS.LATENCY_PING, (timestamp) => {
 			this.socket.emit(SOCKET_EVENTS.LATENCY_PONG, timestamp);
@@ -618,6 +624,41 @@ class App {
 		} else {
 			// Fallback if no game PIN
 			this.router.redirectToJoin();
+		}
+	}
+
+	handleGameStateUpdate(data) {
+		console.log('Handling game state update:', data);
+		
+		if (data.status === 'waiting') {
+			// Game is waiting for next question to start
+			// Show waiting message in question area
+			if (this.elements.questionText) {
+				this.dom.setText(this.elements.questionText, 
+					`Čakáme na otázku ${data.questionNumber}/${data.totalQuestions}...`);
+			}
+			
+			// Hide options during waiting
+			if (this.elements.optionsGrid) {
+				this.dom.addClass(this.elements.optionsGrid, 'hidden');
+			}
+			
+			// Hide timer
+			if (this.elements.timer) {
+				this.dom.addClass(this.elements.timer, 'hidden');
+			}
+			
+			// Clear any running timers
+			if (this.timerInterval) {
+				clearInterval(this.timerInterval);
+				this.timerInterval = null;
+			}
+			
+			// Update status
+			this.gameState.setCurrentState('waiting');
+			
+		} else if (data.status === 'finished') {
+			// Game finished - will be handled by GAME_ENDED event
 		}
 	}
 

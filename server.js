@@ -804,7 +804,7 @@ io.on('connection', (socket) => {
 
       const question = game.getCurrentQuestion();
       const isCorrect = data.answer === question.correct;
-      const points = game.calculateScore(answerData.responseTime, isCorrect);
+      const points = game.calculateScore(answerData.responseTime, isCorrect, question.timeLimit);
       
       // Update player score in memory
       const player = game.players.get(playerInfo.playerId);
@@ -986,7 +986,7 @@ async function endQuestion(game) {
   io.to(`game_${game.gamePin}_panel`).emit('panel_question_ended', resultsData);
   
   // Sync to database
-  await game.syncToDatabase();
+  await game.syncToDatabase(db);
   
   console.log(`Question ended in game ${game.gamePin}`);
   
@@ -1002,6 +1002,19 @@ async function endQuestion(game) {
       const hasNextQuestion = game.nextQuestion();
       if (hasNextQuestion) {
         console.log(`Advanced to question ${game.currentQuestionIndex + 1} in game ${game.gamePin}`);
+        
+        // Notify all interfaces about state change to WAITING
+        io.to(`game_${game.gamePin}`).emit('game_state_update', { 
+          status: 'waiting',
+          questionNumber: game.currentQuestionIndex + 1,
+          totalQuestions: game.questions.length
+        });
+        
+        io.to(`game_${game.gamePin}_panel`).emit('game_state_update', { 
+          status: 'waiting',
+          questionNumber: game.currentQuestionIndex + 1,
+          totalQuestions: game.questions.length
+        });
         
         // Notify moderator that next question is ready
         if (game.moderatorSocket) {
@@ -1044,7 +1057,7 @@ async function endGame(game) {
   io.to(`game_${game.gamePin}_panel`).emit('game_ended', gameEndData);
   
   // Sync to database
-  await game.syncToDatabase();
+  await game.syncToDatabase(db);
   
   console.log(`Game ended: ${game.gamePin}, broadcasting to all interfaces`);
 }

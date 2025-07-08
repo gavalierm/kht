@@ -148,6 +148,12 @@ class PanelApp {
 			this.updateLeaderboard(data.leaderboard);
 		});
 
+		// Game state updates
+		this.socket.on(SOCKET_EVENTS.GAME_STATE_UPDATE, (data) => {
+			console.log('Game state update:', data);
+			this.handleGameStateUpdate(data);
+		});
+
 		// Connection events
 		this.socket.on(SOCKET_EVENTS.DISCONNECT, () => {
 			console.log('Panel disconnected from server');
@@ -444,6 +450,35 @@ class PanelApp {
 				window.location.href = `/stage/${this.gamePin}`;
 			}
 		}, 10000);
+	}
+
+	handleGameStateUpdate(data) {
+		console.log('Handling game state update:', data);
+		
+		if (data.status === 'waiting') {
+			// Game is waiting for next question to start
+			this.updateStatus(GAME_STATES.WAITING);
+			
+			// Show waiting message
+			if (this.elements.panelQuestionText) {
+				this.dom.setText(this.elements.panelQuestionText, 
+					`Čakáme na otázku ${data.questionNumber}/${data.totalQuestions}...`);
+			}
+			
+			// Hide options during waiting
+			if (this.elements.panelOptionsGrid) {
+				this.dom.addClass(this.elements.panelOptionsGrid, 'hidden');
+			}
+			
+			// Hide countdown
+			if (this.elements.countdownText) {
+				this.dom.setText(this.elements.countdownText, '');
+				this.dom.addClass(this.elements.countdownText, 'hidden');
+			}
+			
+		} else if (data.status === 'finished') {
+			this.updateStatus(GAME_STATES.FINISHED);
+		}
 	}
 
 	showPanelInterface() {

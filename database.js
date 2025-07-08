@@ -473,14 +473,35 @@ class GameDatabase {
           return;
         }
 
-        const sql = `
-          INSERT INTO answers (question_id, player_id, selected_option, is_correct, points_earned, response_time)
-          VALUES (?, ?, ?, ?, ?, ?)
+        // Check if answer already exists for this player and question
+        const checkSql = `
+          SELECT id FROM answers 
+          WHERE question_id = ? AND player_id = ?
         `;
 
-        this.db.run(sql, [questionId, playerId, answer, isCorrect, points, responseTime], function(err) {
-          if (err) reject(err);
-          else resolve(this.lastID);
+        this.db.get(checkSql, [questionId, playerId], (err, existingAnswer) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+
+          if (existingAnswer) {
+            // Answer already exists, resolve without inserting
+            console.log(`Answer already exists for player ${playerId} on question ${questionId}`);
+            resolve(existingAnswer.id);
+            return;
+          }
+
+          // Insert new answer
+          const insertSql = `
+            INSERT INTO answers (question_id, player_id, selected_option, is_correct, points_earned, response_time)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `;
+
+          this.db.run(insertSql, [questionId, playerId, answer, isCorrect, points, responseTime], function(err) {
+            if (err) reject(err);
+            else resolve(this.lastID);
+          });
         });
       } catch (error) {
         reject(error);

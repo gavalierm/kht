@@ -115,9 +115,11 @@ describe('GameInstance', () => {
       const mockPlayerLatencies = new Map();
       mockPlayerLatencies.set('test-socket-id', 100);
       
-      game.submitAnswer(1, 0, mockPlayerLatencies);
-      game.submitAnswer(1, 1, mockPlayerLatencies); // Second attempt
+      const firstAnswer = game.submitAnswer(1, 0, mockPlayerLatencies);
+      const secondAnswer = game.submitAnswer(1, 1, mockPlayerLatencies); // Second attempt
       
+      expect(firstAnswer).toBeTruthy();
+      expect(secondAnswer).toBeNull(); // Should reject duplicate
       expect(game.answers.length).toBe(1);
       expect(game.answers[0].answer).toBe(0); // Should keep first answer
     });
@@ -143,7 +145,7 @@ describe('GameInstance', () => {
   describe('Scoring System', () => {
     test('should calculate score for correct fast answer', () => {
       const responseTime = 1000; // 1 second
-      const score = game.calculateScore(responseTime, true);
+      const score = game.calculateScore(responseTime, true, 30);
       
       expect(score).toBeGreaterThanOrEqual(1000); // At least base score
       expect(score).toBeLessThanOrEqual(1500); // Max possible score
@@ -151,22 +153,43 @@ describe('GameInstance', () => {
 
     test('should calculate score for correct slow answer', () => {
       const responseTime = 25000; // 25 seconds (near time limit)
-      const score = game.calculateScore(responseTime, true);
+      const score = game.calculateScore(responseTime, true, 30);
       
       expect(score).toBeGreaterThan(0);
-      expect(score).toBeLessThanOrEqual(1000); // Should be base score or less
+      expect(score).toBeLessThanOrEqual(1100); // Allow for some speed bonus
     });
 
     test('should return zero for incorrect answer', () => {
-      const score = game.calculateScore(1000, false);
+      const score = game.calculateScore(1000, false, 30);
       expect(score).toBe(0);
     });
 
     test('should handle overtime answers', () => {
       const responseTime = 35000; // Over time limit
-      const score = game.calculateScore(responseTime, true);
+      const score = game.calculateScore(responseTime, true, 30);
       
       expect(score).toBeGreaterThanOrEqual(1000); // At least base score
+    });
+
+    test('should scale scoring fairly with different time limits', () => {
+      const responseTime = 5000; // 5 seconds
+      
+      // Fast question (10 seconds) - same response time should get lower bonus (answered halfway through)
+      const scoreShortTime = game.calculateScore(responseTime, true, 10);
+      
+      // Normal question (30 seconds) - same response time should get higher bonus (answered early)
+      const scoreNormalTime = game.calculateScore(responseTime, true, 30);
+      
+      // Long question (60 seconds) - same response time should get highest bonus (answered very early)
+      const scoreLongTime = game.calculateScore(responseTime, true, 60);
+      
+      expect(scoreLongTime).toBeGreaterThan(scoreNormalTime);
+      expect(scoreNormalTime).toBeGreaterThan(scoreShortTime);
+      
+      // All should be above base score since answer was relatively fast
+      expect(scoreShortTime).toBeGreaterThan(1000);
+      expect(scoreNormalTime).toBeGreaterThan(1000);
+      expect(scoreLongTime).toBeGreaterThan(1000);
     });
   });
 
