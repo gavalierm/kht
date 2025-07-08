@@ -21,6 +21,12 @@ Runs server.js directly with Node.js.
 npm install
 ```
 
+### Process Management
+```bash
+npm run cleanup           # Kill any running server processes
+npm run dev:clean        # Clean up and start fresh dev server
+```
+
 ### Testing Commands
 ```bash
 npm test                    # Run all tests (67 tests)
@@ -53,6 +59,7 @@ This is a real-time multiplayer quiz application built with Node.js, Express, So
 - **Player App** (`/app`): Players join games and answer questions
 - **Dashboard** (`/dashboard`): Moderators create and control games  
 - **Panel** (`/panel`): Display boards for showing leaderboards and questions
+- **Stage** (`/stage`): Post-game leaderboard displays
 
 ### Key Game Flow
 
@@ -88,9 +95,25 @@ This is a real-time multiplayer quiz application built with Node.js, Express, So
   /app/          # Player interface (SPA)
   /dashboard/    # Moderator interface  
   /panel/        # Display panel interface
+  /stage/        # Post-game leaderboard display
+  /shared/       # Shared frontend utilities
+    ├── router.js       # Client-side routing
+    ├── socket.js       # Socket.io client wrapper
+    ├── constants.js    # Event constants and UI constants
+    ├── api.js          # API utilities
+    ├── dom.js          # DOM manipulation helpers
+    ├── gameState.js    # Client state management
+    ├── notifications.js # UI notification system
+    └── common.css      # Shared styles
 server.js        # Main server and Socket.io handling
 database.js      # Database abstraction layer
 quiz.db          # SQLite database file
+/tests/          # Comprehensive test suite (67 tests)
+  ├── unit/      # Unit tests (42 tests)
+  ├── integration/ # Integration tests (16 tests)
+  ├── e2e/       # End-to-end tests (19 tests)
+  ├── fixtures/  # Test data
+  └── helpers/   # Test utilities
 ```
 
 ## Socket.io Events
@@ -116,6 +139,35 @@ quiz.db          # SQLite database file
 - **Database Persistence**: Games survive server restarts
 - **Real-time Updates**: Live leaderboards and statistics
 - **Multiple Interfaces**: Separate apps for different user types
+- **Smart Routing**: URL-based game joining with context-aware redirects
+- **Performance Optimization**: In-memory state with periodic database sync
+
+## Development Workflow
+
+### Frontend Architecture
+- **Shared Utilities**: Common code in `/public/shared/` directory
+- **Event-Driven**: Socket.io events defined in `constants.js`
+- **Client-Side Routing**: SPA routing with history management
+- **State Management**: Local storage for game state persistence
+
+### Backend Architecture
+- **Event-Driven**: Socket.io event handlers in `server.js`
+- **Database Layer**: SQLite with GameDatabase class abstraction
+- **In-Memory Performance**: Active games stored in `activeGames` Map
+- **Periodic Sync**: Database state synchronized every 30 seconds
+
+### Testing Strategy
+- **Unit Tests**: Game logic, PIN generation, scoring algorithms
+- **Integration Tests**: Socket.io real-time communication
+- **E2E Tests**: Complete application flow validation
+- **CI/CD**: GitHub Actions with multi-Node.js version testing
+
+## Language & Localization
+
+- **Primary Language**: Slovak (Slovenčina)
+- **UI Text**: All user-facing text in Slovak
+- **Test Data**: Includes Slovak language content
+- **Error Messages**: Localized error handling
 
 ## Test Setup
 
