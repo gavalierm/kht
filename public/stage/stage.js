@@ -273,7 +273,7 @@ class StageApp {
 
 	onSocketDisconnect() {
 		console.log('Stage: Disconnected from server');
-		this.notifications.showWarning('Spojenie so serverom bolo prerušené');
+		// Connection banner handles disconnect notifications
 	}
 
 	// Cleanup when leaving the page

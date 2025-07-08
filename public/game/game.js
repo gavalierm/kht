@@ -84,7 +84,7 @@ class App {
 
 		this.socket.on(SOCKET_EVENTS.DISCONNECT, () => {
 			console.log('Disconnected from server');
-			this.notifications.showWarning('Spojenie prerušené, pokúšam sa pripojiť...');
+			// Connection banner handles disconnect notifications
 		});
 
 		// Game events
@@ -106,7 +106,7 @@ class App {
 
 		this.socket.on(SOCKET_EVENTS.PLAYER_RECONNECTED, (data) => {
 			this.gameState.setPlayerId(data.playerId);
-			this.notifications.showSuccess('Úspešne pripojené späť');
+			// Connection banner handles reconnection success notification
 			this.router.navigateTo(`/app/${this.gameState.gamePin}/game`);
 			this.updateGameHeader();
 			
@@ -244,7 +244,7 @@ class App {
 	}
 
 	attemptReconnect() {
-		this.notifications.showInfo('Pokúšam sa pripojiť späť...');
+		// Connection banner handles reconnection attempt notifications
 		this.socket.emit(SOCKET_EVENTS.RECONNECT_PLAYER, {
 			gamePin: this.gameState.gamePin,
 			playerToken: this.gameState.playerToken

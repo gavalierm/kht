@@ -488,7 +488,7 @@ class DashboardApp {
 
 	onSocketDisconnect() {
 		console.log('Dashboard: Disconnected from server');
-		this.notifications.showWarning('Spojenie so serverom bolo prerušené');
+		// Connection banner handles disconnect notifications
 	}
 
 	handleSocketError(error) {
