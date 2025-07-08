@@ -1,0 +1,49 @@
+{
+  "quiz": {
+    "title": "História",
+    "questions": [
+      {
+        "id": 1,
+        "question": "V ktorom roku skončila druhá svetová vojna?",
+        "options": ["1944", "1945", "1946", "1947"],
+        "correct": 1,
+        "timeLimit": 25
+      },
+      {
+        "id": 2,
+        "question": "Kto bol prvým prezidentom Československa?",
+        "options": ["Tomáš Garrigue Masaryk", "Edvard Beneš", "Klement Gottwald", "Antonín Zápotocký"],
+        "correct": 0,
+        "timeLimit": 30
+      },
+      {
+        "id": 3,
+        "question": "V ktorom roku sa zrútil Berlínsky múr?",
+        "options": ["1987", "1988", "1989", "1990"],
+        "correct": 2,
+        "timeLimit": 25
+      },
+      {
+        "id": 4,
+        "question": "Ktorá bitka je považovaná za koniec napoleonských vojen?",
+        "options": ["Bitka pri Waterloo", "Bitka pri Lipsku", "Bitka pri Slavkove", "Bitka pri Borodine"],
+        "correct": 0,
+        "timeLimit": 30
+      },
+      {
+        "id": 5,
+        "question": "V ktorom roku sa konala Nežná revolúcia na Slovensku?",
+        "options": ["1988", "1989", "1990", "1991"],
+        "correct": 1,
+        "timeLimit": 25
+      },
+      {
+        "id": 6,
+        "question": "Kto objavil Ameriku?",
+        "options": ["Vasco da Gama", "Bartolomeu Dias", "Krištof Kolumbus", "Fernand Magellan"],
+        "correct": 2,
+        "timeLimit": 20
+      }
+    ]
+  }
+}

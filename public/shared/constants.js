@@ -33,9 +33,17 @@ export const SOCKET_EVENTS = {
 	
 	// Moderator events
 	CREATE_GAME: 'create_game',
+	GAME_CREATED: 'game_created',
+	CREATE_GAME_ERROR: 'create_game_error',
 	RECONNECT_MODERATOR: 'reconnect_moderator',
 	START_QUESTION: 'start_question',
 	END_QUESTION: 'end_question',
+	START_GAME: 'start_game',
+	PAUSE_GAME: 'pause_game',
+	END_GAME: 'end_game',
+	SHOW_RESULTS: 'show_results',
+	GAME_STATE_UPDATE: 'game_state_update',
+	PLAYERS_UPDATE: 'players_update',
 	
 	// Latency events
 	LATENCY_PING: 'latency_ping',
@@ -45,10 +53,12 @@ export const SOCKET_EVENTS = {
 // Game states
 export const GAME_STATES = {
 	WAITING: 'waiting',
+	RUNNING: 'running',
 	ACTIVE: 'active',
 	QUESTION_ACTIVE: 'question_active',
 	RESULTS: 'results',
 	FINISHED: 'finished',
+	ENDED: 'ended',
 	CLOSED: 'closed'
 };
 

@@ -1,0 +1,56 @@
+{
+  "quiz": {
+    "title": "Veda a technika",
+    "questions": [
+      {
+        "id": 1,
+        "question": "Aký je chemický symbol pre zlato?",
+        "options": ["Go", "Au", "Ag", "Al"],
+        "correct": 1,
+        "timeLimit": 25
+      },
+      {
+        "id": 2,
+        "question": "Koľko kostí má dospelý človek?",
+        "options": ["206", "208", "210", "212"],
+        "correct": 0,
+        "timeLimit": 30
+      },
+      {
+        "id": 3,
+        "question": "Aká je najrýchlejšia rýchlosť svetla vo vákuu?",
+        "options": ["299 792 458 m/s", "300 000 000 m/s", "299 000 000 m/s", "298 000 000 m/s"],
+        "correct": 0,
+        "timeLimit": 35
+      },
+      {
+        "id": 4,
+        "question": "Ktorá planéta je najbližšie k Slnku?",
+        "options": ["Venuša", "Merkúr", "Mars", "Zem"],
+        "correct": 1,
+        "timeLimit": 20
+      },
+      {
+        "id": 5,
+        "question": "Aký plyn tvorí väčšinu zemskej atmosféry?",
+        "options": ["Kyslík", "Dusík", "Oxid uhličitý", "Argón"],
+        "correct": 1,
+        "timeLimit": 25
+      },
+      {
+        "id": 6,
+        "question": "Kto navrhol teóriu relativity?",
+        "options": ["Isaac Newton", "Albert Einstein", "Galileo Galilei", "Stephen Hawking"],
+        "correct": 1,
+        "timeLimit": 20
+      },
+      {
+        "id": 7,
+        "question": "Aký je najmenší štruktúrny prvok živej hmoty?",
+        "options": ["Atóm", "Molekula", "Bunka", "Tkanivo"],
+        "correct": 2,
+        "timeLimit": 25
+      }
+    ]
+  }
+}
