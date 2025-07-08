@@ -2,7 +2,7 @@
  * Socket.io connection and event handling utilities
  */
 
-import { showWarning } from './notifications.js';
+import { defaultConnectionBanner } from './connectionStatus.js';
 
 export class SocketManager {
 	constructor() {
@@ -32,20 +32,44 @@ export class SocketManager {
 		this.socket.on('connect', () => {
 			console.log('Connected to server');
 			this.isConnected = true;
+			
+			// Hide connection banner if it was visible
+			if (defaultConnectionBanner.isShown()) {
+				defaultConnectionBanner.showReconnected('Spojenie obnovené!', 2000);
+			}
+			
 			this.emit('socket:connected');
 		});
 
-		this.socket.on('disconnect', () => {
-			console.log('Disconnected from server');
+		this.socket.on('disconnect', (reason) => {
+			console.log('Disconnected from server:', reason);
 			this.isConnected = false;
-			showWarning('Connection lost, attempting to reconnect...');
+			
+			// Show persistent connection banner
+			defaultConnectionBanner.show('Spojenie sa stratilo. Pokúšam sa znovu pripojiť...', true);
+			
 			this.emit('socket:disconnected');
+		});
+
+		this.socket.on('reconnect_attempt', () => {
+			console.log('Attempting to reconnect...');
+			defaultConnectionBanner.setReconnecting(true);
 		});
 
 		this.socket.on('reconnect', () => {
 			console.log('Reconnected to server');
 			this.isConnected = true;
+			
+			// Show success message before hiding
+			defaultConnectionBanner.showReconnected('Spojenie obnovené!', 2000);
+			
 			this.emit('socket:reconnected');
+		});
+
+		this.socket.on('reconnect_failed', () => {
+			console.log('Reconnection failed');
+			defaultConnectionBanner.updateMessage('Nepodarilo sa obnoviť spojenie. Skúste obnoviť stránku.');
+			defaultConnectionBanner.setReconnecting(false);
 		});
 	}
 
