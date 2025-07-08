@@ -22,7 +22,8 @@ module.exports = {
       testMatch: [
         '**/tests/unit/connection-status.test.js',
         '**/tests/unit/dom-helper.test.js',
-        '**/tests/unit/client-*.test.js'
+        '**/tests/unit/client-*.test.js',
+        '**/tests/unit/create-page.test.js'
       ],
       // Transform ES6 modules for frontend tests
       transform: {

@@ -49,6 +49,7 @@ app.use('/control', express.static(path.join(__dirname, 'public/control')));
 app.use('/panel', express.static(path.join(__dirname, 'public/panel')));
 app.use('/stage', express.static(path.join(__dirname, 'public/stage')));
 app.use('/join', express.static(path.join(__dirname, 'public/join')));
+app.use('/create', express.static(path.join(__dirname, 'public/create')));
 app.use('/shared', express.static(path.join(__dirname, 'public/shared')));
 app.use(express.static(path.join(__dirname, 'public/game')));
 
@@ -70,6 +71,11 @@ app.get('/', (req, res) => {
 // Join page - PIN entry interface
 app.get('/join', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/join/join.html'));
+});
+
+// Create page - Quick game creation interface
+app.get('/create', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/create/create.html'));
 });
 
 // Game page - main player interface (check session like join does)
@@ -140,100 +146,6 @@ app.get('/api/game/:pin', async (req, res) => {
   }
 });
 
-// Question template API endpoints
-app.get('/api/question-templates', async (req, res) => {
-  try {
-    const templates = await db.getQuestionTemplates();
-    res.json(templates);
-  } catch (error) {
-    console.error('Error fetching question templates:', error);
-    res.status(500).json({ error: 'Failed to fetch question templates' });
-  }
-});
-
-app.get('/api/question-templates/:category', async (req, res) => {
-  try {
-    const { category } = req.params;
-    const template = await db.getQuestionTemplate(category);
-    
-    if (!template) {
-      return res.status(404).json({ error: 'Question template not found' });
-    }
-    
-    res.json(template);
-  } catch (error) {
-    console.error('Error fetching question template:', error);
-    res.status(500).json({ error: 'Failed to fetch question template' });
-  }
-});
-
-app.post('/api/question-templates', async (req, res) => {
-  try {
-    const { category, questions } = req.body;
-    
-    if (!category || !questions) {
-      return res.status(400).json({ error: 'Missing required fields: category, questions' });
-    }
-    
-    // Validate questions structure
-    if (!validateQuestions(questions)) {
-      return res.status(400).json({ error: 'Invalid question format' });
-    }
-    
-    const templateId = await db.createQuestionTemplate(category, questions);
-    res.json({ id: templateId, category, questions });
-  } catch (error) {
-    console.error('Error creating question template:', error);
-    if (error.code === 'SQLITE_CONSTRAINT') {
-      res.status(409).json({ error: 'Category already exists' });
-    } else {
-      res.status(500).json({ error: 'Failed to create question template' });
-    }
-  }
-});
-
-app.put('/api/question-templates/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { questions } = req.body;
-    
-    if (!questions) {
-      return res.status(400).json({ error: 'Missing required field: questions' });
-    }
-    
-    // Validate questions structure
-    if (!validateQuestions(questions)) {
-      return res.status(400).json({ error: 'Invalid question format' });
-    }
-    
-    const updated = await db.updateQuestionTemplate(id, questions);
-    
-    if (!updated) {
-      return res.status(404).json({ error: 'Question template not found' });
-    }
-    
-    res.json({ message: 'Question template updated successfully' });
-  } catch (error) {
-    console.error('Error updating question template:', error);
-    res.status(500).json({ error: 'Failed to update question template' });
-  }
-});
-
-app.delete('/api/question-templates/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const deleted = await db.deleteQuestionTemplate(id);
-    
-    if (!deleted) {
-      return res.status(404).json({ error: 'Question template not found' });
-    }
-    
-    res.json({ message: 'Question template deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting question template:', error);
-    res.status(500).json({ error: 'Failed to delete question template' });
-  }
-});
 
 // Socket.io connection handling
 io.on('connection', (socket) => {
@@ -253,34 +165,28 @@ io.on('connection', (socket) => {
   // Dashboard: Create new game
   socket.on('create_game', async (data) => {
     try {
-      const gamePin = generateGamePin(data.customPin, activeGames);
-      
-      if (!gamePin) {
+      // Validate moderator password is provided
+      if (!data.moderatorPassword || data.moderatorPassword.trim().length < 3) {
         socket.emit('create_game_error', { 
-          message: 'PIN kód už existuje, vyberte iný' 
+          message: 'Heslo moderátora je povinné a musí mať aspoň 3 znaky' 
         });
         return;
       }
       
-      // Get question template from database instead of loading from JSON
-      const questionTemplate = await db.getQuestionTemplate(data.category || 'general');
+      const gamePin = generateGamePin(null, activeGames);
       
-      if (!questionTemplate) {
-        socket.emit('create_game_error', { 
-          message: `Šablóna otázok pre kategóriu "${data.category || 'general'}" neexistuje` 
-        });
-        return;
-      }
+      // Get default questions
+      const questions = db.getDefaultQuestions();
       
       // Save to database
       const dbResult = await db.createGame(
         gamePin, 
-        questionTemplate.questions,
+        questions,
         data.moderatorPassword
       );
       
       // Create in-memory game instance
-      const game = new GameInstance(gamePin, questionTemplate.questions, dbResult.gameId);
+      const game = new GameInstance(gamePin, questions, dbResult.gameId);
       game.moderatorSocket = socket.id;
       activeGames.set(gamePin, game);
       
@@ -294,7 +200,7 @@ io.on('connection', (socket) => {
       socket.join(`game_${gamePin}_moderator`);
       socket.emit('game_created', {
         gamePin: gamePin,
-        questionCount: questionTemplate.questions.length,
+        questionCount: questions.length,
         moderatorToken: dbResult.moderatorToken
       });
       

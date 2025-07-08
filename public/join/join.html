@@ -53,6 +53,27 @@
 			align-items: center;
 			margin: 2em;
 		}
+		
+		.create-link {
+			margin-top: 2rem;
+			text-align: center;
+		}
+		
+		.create-link a {
+			color: white;
+			text-decoration: none;
+			font-size: 1.1rem;
+			padding: 0.5rem 1rem;
+			border-radius: 4px;
+			display: inline-block;
+			transition: all 0.2s;
+			background: rgba(255, 255, 255, 0.1);
+		}
+		
+		.create-link a:hover {
+			background: rgba(255, 255, 255, 0.2);
+			transform: translateY(-2px);
+		}
 
 		input {
 			font-size: 1.2em;
@@ -161,6 +182,9 @@
 		<div class="pin-box">
 			<input id="gamePinInput" type="tel" pattern="\d{6}" maxlength="6" inputmode="numeric" placeholder="Zadajte 6-miestny PIN" />
 			<button id="joinGameBtn">Pripojiť sa</button>
+		</div>
+		<div class="create-link">
+			<a href="/create">Vytvoriť novú hru →</a>
 		</div>
 	</div>
 	

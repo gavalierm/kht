@@ -20,22 +20,28 @@ class GameDatabase {
         status TEXT DEFAULT 'waiting',
         current_question_index INTEGER DEFAULT 0,
         question_start_time INTEGER,
-        questions_data TEXT,
         created_at INTEGER DEFAULT (strftime('%s', 'now')),
         updated_at INTEGER DEFAULT (strftime('%s', 'now'))
       );
 
-      CREATE TABLE IF NOT EXISTS question_templates (
+      CREATE TABLE IF NOT EXISTS questions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        category TEXT UNIQUE NOT NULL,
-        questions_data TEXT NOT NULL,
+        game_id INTEGER NOT NULL,
+        question_text TEXT NOT NULL,
+        option_a TEXT NOT NULL,
+        option_b TEXT NOT NULL, 
+        option_c TEXT NOT NULL,
+        option_d TEXT NOT NULL,
+        correct_option INTEGER NOT NULL CHECK (correct_option >= 0 AND correct_option <= 3),
+        time_limit INTEGER NOT NULL DEFAULT 30,
+        question_order INTEGER NOT NULL,
         created_at INTEGER DEFAULT (strftime('%s', 'now')),
-        updated_at INTEGER DEFAULT (strftime('%s', 'now'))
+        FOREIGN KEY (game_id) REFERENCES games (id) ON DELETE CASCADE
       );
 
       CREATE TABLE IF NOT EXISTS players (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        game_id INTEGER,
+        game_id INTEGER NOT NULL,
         name TEXT NOT NULL,
         player_token TEXT UNIQUE,
         score INTEGER DEFAULT 0,
@@ -43,27 +49,30 @@ class GameDatabase {
         connected BOOLEAN DEFAULT true,
         joined_at INTEGER DEFAULT (strftime('%s', 'now')),
         last_seen INTEGER DEFAULT (strftime('%s', 'now')),
-        FOREIGN KEY (game_id) REFERENCES games (id)
+        FOREIGN KEY (game_id) REFERENCES games (id) ON DELETE CASCADE
       );
 
       CREATE TABLE IF NOT EXISTS answers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        game_id INTEGER,
-        player_id INTEGER,
-        question_index INTEGER,
-        answer INTEGER,
-        is_correct BOOLEAN,
-        points_earned INTEGER,
+        question_id INTEGER NOT NULL,
+        player_id INTEGER NOT NULL,
+        selected_option INTEGER NOT NULL CHECK (selected_option >= 0 AND selected_option <= 3),
+        is_correct BOOLEAN NOT NULL,
+        points_earned INTEGER DEFAULT 0,
         response_time INTEGER,
         answered_at INTEGER DEFAULT (strftime('%s', 'now')),
-        FOREIGN KEY (game_id) REFERENCES games (id),
-        FOREIGN KEY (player_id) REFERENCES players (id)
+        FOREIGN KEY (question_id) REFERENCES questions (id) ON DELETE CASCADE,
+        FOREIGN KEY (player_id) REFERENCES players (id) ON DELETE CASCADE,
+        UNIQUE(question_id, player_id)
       );
 
       CREATE INDEX IF NOT EXISTS idx_games_pin ON games(pin);
       CREATE INDEX IF NOT EXISTS idx_players_token ON players(player_token);
       CREATE INDEX IF NOT EXISTS idx_players_game ON players(game_id);
-      CREATE INDEX IF NOT EXISTS idx_question_templates_category ON question_templates(category);
+      CREATE INDEX IF NOT EXISTS idx_questions_game ON questions(game_id);
+      CREATE INDEX IF NOT EXISTS idx_questions_order ON questions(game_id, question_order);
+      CREATE INDEX IF NOT EXISTS idx_answers_question ON answers(question_id);
+      CREATE INDEX IF NOT EXISTS idx_answers_player ON answers(player_id);
     `;
     
     return new Promise((resolve, reject) => {
@@ -78,10 +87,6 @@ class GameDatabase {
           // Create test game if it doesn't exist and not in test mode
           if (!this.skipTestGame) {
             this.createTestGame();
-          }
-          // Initialize default question templates (only if not in test mode)
-          if (!this.skipTestGame) {
-            this.initDefaultTemplates();
           }
           
           resolve();
@@ -169,25 +174,72 @@ class GameDatabase {
   // Create new game
   async createGame(pin, questions, moderatorPassword = null) {
     return new Promise((resolve, reject) => {
-      const passwordHash = moderatorPassword ? bcrypt.hashSync(moderatorPassword, 10) : null;
+      const passwordHash = moderatorPassword ? bcrypt.hashSync(String(moderatorPassword), 10) : null;
       const moderatorToken = this.generateToken();
-      const questionsJson = JSON.stringify(questions);
+      const db = this.db;
 
-      const sql = `
-        INSERT INTO games (pin, moderator_password_hash, moderator_token, questions_data)
-        VALUES (?, ?, ?, ?)
+      // First, create the game record
+      const gameSQL = `
+        INSERT INTO games (pin, moderator_password_hash, moderator_token)
+        VALUES (?, ?, ?)
       `;
 
-      this.db.run(sql, [pin, passwordHash, moderatorToken, questionsJson], function(err) {
+      db.run(gameSQL, [pin, passwordHash, moderatorToken], function(err) {
         if (err) {
           reject(err);
-        } else {
+          return;
+        }
+
+        const gameId = this.lastID;
+
+        // Then, insert all questions for this game
+        const questionSQL = `
+          INSERT INTO questions (game_id, question_text, option_a, option_b, option_c, option_d, correct_option, time_limit, question_order)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+
+        const stmt = db.prepare(questionSQL);
+        
+        let completedQuestions = 0;
+        const totalQuestions = questions.length;
+
+        if (totalQuestions === 0) {
           resolve({
-            gameId: this.lastID,
+            gameId,
             moderatorToken,
             pin
           });
+          return;
         }
+
+        questions.forEach((question, index) => {
+          stmt.run([
+            gameId,
+            question.question,
+            question.options[0],
+            question.options[1], 
+            question.options[2],
+            question.options[3],
+            question.correct,
+            question.timeLimit || 30,
+            index + 1
+          ], function(err) {
+            if (err) {
+              reject(err);
+              return;
+            }
+            
+            completedQuestions++;
+            if (completedQuestions === totalQuestions) {
+              stmt.finalize();
+              resolve({
+                gameId,
+                moderatorToken,
+                pin
+              });
+            }
+          });
+        });
       });
     });
   }
@@ -195,12 +247,30 @@ class GameDatabase {
   // Get game by PIN
   async getGameByPin(pin) {
     return new Promise((resolve, reject) => {
-      this.db.get('SELECT * FROM games WHERE pin = ?', [pin], (err, row) => {
+      this.db.get('SELECT * FROM games WHERE pin = ?', [pin], (err, gameRow) => {
         if (err) {
           reject(err);
-        } else if (row) {
-          row.questions = JSON.parse(row.questions_data || '[]');
-          resolve(row);
+        } else if (gameRow) {
+          // Get questions for this game
+          this.db.all(
+            'SELECT * FROM questions WHERE game_id = ? ORDER BY question_order',
+            [gameRow.id],
+            (err, questionRows) => {
+              if (err) {
+                reject(err);
+              } else {
+                // Convert questions to the format expected by the application
+                gameRow.questions = questionRows.map(q => ({
+                  id: q.id,
+                  question: q.question_text,
+                  options: [q.option_a, q.option_b, q.option_c, q.option_d],
+                  correct: q.correct_option,
+                  timeLimit: q.time_limit
+                }));
+                resolve(gameRow);
+              }
+            }
+          );
         } else {
           resolve(null);
         }
@@ -386,18 +456,45 @@ class GameDatabase {
     });
   }
 
-  // Save answer
-  async saveAnswer(gameId, playerId, questionIndex, answer, isCorrect, points, responseTime) {
+  // Get question ID by game ID and question order
+  async getQuestionId(gameId, questionOrder) {
     return new Promise((resolve, reject) => {
       const sql = `
-        INSERT INTO answers (game_id, player_id, question_index, answer, is_correct, points_earned, response_time)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        SELECT id FROM questions 
+        WHERE game_id = ? AND question_order = ?
       `;
 
-      this.db.run(sql, [gameId, playerId, questionIndex, answer, isCorrect, points, responseTime], function(err) {
+      this.db.get(sql, [gameId, questionOrder], (err, row) => {
         if (err) reject(err);
-        else resolve(this.lastID);
+        else resolve(row ? row.id : null);
       });
+    });
+  }
+
+  // Save answer
+  async saveAnswer(gameId, playerId, questionIndex, answer, isCorrect, points, responseTime) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        // Get the question ID based on game and question order (questionIndex + 1)
+        const questionId = await this.getQuestionId(gameId, questionIndex + 1);
+        
+        if (!questionId) {
+          reject(new Error(`Question not found for game ${gameId} at index ${questionIndex}`));
+          return;
+        }
+
+        const sql = `
+          INSERT INTO answers (question_id, player_id, selected_option, is_correct, points_earned, response_time)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `;
+
+        this.db.run(sql, [questionId, playerId, answer, isCorrect, points, responseTime], function(err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        });
+      } catch (error) {
+        reject(error);
+      }
     });
   }
 
@@ -459,221 +556,82 @@ class GameDatabase {
     });
   }
 
-  // Initialize default question templates
-  async initDefaultTemplates() {
-    try {
-      // Check if templates already exist
-      const existing = await this.getQuestionTemplates();
-      if (existing.length > 0) {
-        console.log('Question templates already exist');
-        return;
+  // Get default questions for all games
+  getDefaultQuestions() {
+    return [
+      {
+        id: 1,
+        question: "Aké je hlavné mesto Slovenska?",
+        options: ["Bratislava", "Košice", "Praha", "Viedeň"],
+        correct: 0,
+        timeLimit: 30
+      },
+      {
+        id: 2,
+        question: "Koľko kontinentov má Zem?",
+        options: ["5", "6", "7", "8"],
+        correct: 2,
+        timeLimit: 25
+      },
+      {
+        id: 3,
+        question: "Aký je najvyšší vrch na Slovensku?",
+        options: ["Gerlachovský štít", "Lomnický štít", "Kriváň", "Rysy"],
+        correct: 0,
+        timeLimit: 30
+      },
+      {
+        id: 4,
+        question: "V ktorom roku vznikla Slovenská republika?",
+        options: ["1993", "1989", "1991", "1995"],
+        correct: 0,
+        timeLimit: 30
+      },
+      {
+        id: 5,
+        question: "Aký je najdlhší slovenský river?",
+        options: ["Dunaj", "Váh", "Hron", "Nitra"],
+        correct: 1,
+        timeLimit: 30
+      },
+      {
+        id: 6,
+        question: "Ktorá planeta je najbližšie k Slnku?",
+        options: ["Venuša", "Merkúr", "Zem", "Mars"],
+        correct: 1,
+        timeLimit: 25
+      },
+      {
+        id: 7,
+        question: "Aké je chemické označenie pre vodu?",
+        options: ["CO2", "H2O", "NaCl", "O2"],
+        correct: 1,
+        timeLimit: 20
+      },
+      {
+        id: 8,
+        question: "Koľko strán má trojuholník?",
+        options: ["2", "3", "4", "5"],
+        correct: 1,
+        timeLimit: 15
+      },
+      {
+        id: 9,
+        question: "Aký je najväčší oceán na svete?",
+        options: ["Atlantický", "Indický", "Tichý", "Severný ľadový"],
+        correct: 2,
+        timeLimit: 25
+      },
+      {
+        id: 10,
+        question: "Kto napísal hru Romeo a Júlia?",
+        options: ["Charles Dickens", "William Shakespeare", "Jane Austen", "Mark Twain"],
+        correct: 1,
+        timeLimit: 30
       }
-
-      // Default question templates
-      const templates = [
-        {
-          category: 'general',
-          questions: [
-            {
-              id: 1,
-              question: "Aké je hlavné mesto Slovenska?",
-              options: ["Bratislava", "Košice", "Praha", "Viedeň"],
-              correct: 0,
-              timeLimit: 30
-            },
-            {
-              id: 2,
-              question: "Koľko kontinentov má Zem?",
-              options: ["5", "6", "7", "8"],
-              correct: 2,
-              timeLimit: 25
-            },
-            {
-              id: 3,
-              question: "Aký je najvyšší vrch na Slovensku?",
-              options: ["Gerlachovský štít", "Lomnický štít", "Kriváň", "Rysy"],
-              correct: 0,
-              timeLimit: 30
-            },
-            {
-              id: 4,
-              question: "V ktorom roku vznikla Slovenská republika?",
-              options: ["1993", "1989", "1991", "1995"],
-              correct: 0,
-              timeLimit: 30
-            },
-            {
-              id: 5,
-              question: "Aký je najdlhší slovenský river?",
-              options: ["Dunaj", "Váh", "Hron", "Nitra"],
-              correct: 1,
-              timeLimit: 25
-            }
-          ]
-        },
-        {
-          category: 'history',
-          questions: [
-            {
-              id: 1,
-              question: "V ktorom roku skončila druhá svetová vojna?",
-              options: ["1944", "1945", "1946", "1947"],
-              correct: 1,
-              timeLimit: 25
-            },
-            {
-              id: 2,
-              question: "Kto bol prvým prezidentom Československa?",
-              options: ["Tomáš Garrigue Masaryk", "Edvard Beneš", "Klement Gottwald", "Antonín Zápotocký"],
-              correct: 0,
-              timeLimit: 30
-            },
-            {
-              id: 3,
-              question: "V ktorom roku sa zrútil Berlínsky múr?",
-              options: ["1987", "1988", "1989", "1990"],
-              correct: 2,
-              timeLimit: 25
-            },
-            {
-              id: 4,
-              question: "V ktorom roku sa konala Nežná revolúcia na Slovensku?",
-              options: ["1988", "1989", "1990", "1991"],
-              correct: 1,
-              timeLimit: 25
-            }
-          ]
-        },
-        {
-          category: 'science',
-          questions: [
-            {
-              id: 1,
-              question: "Aký je chemický symbol pre zlato?",
-              options: ["Go", "Au", "Ag", "Al"],
-              correct: 1,
-              timeLimit: 25
-            },
-            {
-              id: 2,
-              question: "Koľko kostí má dospelý človek?",
-              options: ["206", "208", "210", "212"],
-              correct: 0,
-              timeLimit: 30
-            },
-            {
-              id: 3,
-              question: "Ktorá planéta je najbližšie k Slnku?",
-              options: ["Venuša", "Merkúr", "Mars", "Zem"],
-              correct: 1,
-              timeLimit: 20
-            },
-            {
-              id: 4,
-              question: "Aký plyn tvorí väčšinu zemskej atmosféry?",
-              options: ["Kyslík", "Dusík", "Oxid uhličitý", "Argón"],
-              correct: 1,
-              timeLimit: 25
-            }
-          ]
-        }
-      ];
-
-      // Insert templates
-      for (const template of templates) {
-        await this.createQuestionTemplate(template.category, template.questions);
-      }
-
-      console.log('Default question templates created successfully');
-    } catch (error) {
-      console.error('Error initializing default templates:', error);
-    }
+    ];
   }
 
-  // Create question template
-  async createQuestionTemplate(category, questions) {
-    return new Promise((resolve, reject) => {
-      const questionsJson = JSON.stringify(questions);
-      const sql = `
-        INSERT INTO question_templates (category, questions_data)
-        VALUES (?, ?)
-      `;
-
-      this.db.run(sql, [category, questionsJson], function(err) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(this.lastID);
-        }
-      });
-    });
-  }
-
-  // Get all question templates
-  async getQuestionTemplates() {
-    return new Promise((resolve, reject) => {
-      this.db.all('SELECT * FROM question_templates ORDER BY category', (err, rows) => {
-        if (err) {
-          reject(err);
-        } else {
-          const templates = rows.map(row => ({
-            ...row,
-            questions: JSON.parse(row.questions_data || '[]')
-          }));
-          resolve(templates);
-        }
-      });
-    });
-  }
-
-  // Get question template by category
-  async getQuestionTemplate(category) {
-    return new Promise((resolve, reject) => {
-      this.db.get('SELECT * FROM question_templates WHERE category = ?', [category], (err, row) => {
-        if (err) {
-          reject(err);
-        } else if (row) {
-          row.questions = JSON.parse(row.questions_data || '[]');
-          resolve(row);
-        } else {
-          resolve(null);
-        }
-      });
-    });
-  }
-
-  // Update question template
-  async updateQuestionTemplate(id, questions) {
-    return new Promise((resolve, reject) => {
-      const questionsJson = JSON.stringify(questions);
-      const sql = `
-        UPDATE question_templates 
-        SET questions_data = ?, updated_at = strftime('%s', 'now')
-        WHERE id = ?
-      `;
-
-      this.db.run(sql, [questionsJson, id], function(err) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(this.changes > 0);
-        }
-      });
-    });
-  }
-
-  // Delete question template
-  async deleteQuestionTemplate(id) {
-    return new Promise((resolve, reject) => {
-      this.db.run('DELETE FROM question_templates WHERE id = ?', [id], function(err) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(this.changes > 0);
-        }
-      });
-    });
-  }
 
   close() {
     if (this.db) {

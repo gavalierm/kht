@@ -1,0 +1,36 @@
+
+> app@1.0.0 start
+> node server.js
+
+Quiz server running on http://localhost:3000
+Player app: http://localhost:3000/
+Control: http://localhost:3000/control
+Panel: http://localhost:3000/panel
+Database initialized successfully
+Test game with PIN 123456 already exists
+New connection: o8r8DMY2OVAuJMU-AAAC
+New connection: 1ng4lEOlf-T5YRBkAAAD
+Moderator reconnect attempt for game: 940018
+Data received: { gamePin: '940018', hasPassword: false, hasToken: false }
+Validating moderator for PIN: 940018, hasPassword: false, hasToken: false
+No game found with PIN: 940018
+Moderator validation failed for game: 940018
+Disconnected: o8r8DMY2OVAuJMU-AAAC
+New connection: dIN95cuDR4O2l6pVAAAF
+Disconnected: dIN95cuDR4O2l6pVAAAF
+New connection: 2f4QCG8ZXUiMgP6_AAAH
+Disconnected: 2f4QCG8ZXUiMgP6_AAAH
+New connection: ohM_cNPtfWwEKCibAAAJ
+New connection: ohXw_at8D4t75ZlcAAAL
+Disconnected: ohXw_at8D4t75ZlcAAAL
+New connection: h_RLEnh714xZkF6iAAAN
+Disconnected: h_RLEnh714xZkF6iAAAN
+New connection: _9QoCBRKZ3p-2xjvAAAP
+Disconnected: _9QoCBRKZ3p-2xjvAAAP
+New connection: aeEzUy85y69jQzLwAAAR
+Player 1 joined game 123456
+Received SIGTERM, shutting down gracefully...
+Disconnected: 1ng4lEOlf-T5YRBkAAAD
+Disconnected: ohM_cNPtfWwEKCibAAAJ
+Disconnected: aeEzUy85y69jQzLwAAAR
+Database connection closed

@@ -26,9 +26,19 @@ class ControlApp {
 		this.totalQuestions = 0;
 		this.isModerator = false;
 		this.availableTemplates = [];
+		
+		// Question editing state
+		this.questions = [];
+		this.currentQuestionEdit = null;
+		this.isEditingQuestion = false;
+		this.editingQuestionIndex = -1;
+		this.currentTemplateId = null;
 
 		// Element references
 		this.elements = {};
+		
+		// Loading state
+		this.isLoading = false;
 
 		this.init();
 	}
@@ -46,6 +56,7 @@ class ControlApp {
 			'gameCategory',
 			'gameCreationCard',
 			'gameControlCard',
+			'questionManagementCard',
 			'createGameBtn',
 			'currentQuestionSection',
 			'currentQuestionText',
@@ -58,7 +69,19 @@ class ControlApp {
 			'nextQuestionBtn',
 			'endQuestionBtn',
 			'showResultsBtn',
-			// Navigation buttons removed
+			'questionList',
+			'addQuestionBtn',
+			'questionEditSection',
+			'questionText',
+			'questionTimeout',
+			'saveQuestionBtn',
+			'cancelQuestionBtn',
+			'answer0',
+			'answer1',
+			'answer2',
+			'answer3',
+			'loadingOverlay',
+			'loadingText'
 		]);
 
 		// Setup event listeners
@@ -75,6 +98,9 @@ class ControlApp {
 		
 		// Load game data
 		this.loadGameData();
+		
+		// Load questions for current template
+		this.loadQuestions();
 	}
 
 	setupEventListeners() {
@@ -120,6 +146,25 @@ class ControlApp {
 		if (this.elements.createGameBtn) {
 			this.elements.createGameBtn.addEventListener('click', () => {
 				this.handleCreateGame();
+			});
+		}
+
+		// Question management buttons
+		if (this.elements.addQuestionBtn) {
+			this.elements.addQuestionBtn.addEventListener('click', () => {
+				this.handleAddQuestion();
+			});
+		}
+
+		if (this.elements.saveQuestionBtn) {
+			this.elements.saveQuestionBtn.addEventListener('click', () => {
+				this.handleSaveQuestion();
+			});
+		}
+
+		if (this.elements.cancelQuestionBtn) {
+			this.elements.cancelQuestionBtn.addEventListener('click', () => {
+				this.handleCancelQuestion();
 			});
 		}
 
@@ -243,6 +288,8 @@ class ControlApp {
 		if (this.gameCategory) {
 			const template = this.availableTemplates.find(t => t.category === this.gameCategory);
 			this.dom.setText(this.elements.gameCategory, template ? template.title : this.gameCategory);
+			// Load questions for this category
+			this.loadQuestions();
 		}
 		this.updateQuestionProgress();
 		this.updateGameStats();
@@ -514,6 +561,9 @@ class ControlApp {
 		if (this.elements.gameControlCard) {
 			this.elements.gameControlCard.style.display = 'none';
 		}
+		if (this.elements.questionManagementCard) {
+			this.elements.questionManagementCard.style.display = 'none';
+		}
 		this.dom.setText(this.elements.pageTitle, 'Vytvorenie novej hry');
 	}
 
@@ -523,6 +573,9 @@ class ControlApp {
 		}
 		if (this.elements.gameControlCard) {
 			this.elements.gameControlCard.style.display = 'block';
+		}
+		if (this.elements.questionManagementCard) {
+			this.elements.questionManagementCard.style.display = 'block';
 		}
 		this.dom.setText(this.elements.pageTitle, 'Control');
 	}
@@ -572,6 +625,10 @@ class ControlApp {
 		this.totalQuestions = data.questionCount;
 		this.isModerator = true;
 		
+		// Get category from form
+		const categorySelect = document.getElementById('gameCategory');
+		this.gameCategory = categorySelect?.value || 'general';
+		
 		// Store moderator token
 		if (data.moderatorToken) {
 			this.gameState.setModeratorToken(data.moderatorToken);
@@ -587,7 +644,8 @@ class ControlApp {
 		this.updateGameInfo({
 			status: GAME_STATES.WAITING,
 			currentQuestionIndex: 0,
-			questionCount: data.questionCount
+			questionCount: data.questionCount,
+			category: this.gameCategory
 		});
 		
 		this.notifications.showSuccess(`Hra úspešne vytvorená! PIN: ${data.gamePin}`);
@@ -661,6 +719,287 @@ class ControlApp {
 		setTimeout(() => {
 			this.showGameCreation();
 		}, 2000);
+	}
+
+	// Question Management Methods
+	async loadQuestions() {
+		if (!this.gameCategory) return;
+		
+		try {
+			this.showLoading('Načítavam otázky...');
+			const response = await fetch(`/api/question-templates/${this.gameCategory}`);
+			
+			if (response.ok) {
+				const template = await response.json();
+				this.questions = template.questions || [];
+				this.currentTemplateId = template.id;
+				this.renderQuestionList();
+			} else {
+				this.notifications.showError('Chyba pri načítavaní otázok');
+			}
+		} catch (error) {
+			console.error('Error loading questions:', error);
+			this.notifications.showError('Chyba pri načítavaní otázok');
+		} finally {
+			this.hideLoading();
+		}
+	}
+
+	renderQuestionList() {
+		if (!this.elements.questionList) return;
+		
+		this.elements.questionList.innerHTML = '';
+		
+		if (this.questions.length === 0) {
+			const emptyState = document.createElement('div');
+			emptyState.className = 'empty-state';
+			emptyState.innerHTML = `
+				<div>📋</div>
+				<p>Žiadne otázky nenájdené</p>
+			`;
+			this.elements.questionList.appendChild(emptyState);
+			return;
+		}
+		
+		this.questions.forEach((question, index) => {
+			const questionItem = this.createQuestionItem(question, index);
+			this.elements.questionList.appendChild(questionItem);
+		});
+	}
+
+	createQuestionItem(question, index) {
+		const item = document.createElement('div');
+		item.className = 'question-item';
+		
+		const content = document.createElement('div');
+		content.className = 'question-content';
+		
+		const questionText = document.createElement('div');
+		questionText.className = 'question-text';
+		questionText.textContent = `${index + 1}. ${question.question}`;
+		
+		const options = document.createElement('div');
+		options.className = 'question-options';
+		
+		question.options.forEach((option, optIndex) => {
+			const optionDiv = document.createElement('div');
+			optionDiv.className = 'question-option';
+			if (optIndex === question.correct) {
+				optionDiv.classList.add('correct');
+			}
+			optionDiv.textContent = `${String.fromCharCode(65 + optIndex)}: ${option}`;
+			options.appendChild(optionDiv);
+		});
+		
+		const timeout = document.createElement('div');
+		timeout.className = 'question-timeout';
+		timeout.textContent = `⏱️ ${question.timeLimit || 30}s`;
+		
+		content.appendChild(questionText);
+		content.appendChild(options);
+		content.appendChild(timeout);
+		
+		const actions = document.createElement('div');
+		actions.className = 'question-actions';
+		
+		const editBtn = document.createElement('button');
+		editBtn.className = 'btn btn-primary';
+		editBtn.textContent = '✏️ Upraviť';
+		editBtn.onclick = () => this.handleEditQuestion(index);
+		
+		const deleteBtn = document.createElement('button');
+		deleteBtn.className = 'btn btn-danger';
+		deleteBtn.textContent = '🗑️ Zmazať';
+		deleteBtn.onclick = () => this.handleDeleteQuestion(index);
+		
+		actions.appendChild(editBtn);
+		actions.appendChild(deleteBtn);
+		
+		item.appendChild(content);
+		item.appendChild(actions);
+		
+		return item;
+	}
+
+	handleAddQuestion() {
+		this.isEditingQuestion = false;
+		this.editingQuestionIndex = -1;
+		this.currentQuestionEdit = {
+			question: '',
+			options: ['', '', '', ''],
+			correct: 0,
+			timeLimit: 30
+		};
+		this.showQuestionEditForm();
+	}
+
+	handleEditQuestion(index) {
+		this.isEditingQuestion = true;
+		this.editingQuestionIndex = index;
+		this.currentQuestionEdit = { ...this.questions[index] };
+		this.showQuestionEditForm();
+	}
+
+	handleDeleteQuestion(index) {
+		if (confirm('Naozaj chcete zmazať túto otázku?')) {
+			this.questions.splice(index, 1);
+			this.saveQuestionsToServer();
+		}
+	}
+
+	showQuestionEditForm() {
+		if (this.elements.questionEditSection) {
+			this.elements.questionEditSection.style.display = 'block';
+		}
+		
+		// Populate form with current question data
+		if (this.elements.questionText) {
+			this.elements.questionText.value = this.currentQuestionEdit.question;
+		}
+		
+		if (this.elements.questionTimeout) {
+			this.elements.questionTimeout.value = this.currentQuestionEdit.timeLimit;
+		}
+		
+		// Populate answers
+		for (let i = 0; i < 4; i++) {
+			const answerElement = this.elements[`answer${i}`];
+			if (answerElement) {
+				answerElement.value = this.currentQuestionEdit.options[i] || '';
+			}
+		}
+		
+		// Set correct answer
+		const correctRadio = document.querySelector(`input[name="correctAnswer"][value="${this.currentQuestionEdit.correct}"]`);
+		if (correctRadio) {
+			correctRadio.checked = true;
+		}
+		
+		// Update button text
+		if (this.elements.saveQuestionBtn) {
+			this.elements.saveQuestionBtn.textContent = this.isEditingQuestion ? '💾 Uložiť zmeny' : '💾 Pridať otázku';
+		}
+	}
+
+	hideQuestionEditForm() {
+		if (this.elements.questionEditSection) {
+			this.elements.questionEditSection.style.display = 'none';
+		}
+	}
+
+	handleSaveQuestion() {
+		// Validate form
+		const questionText = this.elements.questionText?.value.trim();
+		if (!questionText) {
+			this.notifications.showError('Zadajte text otázky');
+			return;
+		}
+		
+		const answers = [];
+		for (let i = 0; i < 4; i++) {
+			const answer = this.elements[`answer${i}`]?.value.trim();
+			if (!answer) {
+				this.notifications.showError(`Zadajte odpoveď ${String.fromCharCode(65 + i)}`);
+				return;
+			}
+			answers.push(answer);
+		}
+		
+		const correctAnswer = document.querySelector('input[name="correctAnswer"]:checked')?.value;
+		if (correctAnswer === undefined) {
+			this.notifications.showError('Vyberte správnu odpoveď');
+			return;
+		}
+		
+		const timeLimit = parseInt(this.elements.questionTimeout?.value);
+		if (!timeLimit || timeLimit < 10 || timeLimit > 180) {
+			this.notifications.showError('Časový limit musí byť medzi 10 a 180 sekúnd');
+			return;
+		}
+		
+		// Create question object
+		const question = {
+			question: questionText,
+			options: answers,
+			correct: parseInt(correctAnswer),
+			timeLimit: timeLimit
+		};
+		
+		// Add or update question
+		if (this.isEditingQuestion) {
+			this.questions[this.editingQuestionIndex] = question;
+		} else {
+			this.questions.push(question);
+		}
+		
+		// Save to server
+		this.saveQuestionsToServer();
+	}
+
+	handleCancelQuestion() {
+		this.hideQuestionEditForm();
+		this.currentQuestionEdit = null;
+		this.isEditingQuestion = false;
+		this.editingQuestionIndex = -1;
+	}
+
+	async saveQuestionsToServer() {
+		if (!this.currentTemplateId) {
+			this.notifications.showError('Chyba: Nenájdené ID šablóny');
+			return;
+		}
+		
+		try {
+			this.showLoading('Ukladám otázky...');
+			
+			const response = await fetch(`/api/question-templates/${this.currentTemplateId}`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					questions: this.questions
+				})
+			});
+			
+			if (response.ok) {
+				this.notifications.showSuccess('Otázky boli úspešne uložené');
+				this.hideQuestionEditForm();
+				this.renderQuestionList();
+				this.updateTotalQuestions();
+			} else {
+				const error = await response.json();
+				this.notifications.showError(error.message || 'Chyba pri ukládaní otázok');
+			}
+		} catch (error) {
+			console.error('Error saving questions:', error);
+			this.notifications.showError('Chyba pri ukládaní otázok');
+		} finally {
+			this.hideLoading();
+		}
+	}
+
+	updateTotalQuestions() {
+		this.totalQuestions = this.questions.length;
+		this.dom.setText(this.elements.totalQuestions, this.totalQuestions);
+	}
+
+	// Loading state management
+	showLoading(message = 'Načítavam...') {
+		this.isLoading = true;
+		if (this.elements.loadingOverlay) {
+			this.elements.loadingOverlay.classList.remove('hidden');
+		}
+		if (this.elements.loadingText) {
+			this.elements.loadingText.textContent = message;
+		}
+	}
+
+	hideLoading() {
+		this.isLoading = false;
+		if (this.elements.loadingOverlay) {
+			this.elements.loadingOverlay.classList.add('hidden');
+		}
 	}
 
 	// Cleanup when leaving the page
