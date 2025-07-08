@@ -28,6 +28,7 @@ class PanelApp {
 	init() {
 		// Cache elements
 		this.elements = this.dom.cacheElements([
+			'panelPinCode',
 			ELEMENT_IDS.PANEL_GAME_TITLE,
 			ELEMENT_IDS.PANEL_GAME_STATUS,
 			ELEMENT_IDS.PANEL_PLAYER_COUNT,
@@ -67,9 +68,16 @@ class PanelApp {
 		const gamePin = this.router.extractGamePin(path);
 		if (gamePin) {
 			this.gamePin = gamePin;
+			this.updatePinDisplay();
 			console.log('Extracted game PIN:', this.gamePin);
 		} else {
 			console.error('Could not extract game PIN from URL:', path);
+		}
+	}
+
+	updatePinDisplay() {
+		if (this.elements.panelPinCode && this.gamePin) {
+			this.dom.setText(this.elements.panelPinCode, this.gamePin);
 		}
 	}
 
@@ -141,11 +149,11 @@ class PanelApp {
 		this.gameStatus = status;
 		
 		const statusText = {
-			[GAME_STATES.WAITING]: 'Waiting for game to start',
-			[GAME_STATES.QUESTION_ACTIVE]: 'Question in progress',
-			[GAME_STATES.RESULTS]: 'Showing results',
-			[GAME_STATES.FINISHED]: 'Game finished',
-			'disconnected': 'Disconnected'
+			[GAME_STATES.WAITING]: 'Čakáme na začiatok',
+			[GAME_STATES.QUESTION_ACTIVE]: 'Otázka prebieha',
+			[GAME_STATES.RESULTS]: 'Zobrazujú sa výsledky',
+			[GAME_STATES.FINISHED]: 'Hra skončila',
+			'disconnected': 'Odpojené'
 		};
 
 		if (this.elements.panelGameStatus) {
@@ -167,8 +175,10 @@ class PanelApp {
 	updatePlayerCount(count) {
 		this.playerCount = count;
 		if (this.elements.panelPlayerCount) {
+			const playerText = count === 1 ? 'hráč' : 
+							   (count >= 2 && count <= 4) ? 'hráči' : 'hráčov';
 			this.dom.setText(this.elements.panelPlayerCount, 
-				`${count} player${count !== 1 ? 's' : ''}`);
+				`${count} ${playerText}`);
 		}
 	}
 
@@ -179,7 +189,7 @@ class PanelApp {
 		// Update question number
 		if (this.elements.panelQuestionNumber) {
 			this.dom.setText(this.elements.panelQuestionNumber, 
-				`Question ${data.questionNumber}/${data.totalQuestions}`);
+				`Otázka ${data.questionNumber}/${data.totalQuestions}`);
 		}
 
 		// Update question text
@@ -237,7 +247,7 @@ class PanelApp {
 		this.updateStatus(GAME_STATES.WAITING);
 		
 		if (this.elements.panelQuestionText) {
-			this.dom.setText(this.elements.panelQuestionText, 'Waiting for next question...');
+			this.dom.setText(this.elements.panelQuestionText, 'Čakáme na ďalšiu otázku...');
 		}
 
 		// Reset options
@@ -274,7 +284,7 @@ class PanelApp {
 			const item = document.createElement('div');
 			item.className = 'panel-leaderboard-item';
 			item.innerHTML = `
-				<span class="panel-player-name">No players yet</span>
+				<span class="panel-player-name">Zatiaľ žiadni hráči</span>
 				<span class="panel-player-score">-</span>
 			`;
 			this.elements.panelLeaderboardList.appendChild(item);
