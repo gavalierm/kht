@@ -918,12 +918,17 @@ process.on('unhandledRejection', (reason, promise) => {
   gracefulShutdown('unhandledRejection');
 });
 
-// Start server
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Quiz server running on http://localhost:${PORT}`);
-  console.log(`Player app: http://localhost:${PORT}/app`);
-  console.log(`Dashboard: http://localhost:${PORT}/dashboard`);
-  console.log(`Panel: http://localhost:${PORT}/panel`);
-});// Force restart
+// Start server only if this is the main module
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  server.listen(PORT, () => {
+    console.log(`Quiz server running on http://localhost:${PORT}`);
+    console.log(`Player app: http://localhost:${PORT}/app`);
+    console.log(`Dashboard: http://localhost:${PORT}/dashboard`);
+    console.log(`Panel: http://localhost:${PORT}/panel`);
+  });
+}
+
+// Export for testing
+module.exports = app;
 
