@@ -147,6 +147,17 @@ export class SocketManager {
 	}
 
 	/**
+	 * Disconnect and reset socket connection
+	 */
+	disconnect() {
+		if (this.socket) {
+			this.socket.disconnect();
+			this.socket = null;
+			this.isConnected = false;
+		}
+	}
+
+	/**
 	 * Setup latency measurement
 	 * @param {HTMLElement} latencyDisplay - Element to display latency
 	 */
