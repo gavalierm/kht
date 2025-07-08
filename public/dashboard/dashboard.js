@@ -18,7 +18,7 @@ class DashboardApp {
 		
 		// Dashboard state
 		this.gamePin = null;
-		this.gameTitle = DEFAULTS.GAME_TITLE;
+		this.gameTitle = 'Dashboard';
 		this.gameStatus = GAME_STATES.WAITING;
 		this.players = [];
 		this.currentQuestion = null;
@@ -53,9 +53,7 @@ class DashboardApp {
 			'nextQuestionBtn',
 			'endQuestionBtn',
 			'showResultsBtn',
-			'viewGameBtn',
-			'viewPanelBtn',
-			'viewStageBtn'
+			// Navigation buttons removed
 		]);
 
 		// Setup event listeners
@@ -110,24 +108,7 @@ class DashboardApp {
 			});
 		}
 
-		// Navigation buttons
-		if (this.elements.viewGameBtn) {
-			this.elements.viewGameBtn.addEventListener('click', () => {
-				this.handleViewGame();
-			});
-		}
-
-		if (this.elements.viewPanelBtn) {
-			this.elements.viewPanelBtn.addEventListener('click', () => {
-				this.handleViewPanel();
-			});
-		}
-
-		if (this.elements.viewStageBtn) {
-			this.elements.viewStageBtn.addEventListener('click', () => {
-				this.handleViewStage();
-			});
-		}
+		// Navigation buttons removed per user request
 	}
 
 	setupSocketEvents() {
@@ -459,24 +440,7 @@ class DashboardApp {
 		this.notifications.showInfo('Zobrazujem výsledky...');
 	}
 
-	// Navigation handlers
-	handleViewGame() {
-		if (this.gamePin) {
-			this.router.redirectToGame(this.gamePin);
-		}
-	}
-
-	handleViewPanel() {
-		if (this.gamePin) {
-			this.router.redirectToPanel(this.gamePin);
-		}
-	}
-
-	handleViewStage() {
-		if (this.gamePin) {
-			this.router.redirectToStage(this.gamePin);
-		}
-	}
+	// Navigation handlers removed per user request
 
 	showGameCreation() {
 		// TODO: Implement game creation interface
