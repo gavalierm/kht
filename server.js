@@ -119,7 +119,7 @@ app.get('/api/game/:pin', async (req, res) => {
 // Question template API endpoints
 app.get('/api/question-templates', async (req, res) => {
   try {
-    const templates = await database.getQuestionTemplates();
+    const templates = await db.getQuestionTemplates();
     res.json(templates);
   } catch (error) {
     console.error('Error fetching question templates:', error);
@@ -130,7 +130,7 @@ app.get('/api/question-templates', async (req, res) => {
 app.get('/api/question-templates/:category', async (req, res) => {
   try {
     const { category } = req.params;
-    const template = await database.getQuestionTemplate(category);
+    const template = await db.getQuestionTemplate(category);
     
     if (!template) {
       return res.status(404).json({ error: 'Question template not found' });
@@ -171,7 +171,7 @@ app.post('/api/question-templates', async (req, res) => {
       return res.status(400).json({ error: 'Invalid question format' });
     }
     
-    const templateId = await database.createQuestionTemplate(category, title, questions);
+    const templateId = await db.createQuestionTemplate(category, title, questions);
     res.json({ id: templateId, category, title, questions });
   } catch (error) {
     console.error('Error creating question template:', error);
@@ -212,7 +212,7 @@ app.put('/api/question-templates/:id', async (req, res) => {
       return res.status(400).json({ error: 'Invalid question format' });
     }
     
-    const updated = await database.updateQuestionTemplate(id, title, questions);
+    const updated = await db.updateQuestionTemplate(id, title, questions);
     
     if (!updated) {
       return res.status(404).json({ error: 'Question template not found' });
@@ -228,7 +228,7 @@ app.put('/api/question-templates/:id', async (req, res) => {
 app.delete('/api/question-templates/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const deleted = await database.deleteQuestionTemplate(id);
+    const deleted = await db.deleteQuestionTemplate(id);
     
     if (!deleted) {
       return res.status(404).json({ error: 'Question template not found' });

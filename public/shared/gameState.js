@@ -10,6 +10,7 @@ export class GameState {
 		this.hasAnswered = false;
 		this.isWaiting = true;
 		this.playerToken = null;
+		this.moderatorToken = null;
 		this.playerId = null;
 		this.timerInterval = null;
 		this.lastResult = null;
@@ -35,6 +36,15 @@ export class GameState {
 	setPlayerToken(token) {
 		this.playerToken = token;
 		localStorage.setItem('playerToken', token);
+	}
+
+	/**
+	 * Set moderator token
+	 * @param {string} token - Moderator token
+	 */
+	setModeratorToken(token) {
+		this.moderatorToken = token;
+		localStorage.setItem('moderatorToken', token);
 	}
 
 	/**
@@ -181,6 +191,11 @@ export class GameState {
 				this.playerToken = playerToken;
 			}
 
+			const moderatorToken = localStorage.getItem('moderatorToken');
+			if (moderatorToken) {
+				this.moderatorToken = moderatorToken;
+			}
+
 			const savedState = localStorage.getItem('gameState');
 			if (savedState) {
 				const state = JSON.parse(savedState);
@@ -224,6 +239,7 @@ export const defaultGameState = new GameState();
 // Export convenience methods
 export const setGamePin = defaultGameState.setGamePin.bind(defaultGameState);
 export const setPlayerToken = defaultGameState.setPlayerToken.bind(defaultGameState);
+export const setModeratorToken = defaultGameState.setModeratorToken.bind(defaultGameState);
 export const setPlayerId = defaultGameState.setPlayerId.bind(defaultGameState);
 export const setCurrentGame = defaultGameState.setCurrentGame.bind(defaultGameState);
 export const setCurrentQuestion = defaultGameState.setCurrentQuestion.bind(defaultGameState);
