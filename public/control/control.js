@@ -285,16 +285,22 @@ class ControlApp {
 	}
 
 	autoLoginWithToken(token) {
+		console.log('Auto-login with token for game:', this.gamePin);
 		this.socket.connect();
 		
-		// Wait for socket connection then try auto-login
-		if (this.socket.connected()) {
-			this.attemptLogin(null, token);
-		} else {
-			this.socket.on(SOCKET_EVENTS.CONNECT, () => {
+		// Small delay to ensure socket is ready
+		setTimeout(() => {
+			if (this.socket.connected()) {
+				console.log('Socket connected, attempting auto-login');
 				this.attemptLogin(null, token);
-			});
-		}
+			} else {
+				console.log('Socket not connected, waiting for connection');
+				this.socket.once(SOCKET_EVENTS.CONNECT, () => {
+					console.log('Socket connected, attempting auto-login');
+					this.attemptLogin(null, token);
+				});
+			}
+		}, 100);
 	}
 
 	handleLogin() {
@@ -305,17 +311,24 @@ class ControlApp {
 			return;
 		}
 		
+		console.log('Manual login attempt for game:', this.gamePin, 'with password');
+		
 		// Connect socket if not connected
 		this.socket.connect();
 		
-		// Wait for connection then attempt login
-		if (this.socket.connected()) {
-			this.attemptLogin(password, null);
-		} else {
-			this.socket.on(SOCKET_EVENTS.CONNECT, () => {
+		// Small delay to ensure socket is ready
+		setTimeout(() => {
+			if (this.socket.connected()) {
+				console.log('Socket connected, attempting login with password');
 				this.attemptLogin(password, null);
-			});
-		}
+			} else {
+				console.log('Socket not connected, waiting for connection');
+				this.socket.once(SOCKET_EVENTS.CONNECT, () => {
+					console.log('Socket connected, attempting login with password');
+					this.attemptLogin(password, null);
+				});
+			}
+		}, 100);
 	}
 
 	attemptLogin(password, token) {
@@ -335,6 +348,16 @@ class ControlApp {
 		
 		console.log('Attempting login with:', { pin: this.gamePin, hasPassword: !!password, hasToken: !!token });
 		
+		// Set timeout to prevent freezing
+		const loginTimeout = setTimeout(() => {
+			console.log('Login timeout reached');
+			this.setLoginLoading(false);
+			this.notifications.showError('Prihlásenie trvá príliš dlho. Skúste to znovu.');
+		}, 10000); // 10 second timeout
+		
+		// Store timeout reference to clear it on success/error
+		this.loginTimeout = loginTimeout;
+		
 		// Emit reconnect moderator event
 		this.socket.emit(SOCKET_EVENTS.RECONNECT_MODERATOR, loginData);
 	}
@@ -347,11 +370,20 @@ class ControlApp {
 	}
 
 	handleLoginSuccess(data) {
+		// Clear login timeout
+		if (this.loginTimeout) {
+			clearTimeout(this.loginTimeout);
+			this.loginTimeout = null;
+		}
+		
+		this.setLoginLoading(false);
 		this.isLoggedIn = true;
 		this.isConnectedToGame = true;
 		this.moderatorToken = data.moderator_token;
 		this.gameState = data.game?.state || 'waiting';
 		this.playerCount = data.game?.players?.length || 0;
+		
+		console.log('Login successful for game:', this.gamePin);
 		
 		// Store token for future use
 		if (this.moderatorToken) {
@@ -369,11 +401,17 @@ class ControlApp {
 	}
 
 	handleLoginError(error) {
+		// Clear login timeout
+		if (this.loginTimeout) {
+			clearTimeout(this.loginTimeout);
+			this.loginTimeout = null;
+		}
+		
 		this.setLoginLoading(false);
 		this.isLoggedIn = false;
 		this.isConnectedToGame = false;
 		
-		console.log('Login error:', error);
+		console.log('Login error for game:', this.gamePin, error);
 		this.notifications.showError(error.message || 'Chyba pri prihlasovaní');
 	}
 

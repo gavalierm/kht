@@ -153,17 +153,17 @@ class CreateApp {
 	handleGameCreated(data) {
 		console.log('Game created successfully:', data);
 		
-		// Store moderator token
+		// Store moderator token in localStorage (same format as control.js)
 		if (data.moderatorToken) {
-			this.gameState.setModeratorToken(data.moderatorToken);
-			this.gameState.setGamePin(data.gamePin);
+			localStorage.setItem(`moderator_token_${data.gamePin}`, data.moderatorToken);
+			console.log('Stored moderator token for game:', data.gamePin);
 		}
 		
 		this.notifications.showSuccess(`Hra vytvorená! PIN: ${data.gamePin}`);
 		
-		// Redirect to control panel
+		// Redirect to control panel with game PIN
 		setTimeout(() => {
-			window.location.href = `/control/${data.gamePin}`;
+			window.location.href = `/game/${data.gamePin}`;
 		}, 1000);
 	}
 
