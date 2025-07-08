@@ -159,7 +159,9 @@
 .flex-1 { flex: 1; }
 
 .hidden { display: none !important; }
-.visible { display: block !important; }
+/* Note: .visible class removed from common.css to prevent display conflicts
+   Each component should define its own .visible behavior to preserve
+   the correct display type (flex, grid, block, etc.) */
 
 /* Connection Status Banner */
 .connection-status-banner {
