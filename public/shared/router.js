@@ -77,10 +77,13 @@ export class Router {
 		if (path.startsWith('/game/')) {
 			this.showPage('game');
 			this.showPhase('playground');
+		} else if (path === '/game') {
+			// Handle /game route - main gameplay route, will be handled by game.js checkInitialRoute
+			this.showPage('login');
 		} else if (path.startsWith('/panel/')) {
 			this.showPage('panel');
 		} else if (path === '/' || path === '') {
-			// Show the join/login page for base route
+			// Root route redirects to /game on server level
 			this.showPage('login');
 		} else {
 			console.warn('Unknown route:', path);

@@ -63,10 +63,15 @@ const socketToModerator = new Map(); // socketId -> {gamePin, gameId}
 
 // Routes
 app.get('/', (req, res) => {
+  res.redirect('/game');
+});
+
+// Game page - main player interface
+app.get('/game', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/game/game.html'));
 });
 
-// Game page - player interface
+// Game page with PIN - player interface
 app.get('/game/:pin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/game/game.html'));
 });

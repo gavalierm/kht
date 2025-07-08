@@ -151,10 +151,9 @@ class App {
 	checkInitialRoute() {
 		const path = window.location.pathname;
 		
-		// Handle / as the join page - no redirect needed
-		if (path === '/' || path === '') {
-			// Already on the join page, just show it
-			this.router.showPage('login');
+		// Handle /game route - main gameplay route, check for saved session
+		if (path === '/game') {
+			this.handleGameRouteWithSession();
 			return;
 		}
 		
@@ -166,7 +165,7 @@ class App {
 				
 				// Check if player has saved session first
 				if (this.gameState.hasSavedSession()) {
-					this.checkForSavedSession();
+					this.checkForSavedSessionWithValidation();
 				} else {
 					// Auto-join with PIN from URL if game is not ended/finished
 					this.handleAutoJoin(gamePin);
@@ -174,6 +173,13 @@ class App {
 			} else {
 				this.redirectToLogin();
 			}
+		}
+		
+		// Handle root and other routes (fallback)
+		if (path === '/' || path === '') {
+			// Root redirects to /game on server level, shouldn't reach here
+			this.router.showPage('login');
+			return;
 		}
 	}
 
@@ -278,18 +284,80 @@ class App {
 		}
 	}
 
-	async checkForSavedSession() {
+	async handleGameRouteWithSession() {
+		// Check if user has a saved game PIN (even without full session)
+		const savedPin = this.gameState.gamePin; // Already loaded from localStorage
+		
+		if (savedPin) {
+			try {
+				// Validate the saved game PIN via API
+				this.showLoadingState('Kontrolujem uloženú hru...');
+				const game = await GameAPI.getGame(savedPin);
+				
+				if (game && (game.status === 'waiting' || game.status === 'running')) {
+					// Game is still active - redirect to game with PIN
+					this.notifications.showInfo('Pokračujem v uloženej hre');
+					this.router.navigateTo(`/game/${savedPin}`);
+					return;
+				} else {
+					// Game ended or doesn't exist - clear all game state and show join form
+					this.gameState.clearGame();
+					this.gameState.clearSavedSession();
+					this.notifications.showWarning('Uložená hra už skončila');
+				}
+			} catch (error) {
+				console.error('Error validating saved session:', error);
+				this.gameState.clearGame();
+				this.gameState.clearSavedSession();
+				this.notifications.showError('Chyba pri kontrole uloženej hry');
+			}
+		}
+		
+		// Show join form if no saved PIN or invalid game
+		this.router.showPage('login');
+		this.enableJoinButton();
+	}
+
+	async checkForSavedSessionWithValidation() {
 		if (this.gameState.hasSavedSession()) {
+			const savedPin = this.gameState.gamePin; // Already loaded from localStorage
 			const savedId = this.gameState.getSavedPlayerId();
-			if (savedId) {
-				this.gameState.setPlayerId(savedId);
-				this.attemptReconnect();
+			
+			if (savedPin && savedId) {
+				try {
+					// Validate the saved game PIN via API
+					const game = await GameAPI.getGame(savedPin);
+					
+					if (game && (game.status === 'waiting' || game.status === 'running')) {
+						// Game is still active - attempt reconnection
+						this.gameState.setPlayerId(savedId);
+						this.attemptReconnect();
+					} else {
+						// Game ended or doesn't exist - clear session and auto-join with current PIN
+						const currentPin = this.gameState.gamePin; // Save current PIN before clearing
+						this.gameState.clearGame();
+						this.gameState.clearSavedSession();
+						this.notifications.showWarning('Predchádzajúca hra už skončila');
+						this.handleAutoJoin(currentPin);
+					}
+				} catch (error) {
+					console.error('Error validating saved session:', error);
+					const currentPin = this.gameState.gamePin; // Save current PIN before clearing
+					this.gameState.clearGame();
+					this.gameState.clearSavedSession();
+					this.handleAutoJoin(currentPin);
+				}
 			} else {
-				this.redirectToLogin();
+				this.handleAutoJoin(this.gameState.gamePin);
 			}
 		} else {
-			this.redirectToLogin();
+			this.handleAutoJoin(this.gameState.gamePin);
 		}
+	}
+
+	async checkForSavedSession() {
+		// Legacy method - redirect to new validation method
+		await this.checkForSavedSessionWithValidation();
 	}
 
 	attemptReconnect() {
@@ -305,7 +373,7 @@ class App {
 	}
 
 	redirectToLogin() {
-		this.router.redirectToJoin();
+		this.router.navigateTo('/game');
 	}
 
 	enableJoinButton() {
