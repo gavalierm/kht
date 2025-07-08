@@ -13,7 +13,7 @@
 			height: 100%;
 			width: 100%;
 			font-family: Arial, sans-serif;
-			background: var(--dark-bg);
+			background: var(--primary-purple);
 			color: white;
 			overflow: hidden;
 		}
@@ -22,31 +22,52 @@
 			height: 100vh;
 			display: flex;
 			flex-direction: column;
-			padding: 2rem;
+			padding: 1rem;
 		}
 
 		.stage-header {
 			display: flex;
 			justify-content: space-between;
 			align-items: center;
-			margin-bottom: 2rem;
+			margin-bottom: 1rem;
+			padding-bottom: 0.5rem;
+			min-height: 80px;
 		}
 
-		.stage-title {
-			font-size: 2.5rem;
+		.stage-pin-display {
+			display: flex;
+			flex-direction: column;
+			align-items: flex-start;
+		}
+
+		.stage-pin-code {
+			font-size: 1.8rem;
 			font-weight: bold;
+			color: var(--primary-purple);
+			background: white;
+			padding: 0.5rem 1rem;
+			border-radius: 0.5rem;
+			letter-spacing: 0.1rem;
+			border: 2px solid white;
+			min-width: 120px;
+			text-align: center;
 		}
 
 		.game-info {
 			display: flex;
-			gap: 2rem;
-			font-size: 1.2rem;
+			flex-direction: column;
+			align-items: flex-end;
+			gap: 0.5rem;
 		}
 
 		.info-item {
+			font-size: 1rem;
+			color: white;
+			background: rgba(255, 255, 255, 0.2);
 			padding: 0.5rem 1rem;
-			background: rgba(255, 255, 255, 0.1);
-			border-radius: 0.5rem;
+			border-radius: 1rem;
+			white-space: nowrap;
+			font-weight: bold;
 		}
 
 		.stage-content {
@@ -59,63 +80,84 @@
 		.results-section {
 			background: rgba(255, 255, 255, 0.1);
 			border-radius: 1rem;
-			padding: 2rem;
+			padding: 1.5rem 1rem;
 			flex: 1;
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
 		}
 
 		.section-title {
-			font-size: 2rem;
+			font-size: 1.8rem;
 			font-weight: bold;
 			margin-bottom: 1.5rem;
 			text-align: center;
+			color: white;
 		}
 
-		.leaderboard {
+		.top3-leaderboard {
 			display: flex;
 			flex-direction: column;
 			gap: 1rem;
+			margin-bottom: 2rem;
 		}
 
-		.leaderboard-item {
+		.player-position-message {
+			text-align: center;
+			font-size: 1.2rem;
+			font-weight: bold;
+			color: white;
+			background: rgba(255, 255, 255, 0.2);
+			padding: 1rem;
+			border-radius: 0.5rem;
+			margin-top: 1rem;
+		}
+
+		.top3-item {
 			display: flex;
-			justify-content: space-between;
 			align-items: center;
+			justify-content: space-between;
 			padding: 1rem 1.5rem;
-			background: rgba(255, 255, 255, 0.1);
-			border-radius: 0.8rem;
-			font-size: 1.3rem;
+			background: white;
+			border-radius: 0.75rem;
+			font-size: 1.1rem;
+			min-height: 60px;
 		}
 
-		.leaderboard-item.winner {
+		.top3-item.first {
 			background: linear-gradient(135deg, #ffd700, #ffed4e);
 			color: #333;
 			font-weight: bold;
+			border: 3px solid #ffd700;
 		}
 
-		.leaderboard-item.runner-up {
+		.top3-item.second {
 			background: linear-gradient(135deg, #c0c0c0, #e6e6e6);
 			color: #333;
+			font-weight: bold;
 		}
 
-		.leaderboard-item.third {
+		.top3-item.third {
 			background: linear-gradient(135deg, #cd7f32, #deb887);
 			color: #333;
-		}
-
-		.player-rank {
-			font-size: 1.5rem;
 			font-weight: bold;
-			min-width: 3rem;
 		}
 
-		.player-name {
+		.top3-player-name {
+			font-weight: bold;
+			font-size: 1.1rem;
+			color: var(--primary-purple);
 			flex: 1;
-			text-align: left;
-			margin-left: 1rem;
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
 		}
 
-		.player-score {
+		.top3-player-score {
 			font-weight: bold;
+			color: var(--primary-purple);
+			font-size: 1.3rem;
+			margin-left: 0.5rem;
 		}
 
 		.stage-footer {
@@ -166,26 +208,52 @@
 		/* Responsive adjustments */
 		@media (max-width: 768px) {
 			.stage-container {
-				padding: 1rem;
+				padding: 0.5rem;
 			}
 
-			.game-title {
-				font-size: 1.8rem;
-			}
-
-			.game-info {
+			.stage-header {
 				flex-direction: column;
 				gap: 0.5rem;
+				text-align: center;
+				min-height: auto;
 			}
 
-			.leaderboard-item {
+			.stage-pin-code {
+				font-size: 1.5rem;
+				min-width: 100px;
+			}
+
+			.info-item {
+				font-size: 0.9rem;
+			}
+
+			.section-title {
+				font-size: 1.5rem;
+			}
+
+			.top3-item {
+				padding: 0.75rem 1rem;
+				font-size: 1rem;
+				min-height: 50px;
+			}
+
+			.top3-player-name {
+				font-size: 1rem;
+			}
+
+			.top3-player-score {
 				font-size: 1.1rem;
-				padding: 0.8rem 1rem;
+			}
+
+			.player-position-message {
+				font-size: 1rem;
+				padding: 0.75rem;
 			}
 
 			.stage-footer {
 				flex-direction: column;
 				align-items: center;
+				gap: 1rem;
 			}
 		}
 	</style>
@@ -194,23 +262,24 @@
 <body>
 	<div class="stage-container">
 		<div class="stage-header">
-			<h1 class="stage-title" id="stageTitle">Kvízová hra</h1>
+			<div class="stage-pin-display">
+				<span class="stage-pin-code" id="gamePin">#------</span>
+			</div>
 			<div class="game-info">
-				<div class="info-item">
-					<span>PIN: </span><span id="gamePin">------</span>
-				</div>
-				<div class="info-item">
-					<span>Hráči: </span><span id="playerCount">0</span>
-				</div>
+				<!-- Game info removed - not needed for final results -->
 			</div>
 		</div>
 
 		<div class="stage-content">
 			<div class="results-section">
-				<h2 class="section-title">🏆 Finálne výsledky</h2>
+				<h2 class="section-title">🏆 TOP 3</h2>
 				
-				<div id="leaderboard" class="leaderboard">
-					<!-- Leaderboard items will be populated here -->
+				<div id="top3Leaderboard" class="top3-leaderboard">
+					<!-- TOP 3 items will be populated here -->
+				</div>
+				
+				<div id="playerPositionMessage" class="player-position-message" style="display: none;">
+					<!-- Player position message will be shown here -->
 				</div>
 
 				<div id="emptyState" class="empty-state" style="display: none;">
@@ -222,9 +291,6 @@
 		</div>
 
 		<div class="stage-footer">
-			<button id="newGameBtn" class="action-button primary-button">
-				🎯 Nová hra
-			</button>
 			<button id="backToJoinBtn" class="action-button secondary-button">
 				🏠 Späť na úvod
 			</button>

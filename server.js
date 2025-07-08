@@ -128,7 +128,7 @@ app.get('/favicon.ico', (req, res) => {
 });
 
 // API route for game recovery
-app.get('/api/game/:pin', async (req, res) => {
+app.get('/api/games/:pin', async (req, res) => {
   try {
     const gameData = await db.getGameByPin(req.params.pin);
     if (!gameData) {
@@ -142,6 +142,51 @@ app.get('/api/game/:pin', async (req, res) => {
       questionCount: gameData.questions.length
     });
   } catch (error) {
+    console.error('Error in /api/game/:pin:', error);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
+
+// API route for getting game leaderboard (for stage interface)
+app.get('/api/games/:pin/leaderboard', async (req, res) => {
+  try {
+    const gamePin = req.params.pin;
+    
+    // Check if game exists in active games first
+    const activeGame = activeGames.get(gamePin);
+    if (activeGame) {
+      const leaderboard = activeGame.getLeaderboard();
+      return res.json({
+        leaderboard: leaderboard,
+        totalPlayers: Array.from(activeGame.players.values()).filter(p => p.connected).length,
+        totalQuestions: activeGame.questions.length,
+        status: activeGame.phase.toLowerCase()
+      });
+    }
+    
+    // If not in active games, get from database
+    const gameData = await db.getGameByPin(gamePin);
+    if (!gameData) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    
+    const players = await db.getGamePlayers(gameData.id);
+    const leaderboard = players
+      .map(player => ({
+        id: player.id,
+        name: player.name,
+        score: player.score || 0
+      }))
+      .sort((a, b) => b.score - a.score);
+    
+    res.json({
+      leaderboard: leaderboard,
+      totalPlayers: players.length,
+      totalQuestions: gameData.questions.length,
+      status: gameData.status
+    });
+  } catch (error) {
+    console.error('Error getting leaderboard:', error);
     res.status(500).json({ error: 'Database error' });
   }
 });
@@ -221,9 +266,9 @@ app.put('/api/question-templates/:templateId', async (req, res) => {
 });
 
 // Game-specific question management API endpoints
-app.get('/api/games/:gamePin/questions', async (req, res) => {
+app.get('/api/games/:pin/questions', async (req, res) => {
   try {
-    const gamePin = req.params.gamePin;
+    const gamePin = req.params.pin;
     
     // Get game and its questions from database
     const gameData = await db.getGameByPin(gamePin);
@@ -244,9 +289,9 @@ app.get('/api/games/:gamePin/questions', async (req, res) => {
   }
 });
 
-app.put('/api/games/:gamePin/questions', async (req, res) => {
+app.put('/api/games/:pin/questions', async (req, res) => {
   try {
-    const gamePin = req.params.gamePin;
+    const gamePin = req.params.pin;
     const { questions } = req.body;
     
     if (!questions || !Array.isArray(questions)) {
@@ -889,13 +934,17 @@ async function endGame(game) {
     io.to(game.moderatorSocket).emit('game_ended_dashboard', gameEndData);
   }
   
-  // Send to panels
+  // Send to panels - include both events for compatibility
   io.to(`game_${game.gamePin}_panel`).emit('panel_game_ended', gameEndData);
+  io.to(`game_${game.gamePin}_panel`).emit('game_state_update', { status: 'finished' });
+  
+  // Send GAME_ENDED event for stage interface
+  io.to(`game_${game.gamePin}_panel`).emit('game_ended', gameEndData);
   
   // Sync to database
   await game.syncToDatabase();
   
-  console.log(`Game ended: ${game.gamePin}`);
+  console.log(`Game ended: ${game.gamePin}, broadcasting to all interfaces`);
 }
 
 // Helper function to update control panel stats

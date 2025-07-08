@@ -492,6 +492,8 @@ class ControlApp {
 				const data = await response.json();
 				this.questions = data.questions || [];
 				this.renderQuestionList();
+				// Update UI after questions are loaded to fix question counter
+				this.updateGameControlUI();
 			} else {
 				this.notifications.showError('Chyba pri načítavaní otázok');
 			}
@@ -873,7 +875,12 @@ class ControlApp {
 
 		// Update current question
 		if (this.elements.currentQuestionDisplay) {
-			this.elements.currentQuestionDisplay.textContent = `${this.currentQuestion + 1} / ${this.questions.length}`;
+			const totalQuestions = this.questions ? this.questions.length : 0;
+			if (totalQuestions > 0) {
+				this.elements.currentQuestionDisplay.textContent = `${this.currentQuestion + 1} / ${totalQuestions}`;
+			} else {
+				this.elements.currentQuestionDisplay.textContent = 'Načítavam otázky...';
+			}
 		}
 	}
 

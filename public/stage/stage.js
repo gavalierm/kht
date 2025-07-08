@@ -4,7 +4,8 @@ import { defaultRouter } from '../shared/router.js';
 import { defaultDOMHelper } from '../shared/dom.js';
 import { defaultGameState } from '../shared/gameState.js';
 import { defaultAPI } from '../shared/api.js';
-import { SOCKET_EVENTS, GAME_STATES, ELEMENT_IDS, CSS_CLASSES, DEFAULTS } from '../shared/constants.js';
+import { defaultTop3Leaderboard } from '../shared/components/top3Leaderboard.js';
+import { SOCKET_EVENTS, GAME_STATES, ELEMENT_IDS, CSS_CLASSES, DEFAULTS, API_ENDPOINTS } from '../shared/constants.js';
 
 class StageApp {
 	constructor() {
@@ -23,6 +24,9 @@ class StageApp {
 
 		// Element references
 		this.elements = {};
+		
+		// Player data from localStorage
+		this.currentPlayer = this.getCurrentPlayerData();
 
 		this.init();
 	}
@@ -30,15 +34,16 @@ class StageApp {
 	init() {
 		// Cache elements
 		this.elements = this.dom.cacheElements([
-			'stageTitle',
 			'gamePin',
-			'playerCount', 
-			'leaderboard',
+			'top3Leaderboard',
+			'playerPositionMessage',
 			'emptyState',
-			'newGameBtn',
 			'backToJoinBtn'
 		]);
 
+		// Initialize TOP 3 component
+		this.top3 = defaultTop3Leaderboard;
+		
 		// Setup event listeners
 		this.setupEventListeners();
 		
@@ -54,12 +59,6 @@ class StageApp {
 
 	setupEventListeners() {
 		// Button events
-		if (this.elements.newGameBtn) {
-			this.elements.newGameBtn.addEventListener('click', () => {
-				this.handleNewGame();
-			});
-		}
-
 		if (this.elements.backToJoinBtn) {
 			this.elements.backToJoinBtn.addEventListener('click', () => {
 				this.handleBackToJoin();
@@ -133,8 +132,14 @@ class StageApp {
 		if (!this.gamePin) return;
 
 		try {
-			// Get final leaderboard from API or socket
-			this.socket.emit(SOCKET_EVENTS.GET_LEADERBOARD, { pin: this.gamePin });
+			// Get final leaderboard from API
+			const response = await fetch(API_ENDPOINTS.GAME_LEADERBOARD(this.gamePin));
+			if (response.ok) {
+				const data = await response.json();
+				this.handleLeaderboardUpdate({ leaderboard: data.leaderboard });
+			} else {
+				throw new Error('Failed to load leaderboard');
+			}
 		} catch (error) {
 			console.error('Error loading leaderboard:', error);
 			this.notifications.showError('Chyba pri načítavaní výsledkov');
@@ -144,14 +149,12 @@ class StageApp {
 
 	updateGameInfo(gameData) {
 		this.gameStatus = gameData.status;
-		
-		// Update UI
-		this.dom.setText(this.elements.playerCount, gameData.playerCount || 0);
+		// Game info updated - no UI updates needed for stage
 	}
 
 	updateGamePin(pin) {
 		this.gamePin = pin;
-		this.dom.setText(this.elements.gamePin, pin);
+		this.dom.setText(this.elements.gamePin, `#${pin}`);
 	}
 
 	handleLeaderboardUpdate(data) {
@@ -173,10 +176,7 @@ class StageApp {
 	}
 
 	renderLeaderboard() {
-		if (!this.elements.leaderboard) return;
-
-		// Clear existing leaderboard
-		this.elements.leaderboard.innerHTML = '';
+		if (!this.elements.top3Leaderboard) return;
 
 		if (!this.leaderboard || this.leaderboard.length === 0) {
 			this.showEmptyState();
@@ -186,58 +186,30 @@ class StageApp {
 		// Hide empty state
 		this.hideEmptyState();
 
-		// Sort leaderboard by score (descending)
-		const sortedLeaderboard = [...this.leaderboard].sort((a, b) => b.score - a.score);
+		// Use shared TOP 3 component to render leaderboard
+		const sortedLeaderboard = this.top3.render(
+			this.elements.top3Leaderboard,
+			this.leaderboard,
+			'top3-item',
+			'top3-player-name',
+			'top3-player-score',
+			'Žiadni hráči'
+		);
 
-		// Render leaderboard items
-		sortedLeaderboard.forEach((player, index) => {
-			const item = this.createLeaderboardItem(player, index + 1);
-			this.elements.leaderboard.appendChild(item);
-		});
+		// Show current player position
+		this.showPlayerPosition(sortedLeaderboard);
 	}
 
-	createLeaderboardItem(player, rank) {
-		const item = document.createElement('div');
-		item.className = 'leaderboard-item';
-		
-		// Add special styling for top 3
-		if (rank === 1) {
-			item.classList.add('winner');
-		} else if (rank === 2) {
-			item.classList.add('runner-up');
-		} else if (rank === 3) {
-			item.classList.add('third');
-		}
-
-		// Create rank element
-		const rankElement = document.createElement('div');
-		rankElement.className = 'player-rank';
-		rankElement.textContent = `${rank}.`;
-
-		// Create name element
-		const nameElement = document.createElement('div');
-		nameElement.className = 'player-name';
-		nameElement.textContent = player.name || `Hráč ${player.id}`;
-
-		// Create score element
-		const scoreElement = document.createElement('div');
-		scoreElement.className = 'player-score';
-		scoreElement.textContent = `${player.score} bodov`;
-
-		// Append elements
-		item.appendChild(rankElement);
-		item.appendChild(nameElement);
-		item.appendChild(scoreElement);
-
-		return item;
-	}
 
 	showEmptyState() {
 		if (this.elements.emptyState) {
 			this.elements.emptyState.style.display = 'block';
 		}
-		if (this.elements.leaderboard) {
-			this.elements.leaderboard.style.display = 'none';
+		if (this.elements.top3Leaderboard) {
+			this.elements.top3Leaderboard.style.display = 'none';
+		}
+		if (this.elements.playerPositionMessage) {
+			this.elements.playerPositionMessage.style.display = 'none';
 		}
 	}
 
@@ -245,15 +217,11 @@ class StageApp {
 		if (this.elements.emptyState) {
 			this.elements.emptyState.style.display = 'none';
 		}
-		if (this.elements.leaderboard) {
-			this.elements.leaderboard.style.display = 'flex';
+		if (this.elements.top3Leaderboard) {
+			this.elements.top3Leaderboard.style.display = 'flex';
 		}
 	}
 
-	handleNewGame() {
-		// Navigate to control to create new game
-		this.router.redirectToControl(this.gamePin);
-	}
 
 	handleBackToJoin() {
 		// Navigate back to join screen
@@ -271,6 +239,45 @@ class StageApp {
 	onSocketDisconnect() {
 		console.log('Stage: Disconnected from server');
 		// Connection banner handles disconnect notifications
+	}
+
+	getCurrentPlayerData() {
+		// Try to get player data from localStorage
+		try {
+			const gameState = localStorage.getItem('gameState');
+			if (gameState) {
+				const parsed = JSON.parse(gameState);
+				return {
+					id: parsed.playerId,
+					name: parsed.playerName,
+					token: parsed.playerToken
+				};
+			}
+		} catch (error) {
+			console.log('No player data found in localStorage');
+		}
+		return null;
+	}
+
+	showPlayerPosition(sortedLeaderboard) {
+		if (!this.elements.playerPositionMessage || !this.currentPlayer || !sortedLeaderboard) {
+			this.elements.playerPositionMessage.style.display = 'none';
+			return;
+		}
+
+		// Use shared TOP 3 component to find player position
+		const position = this.top3.findPlayerPosition(sortedLeaderboard, this.currentPlayer);
+		
+		if (!position) {
+			this.elements.playerPositionMessage.style.display = 'none';
+			return;
+		}
+
+		// Get formatted position message
+		const message = this.top3.getPositionMessage(position);
+		
+		this.dom.setText(this.elements.playerPositionMessage, message);
+		this.elements.playerPositionMessage.style.display = 'block';
 	}
 
 	// Cleanup when leaving the page

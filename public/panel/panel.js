@@ -2,6 +2,7 @@ import { defaultSocketManager } from '../shared/socket.js';
 import { defaultNotificationManager } from '../shared/notifications.js';
 import { defaultRouter } from '../shared/router.js';
 import { defaultDOMHelper } from '../shared/dom.js';
+import { defaultTop3Leaderboard } from '../shared/components/top3Leaderboard.js';
 import { SOCKET_EVENTS, GAME_STATES, ELEMENT_IDS, CSS_CLASSES, DEFAULTS } from '../shared/constants.js';
 
 class PanelApp {
@@ -24,6 +25,9 @@ class PanelApp {
 		
 		// Loading state
 		this.isLoading = true;
+		
+		// Initialize TOP 3 component
+		this.top3 = defaultTop3Leaderboard;
 
 		this.init();
 	}
@@ -129,6 +133,12 @@ class PanelApp {
 
 		this.socket.on(SOCKET_EVENTS.PANEL_GAME_ENDED, (data) => {
 			console.log('Game ended:', data);
+			this.showGameEnded(data);
+		});
+
+		// Also listen for generic game_ended event
+		this.socket.on('game_ended', (data) => {
+			console.log('Game ended (generic event):', data);
 			this.showGameEnded(data);
 		});
 
@@ -358,39 +368,15 @@ class PanelApp {
 	updateLeaderboard(leaderboard) {
 		if (!this.elements.panelLeaderboardList || !leaderboard) return;
 
-		const totalPlayers = leaderboard.length;
-
-		// Clear current leaderboard
-		this.dom.setHTML(this.elements.panelLeaderboardList, '');
-
-		if (totalPlayers === 0) {
-			const item = document.createElement('div');
-			item.className = 'panel-leaderboard-item';
-			item.innerHTML = `
-				<span class="panel-player-name">Zatiaľ žiadni hráči</span>
-				<span class="panel-player-score">-</span>
-			`;
-			this.elements.panelLeaderboardList.appendChild(item);
-			return;
-		}
-
-		// Show only top 3 players with details
-		const top3Players = leaderboard.slice(0, 3);
-		top3Players.forEach((player, index) => {
-			const item = document.createElement('div');
-			item.className = 'panel-leaderboard-item';
-			
-			// Add medal emojis for top 3
-			const medals = ['🥇', '🥈', '🥉'];
-			const medal = medals[index] || '';
-			
-			item.innerHTML = `
-				<span class="panel-player-name">${medal} ${player.name}</span>
-				<span class="panel-player-score">${player.score}</span>
-			`;
-			this.elements.panelLeaderboardList.appendChild(item);
-		});
-
+		// Use shared TOP 3 component to render leaderboard
+		this.top3.render(
+			this.elements.panelLeaderboardList,
+			leaderboard,
+			'panel-leaderboard-item',
+			'panel-player-name',
+			'panel-player-score',
+			'Zatiaľ žiadni hráči'
+		);
 	}
 
 	showError(message) {
@@ -435,7 +421,7 @@ class PanelApp {
 		
 		// Show final leaderboard
 		if (data.leaderboard && this.elements.panelLeaderboardList) {
-			this.displayLeaderboard(data.leaderboard);
+			this.updateLeaderboard(data.leaderboard);
 		}
 		
 		// Update question info to show game completed
@@ -450,6 +436,14 @@ class PanelApp {
 		
 		// Show completion message
 		this.notifications.showSuccess('Hra bola úspešne ukončená!');
+		
+		// Redirect to stage interface after 10 seconds to show final results
+		setTimeout(() => {
+			if (this.gamePin) {
+				console.log(`Redirecting panel to stage interface for game ${this.gamePin}`);
+				window.location.href = `/stage/${this.gamePin}`;
+			}
+		}, 10000);
 	}
 
 	showPanelInterface() {

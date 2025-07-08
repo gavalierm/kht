@@ -2,6 +2,8 @@
  * API utilities for making HTTP requests to the server
  */
 
+import { API_ENDPOINTS } from './constants.js';
+
 export class GameAPI {
 	/**
 	 * Get game information by PIN
@@ -15,7 +17,7 @@ export class GameAPI {
 		}
 
 		try {
-			const response = await fetch(`/api/game/${gamePin}`);
+			const response = await fetch(API_ENDPOINTS.GAME_BY_PIN(gamePin));
 			if (!response.ok) {
 				return null;
 			}

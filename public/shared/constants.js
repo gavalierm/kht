@@ -83,12 +83,6 @@ export const ANSWER_OPTION_CLASSES = [
 	'option_d'
 ];
 
-// API endpoints
-export const API_ENDPOINTS = {
-	GAME: '/api/game',
-	GAME_BY_PIN: (pin) => `/api/game/${pin}`
-};
-
 // UI constants
 export const UI_CONSTANTS = {
 	NOTIFICATION_DURATION: 3000,
@@ -159,6 +153,14 @@ export const STORAGE_KEYS = {
 	PLAYER_TOKEN: 'playerToken',
 	GAME_STATE: 'gameState',
 	GAME_PLAYER_ID: (gamePin) => `game_${gamePin}_id`
+};
+
+// API endpoints
+export const API_ENDPOINTS = {
+	GAMES: '/api/games',
+	GAME_BY_PIN: (pin) => `/api/games/${pin}`,
+	GAME_LEADERBOARD: (pin) => `/api/games/${pin}/leaderboard`,
+	GAME_QUESTIONS: (pin) => `/api/games/${pin}/questions`
 };
 
 // Route patterns
