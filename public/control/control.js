@@ -810,18 +810,18 @@ class ControlApp {
 		}
 
 		// Start the first question via socket
-		this.socket.emit(SOCKET_EVENTS.START_QUESTION);
+		this.socket.emit(SOCKET_EVENTS.START_QUESTION, { gamePin: this.gamePin });
 		this.notifications.showInfo('Spúšťam prvú otázku...');
 	}
 
 	handlePauseGame() {
 		if (this.gameState === 'running') {
 			// End current question to effectively pause
-			this.socket.emit(SOCKET_EVENTS.END_QUESTION);
+			this.socket.emit(SOCKET_EVENTS.END_QUESTION, { gamePin: this.gamePin });
 			this.notifications.showInfo('Ukončujem aktuálnu otázku...');
 		} else {
 			// Start next question to resume
-			this.socket.emit(SOCKET_EVENTS.START_QUESTION);
+			this.socket.emit(SOCKET_EVENTS.START_QUESTION, { gamePin: this.gamePin });
 			this.notifications.showInfo('Spúšťam ďalšiu otázku...');
 		}
 	}
@@ -830,7 +830,7 @@ class ControlApp {
 		if (confirm('Naozaj chcete ukončiť hru? Všetok postup bude stratený.')) {
 			// First end current question if running
 			if (this.gameState === 'running') {
-				this.socket.emit(SOCKET_EVENTS.END_QUESTION);
+				this.socket.emit(SOCKET_EVENTS.END_QUESTION, { gamePin: this.gamePin });
 			}
 			
 			// Reset local state

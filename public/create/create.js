@@ -163,7 +163,7 @@ class CreateApp {
 		
 		// Redirect to control panel with game PIN
 		setTimeout(() => {
-			window.location.href = `/game/${data.gamePin}`;
+			window.location.href = `/control/${data.gamePin}`;
 		}, 1000);
 	}
 
