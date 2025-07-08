@@ -348,6 +348,7 @@ io.on('connection', (socket) => {
     try {
       console.log(`Moderator reconnect attempt for game: ${data.gamePin}`);
       console.log(`Data received:`, { gamePin: data.gamePin, hasPassword: !!data.password, hasToken: !!data.moderatorToken });
+      console.log(`Full data object:`, data);
 
       // Check if moderator is already connected to prevent duplicates
       const existingModeratorInfo = socketToModerator.get(socket.id);
@@ -356,7 +357,9 @@ io.on('connection', (socket) => {
         return;
       }
 
+      console.log(`About to validate moderator for game: ${data.gamePin}`);
       const gameData = await db.validateModerator(data.gamePin, data.password, data.moderatorToken);
+      console.log(`Validation result:`, { success: !!gameData, gameExists: !!gameData });
       
       if (!gameData) {
         console.log(`Moderator validation failed for game: ${data.gamePin}`);
