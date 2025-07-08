@@ -20,8 +20,8 @@ describe('Dashboard API Integration', () => {
     
     database = new GameDatabase(':memory:', { skipTestGame: true });
     
-    // Wait for database initialization
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // Wait for database initialization to complete
+    await database.waitForInitialization();
 
     // Add question template API endpoints (copied from server.js)
     app.get('/api/question-templates', async (req, res) => {
@@ -54,6 +54,26 @@ describe('Dashboard API Integration', () => {
         
         if (!category || !title || !questions || !Array.isArray(questions)) {
           return res.status(400).json({ error: 'Missing required fields: category, title, questions' });
+        }
+        
+        // Validate questions structure
+        const isValidQuestions = questions.every(q => 
+          q && 
+          typeof q === 'object' &&
+          q.question && 
+          typeof q.question === 'string' &&
+          Array.isArray(q.options) && 
+          q.options.length === 4 && 
+          q.options.every(opt => typeof opt === 'string') &&
+          typeof q.correct === 'number' && 
+          q.correct >= 0 && 
+          q.correct <= 3 &&
+          typeof q.timeLimit === 'number' &&
+          q.timeLimit > 0
+        );
+        
+        if (!isValidQuestions) {
+          return res.status(400).json({ error: 'Invalid question format' });
         }
         
         const templateId = await database.createQuestionTemplate(category, title, questions);
@@ -138,16 +158,14 @@ describe('Dashboard API Integration', () => {
   });
 
   describe('GET /api/question-templates/:category', () => {
-    beforeEach(async () => {
-      await database.createQuestionTemplate('test', 'Test Questions', sampleQuestions.quiz.questions);
-    });
-
     test('should return specific question template', async () => {
+      await database.createQuestionTemplate('test-get', 'Test Questions', sampleQuestions.quiz.questions);
+      
       const response = await request(app)
-        .get('/api/question-templates/test')
+        .get('/api/question-templates/test-get')
         .expect(200);
 
-      expect(response.body.category).toBe('test');
+      expect(response.body.category).toBe('test-get');
       expect(response.body.title).toBe('Test Questions');
       expect(response.body.questions).toHaveLength(sampleQuestions.quiz.questions.length);
     });
@@ -240,13 +258,9 @@ describe('Dashboard API Integration', () => {
   });
 
   describe('PUT /api/question-templates/:id', () => {
-    let templateId;
-
-    beforeEach(async () => {
-      templateId = await database.createQuestionTemplate('updatetest', 'Original Title', sampleQuestions.quiz.questions);
-    });
-
     test('should update question template', async () => {
+      const templateId = await database.createQuestionTemplate('updatetest-1', 'Original Title', sampleQuestions.quiz.questions);
+      
       const updateData = {
         title: 'Updated Title',
         questions: sampleQuestions.quiz.questions.slice(0, 2)
@@ -260,7 +274,7 @@ describe('Dashboard API Integration', () => {
       expect(response.body.message).toBe('Question template updated successfully');
 
       // Verify update
-      const template = await database.getQuestionTemplate('updatetest');
+      const template = await database.getQuestionTemplate('updatetest-1');
       expect(template.title).toBe('Updated Title');
       expect(template.questions).toHaveLength(2);
     });

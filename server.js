@@ -19,6 +19,28 @@ const io = socketIo(server, {
 // Initialize database
 const db = new GameDatabase();
 
+// Helper function to validate question structure
+function validateQuestions(questions) {
+  if (!Array.isArray(questions)) {
+    return false;
+  }
+  
+  return questions.every(q => 
+    q && 
+    typeof q === 'object' &&
+    q.question && 
+    typeof q.question === 'string' &&
+    Array.isArray(q.options) && 
+    q.options.length === 4 && 
+    q.options.every(opt => typeof opt === 'string') &&
+    typeof q.correct === 'number' && 
+    q.correct >= 0 && 
+    q.correct <= 3 &&
+    typeof q.timeLimit === 'number' &&
+    q.timeLimit > 0
+  );
+}
+
 // Middleware
 app.use(express.json());
 
@@ -147,27 +169,12 @@ app.post('/api/question-templates', async (req, res) => {
   try {
     const { category, title, questions } = req.body;
     
-    if (!category || !title || !questions || !Array.isArray(questions)) {
+    if (!category || !title || !questions) {
       return res.status(400).json({ error: 'Missing required fields: category, title, questions' });
     }
     
     // Validate questions structure
-    const isValidQuestions = questions.every(q => 
-      q && 
-      typeof q === 'object' &&
-      q.question && 
-      typeof q.question === 'string' &&
-      Array.isArray(q.options) && 
-      q.options.length === 4 && 
-      q.options.every(opt => typeof opt === 'string') &&
-      typeof q.correct === 'number' && 
-      q.correct >= 0 && 
-      q.correct <= 3 &&
-      typeof q.timeLimit === 'number' &&
-      q.timeLimit > 0
-    );
-    
-    if (!isValidQuestions) {
+    if (!validateQuestions(questions)) {
       return res.status(400).json({ error: 'Invalid question format' });
     }
     
@@ -188,27 +195,12 @@ app.put('/api/question-templates/:id', async (req, res) => {
     const { id } = req.params;
     const { title, questions } = req.body;
     
-    if (!title || !questions || !Array.isArray(questions)) {
+    if (!title || !questions) {
       return res.status(400).json({ error: 'Missing required fields: title, questions' });
     }
     
     // Validate questions structure
-    const isValidQuestions = questions.every(q => 
-      q && 
-      typeof q === 'object' &&
-      q.question && 
-      typeof q.question === 'string' &&
-      Array.isArray(q.options) && 
-      q.options.length === 4 && 
-      q.options.every(opt => typeof opt === 'string') &&
-      typeof q.correct === 'number' && 
-      q.correct >= 0 && 
-      q.correct <= 3 &&
-      typeof q.timeLimit === 'number' &&
-      q.timeLimit > 0
-    );
-    
-    if (!isValidQuestions) {
+    if (!validateQuestions(questions)) {
       return res.status(400).json({ error: 'Invalid question format' });
     }
     

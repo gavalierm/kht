@@ -13,8 +13,8 @@ describe('Dashboard Functionality', () => {
     // Create database with skipTestGame flag to avoid initialization conflicts
     database = new GameDatabase(':memory:', { skipTestGame: true });
     
-    // Wait for initialization to complete
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Wait for database initialization to complete
+    await database.waitForInitialization();
   });
 
   afterEach(() => {

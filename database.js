@@ -6,10 +6,11 @@ class GameDatabase {
   constructor(dbPath = './quiz.db', options = {}) {
     this.db = new sqlite3.Database(dbPath);
     this.skipTestGame = options.skipTestGame || process.env.NODE_ENV === 'test';
-    this.initTables();
+    this.initialized = false;
+    this.initializationPromise = this.initTables();
   }
 
-  initTables() {
+  async initTables() {
     const sql = `
       CREATE TABLE IF NOT EXISTS games (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -67,21 +68,36 @@ class GameDatabase {
       CREATE INDEX IF NOT EXISTS idx_question_templates_category ON question_templates(category);
     `;
     
-    this.db.exec(sql, (err) => {
-      if (err) {
-        console.error('Database init error:', err);
-      } else {
-        console.log('Database initialized successfully');
-        // Create test game if it doesn't exist and not in test mode
-        if (!this.skipTestGame) {
-          this.createTestGame();
+    return new Promise((resolve, reject) => {
+      this.db.exec(sql, (err) => {
+        if (err) {
+          console.error('Database init error:', err);
+          reject(err);
+        } else {
+          console.log('Database initialized successfully');
+          this.initialized = true;
+          
+          // Create test game if it doesn't exist and not in test mode
+          if (!this.skipTestGame) {
+            this.createTestGame();
+          }
+          // Initialize default question templates (only if not in test mode)
+          if (!this.skipTestGame) {
+            this.initDefaultTemplates();
+          }
+          
+          resolve();
         }
-        // Initialize default question templates (only if not in test mode)
-        if (!this.skipTestGame) {
-          this.initDefaultTemplates();
-        }
-      }
+      });
     });
+  }
+
+  // Method to wait for initialization completion
+  async waitForInitialization() {
+    if (this.initialized) {
+      return;
+    }
+    await this.initializationPromise;
   }
 
   // Create test game with PIN 123456
