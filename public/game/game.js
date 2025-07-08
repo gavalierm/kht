@@ -432,11 +432,21 @@ class App {
 		this.dom.addClass(this.elements.timer, 'waiting');
 		
 		
-		// Reset option texts
-		const optionElements = this.elements.options?.querySelectorAll('.option p');
+		// Reset option texts and clear selection highlighting
+		const optionElements = this.elements.options?.querySelectorAll('.option');
 		if (optionElements) {
-			optionElements.forEach(el => {
-				this.dom.setText(el, '-');
+			optionElements.forEach(optionEl => {
+				// Reset text
+				const textEl = optionEl.querySelector('p');
+				if (textEl) {
+					this.dom.setText(textEl, '-');
+				}
+				
+				// Clear selection highlighting
+				this.dom.setStyles(optionEl, {
+					opacity: '',
+					border: ''
+				});
 			});
 		}
 	}

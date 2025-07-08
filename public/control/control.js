@@ -193,6 +193,10 @@ class ControlApp {
 			this.handleQuestionEnded(data);
 		});
 
+		this.socket.on('next_question_ready', (data) => {
+			this.handleNextQuestionReady(data);
+		});
+
 		this.socket.on(SOCKET_EVENTS.GAME_ENDED_DASHBOARD, (data) => {
 			this.handleGameEndedDashboard(data);
 		});
@@ -214,6 +218,11 @@ class ControlApp {
 		this.socket.on('live_stats', (data) => {
 			this.handleLiveStats(data);
 		});
+
+		// Game reset for test game
+		this.socket.on('game_reset_success', (data) => {
+			this.handleGameReset(data);
+		});
 		
 	}
 
@@ -233,10 +242,10 @@ class ControlApp {
 
 	handleQuestionStarted(data) {
 		this.gameState = 'running';
-		this.currentQuestion = data.questionIndex || 0;
+		this.currentQuestion = data.questionIndex !== undefined ? data.questionIndex : (data.questionNumber - 1);
 		this.updateGameControlUI();
 		this.autoCollapseQuestions();
-		this.notifications.showInfo(`Otázka ${this.currentQuestion + 1} bola spustená`);
+		this.notifications.showInfo(`Otázka ${data.questionNumber} bola spustená`);
 	}
 
 	handleQuestionEnded(data) {
@@ -247,6 +256,15 @@ class ControlApp {
 			'Otázka ukončená. Pripravená ďalšia otázka.' : 
 			'Posledná otázka ukončená. Hra dokončená.';
 		this.notifications.showInfo(message);
+	}
+
+	handleNextQuestionReady(data) {
+		// Update current question index to reflect the advancement
+		this.currentQuestion = data.questionIndex || (data.questionNumber - 1); // Use 0-based index directly or convert
+		this.gameState = 'waiting';
+		this.updateGameControlUI();
+		
+		this.notifications.showSuccess(`Otázka ${data.questionNumber} z ${data.totalQuestions} je pripravená na spustenie`);
 	}
 
 	handlePlayerJoined(data) {
@@ -272,6 +290,15 @@ class ControlApp {
 	handleLiveStats(data) {
 		// Update real-time stats during question if needed
 		// This could show answer counts, etc.
+	}
+
+	handleGameReset(data) {
+		// Reset local state to match server
+		this.gameState = 'waiting';
+		this.currentQuestion = 0;
+		this.updateGameControlUI();
+		
+		this.notifications.showSuccess(data.message || 'Hra bola resetovaná');
 	}
 
 	// Login Management Methods
@@ -388,6 +415,7 @@ class ControlApp {
 		this.moderatorToken = data.moderatorToken;
 		this.gameState = data.status || 'waiting';
 		this.playerCount = data.totalPlayers || 0;
+		this.currentQuestion = data.currentQuestionIndex || 0;
 		
 		// Store token for future use
 		if (this.moderatorToken) {
@@ -773,9 +801,10 @@ class ControlApp {
 		}
 
 
-		// Start the first question via socket
+		// Start the next question via socket
 		this.socket.emit(SOCKET_EVENTS.START_QUESTION, { gamePin: this.gamePin });
-		this.notifications.showInfo('Spúšťam prvú otázku...');
+		const questionNumber = this.currentQuestion + 1;
+		this.notifications.showInfo(`Spúšťam otázku ${questionNumber}...`);
 	}
 
 	handlePauseGame() {
@@ -786,7 +815,8 @@ class ControlApp {
 		} else {
 			// Start next question to resume
 			this.socket.emit(SOCKET_EVENTS.START_QUESTION, { gamePin: this.gamePin });
-			this.notifications.showInfo('Spúšťam ďalšiu otázku...');
+			const questionNumber = this.currentQuestion + 1;
+			this.notifications.showInfo(`Spúšťam otázku ${questionNumber}...`);
 		}
 	}
 
@@ -947,6 +977,7 @@ class ControlApp {
 			this.socket.off('moderator_reconnect_error');
 			this.socket.off('question_started_dashboard');
 			this.socket.off('question_ended_dashboard');
+			this.socket.off('next_question_ready');
 			this.socket.off('start_question_error');
 			this.socket.off('player_joined');
 			this.socket.off('player_left');

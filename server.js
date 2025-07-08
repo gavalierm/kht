@@ -321,6 +321,47 @@ app.put('/api/games/:pin/questions', async (req, res) => {
 });
 
 
+// Helper function to reset test game
+async function resetTestGame(game, moderatorSocket) {
+  console.log(`Resetting test game ${game.gamePin}, preserving ${game.questions?.length || 0} questions`);
+  
+  // Reset game state
+  game.phase = 'WAITING';
+  game.currentQuestionIndex = 0;
+  game.questionStartTime = null;
+  game.answers = [];
+  
+  // Reset all player scores but keep them connected
+  for (const player of game.players.values()) {
+    player.score = 0;
+  }
+  
+  // Sync to database
+  await game.syncToDatabase(db);
+  
+  // Notify moderator about reset
+  moderatorSocket.emit('game_reset_success', {
+    message: 'Test hra bola resetovaná'
+  });
+  
+  // Update control interface with reset state
+  const connectedPlayers = Array.from(game.players.values()).filter(p => p.connected);
+  moderatorSocket.emit('moderator_reconnected', {
+    gamePin: game.gamePin,
+    questionCount: game.questions.length,
+    currentQuestionIndex: 0,
+    status: 'waiting',
+    players: connectedPlayers.map(p => p.name),
+    totalPlayers: connectedPlayers.length,
+    moderatorToken: socketToModerator.get(moderatorSocket.id)?.moderatorToken
+  });
+  
+  // Update panel leaderboard
+  updatePanelLeaderboard(game);
+  
+  console.log(`Test game ${game.gamePin} has been reset`);
+}
+
 // Socket.io connection handling
 io.on('connection', (socket) => {
   console.log('New connection:', socket.id);
@@ -413,6 +454,7 @@ io.on('connection', (socket) => {
       if (!game) {
         // Restore game from database
         const players = await db.getGamePlayers(gameData.id);
+        console.log(`Restoring game ${data.gamePin} with ${gameData.questions?.length || 0} questions`);
         game = new GameInstance(data.gamePin, gameData.questions, gameData.id);
         game.phase = gameData.status.toUpperCase();
         game.currentQuestionIndex = gameData.current_question_index;
@@ -487,6 +529,8 @@ io.on('connection', (socket) => {
     const game = activeGames.get(data.gamePin);
     if (!game || game.moderatorSocket !== socket.id) return;
     
+    console.log(`Starting question for game ${data.gamePin}, questions count: ${game.questions.length}, current index: ${game.currentQuestionIndex}`);
+    
     // Check if there are any players connected
     const connectedPlayers = Array.from(game.players.values()).filter(p => p.connected);
     if (connectedPlayers.length === 0) {
@@ -497,7 +541,13 @@ io.on('connection', (socket) => {
     }
     
     const question = game.getCurrentQuestion();
-    if (!question) return;
+    if (!question) {
+      console.log(`No question found for game ${data.gamePin} at index ${game.currentQuestionIndex}`);
+      socket.emit('start_question_error', { 
+        message: 'Žiadne otázky nie sú k dispozícii' 
+      });
+      return;
+    }
     
     game.phase = 'QUESTION_ACTIVE';
     game.questionStartTime = Date.now();
@@ -505,6 +555,7 @@ io.on('connection', (socket) => {
     
     const questionData = {
       questionNumber: game.currentQuestionIndex + 1,
+      questionIndex: game.currentQuestionIndex, // 0-based index for internal use
       totalQuestions: game.questions.length,
       question: question.question,
       options: question.options,
@@ -550,8 +601,15 @@ io.on('connection', (socket) => {
     const game = activeGames.get(data.gamePin);
     if (!game || game.moderatorSocket !== socket.id) return;
     
+    // Auto-reset test game instead of ending it
+    if (data.gamePin === '123456') {
+      resetTestGame(game, socket);
+      return;
+    }
+    
     endGame(game);
   });
+
 
   // Player: Join game
   socket.on('join_game', async (data) => {
@@ -566,6 +624,7 @@ io.on('connection', (socket) => {
       let game = activeGames.get(data.gamePin);
       if (!game) {
         const players = await db.getGamePlayers(gameData.id);
+        console.log(`Restoring game ${data.gamePin} for player join with ${gameData.questions?.length || 0} questions`);
         game = new GameInstance(data.gamePin, gameData.questions, gameData.id);
         game.phase = gameData.status.toUpperCase();
         game.currentQuestionIndex = gameData.current_question_index;
@@ -578,7 +637,29 @@ io.on('connection', (socket) => {
         activeGames.set(data.gamePin, game);
       }
 
-      if (game.phase !== 'WAITING' && game.phase !== 'RESULTS') {
+      // Allow joining test game even if finished, but reset it
+      if (data.gamePin === '123456' && game.phase === 'FINISHED') {
+        // Reset test game to WAITING state
+        game.phase = 'WAITING';
+        game.currentQuestionIndex = 0;
+        game.questionStartTime = null;
+        game.answers = [];
+        
+        // Reset all player scores but keep them connected
+        for (const player of game.players.values()) {
+          player.score = 0;
+        }
+        
+        // Sync reset state to database
+        await game.syncToDatabase(db);
+        
+        // Notify moderator about reset
+        if (game.moderatorSocket) {
+          io.to(game.moderatorSocket).emit('game_reset', {
+            message: 'Test hra bola resetovaná kvôli novému hráčovi'
+          });
+        }
+      } else if (game.phase !== 'WAITING' && game.phase !== 'RESULTS') {
         socket.emit('join_error', { message: 'Hra už prebieha, nemôžete sa pripojiť' });
         return;
       }
@@ -840,13 +921,16 @@ io.on('connection', (socket) => {
           player.connected = false;
           player.socketId = null;
           
-          // Update dashboard
+          // Update dashboard and panel
+          const connectedPlayers = Array.from(game.players.values()).filter(p => p.connected);
           if (game.moderatorSocket) {
-            const connectedPlayers = Array.from(game.players.values()).filter(p => p.connected);
             io.to(game.moderatorSocket).emit('player_left', {
               totalPlayers: connectedPlayers.length
             });
           }
+          
+          // Update panel leaderboard with current connected players
+          updatePanelLeaderboard(game);
         }
       } catch (error) {
         console.error('Error handling player disconnect:', error);
@@ -912,6 +996,24 @@ async function endQuestion(game) {
     setTimeout(async () => {
       await endGame(game);
     }, 5000); // Wait 5 seconds before ending the game to show results
+  } else {
+    // Advance to next question after showing results for a few seconds
+    setTimeout(() => {
+      const hasNextQuestion = game.nextQuestion();
+      if (hasNextQuestion) {
+        console.log(`Advanced to question ${game.currentQuestionIndex + 1} in game ${game.gamePin}`);
+        
+        // Notify moderator that next question is ready
+        if (game.moderatorSocket) {
+          io.to(game.moderatorSocket).emit('next_question_ready', {
+            questionNumber: game.currentQuestionIndex + 1, // This is correct now since nextQuestion() already incremented
+            questionIndex: game.currentQuestionIndex, // 0-based index for internal use
+            totalQuestions: game.questions.length,
+            canContinue: true
+          });
+        }
+      }
+    }, 3000); // Wait 3 seconds to show results, then advance
   }
 }
 
