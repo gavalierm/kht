@@ -189,7 +189,11 @@ describe('Connection Status Banner', () => {
 
 	describe('Error Handling', () => {
 		test('should handle missing banner element gracefully', () => {
-			banner.banner.remove(); // Remove the banner element
+			// Remove the banner element using standard DOM API
+			const bannerElement = document.getElementById('connectionStatusBanner');
+			if (bannerElement && bannerElement.parentNode) {
+				bannerElement.parentNode.removeChild(bannerElement);
+			}
 			
 			expect(() => banner.show('Test')).not.toThrow();
 			expect(() => banner.hide()).not.toThrow();
@@ -197,7 +201,9 @@ describe('Connection Status Banner', () => {
 
 		test('should handle missing child elements gracefully', () => {
 			const iconElement = document.getElementById('connectionStatusBannerIcon');
-			iconElement.remove();
+			if (iconElement && iconElement.parentNode) {
+				iconElement.parentNode.removeChild(iconElement);
+			}
 			
 			expect(() => banner.show('Test')).not.toThrow();
 		});
@@ -212,7 +218,8 @@ describe('Connection Status Banner', () => {
 		});
 
 		test('should handle destruction when no banner exists', () => {
-			banner.banner = null;
+			// First destroy the banner, then try to destroy again
+			banner.destroy();
 			expect(() => banner.destroy()).not.toThrow();
 		});
 	});
