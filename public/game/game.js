@@ -17,7 +17,6 @@ class App {
 		
 		// Timer intervals
 		this.timerInterval = null;
-		this.latencyInterval = null;
 		
 		// Element references
 		this.elements = {};
@@ -142,11 +141,8 @@ class App {
 
 	setupLatencyMeasurement() {
 		if (this.elements.latencyDisplay) {
-			this.latencyInterval = setInterval(() => {
-				const latency = this.socket.connected ? 
-					Math.round(performance.now() % 100) : 0;
-				this.dom.setText(this.elements.latencyDisplay, `${latency}ms`);
-			}, UI_CONSTANTS.LATENCY_UPDATE_INTERVAL);
+			// Use the SocketManager's latency measurement
+			this.socket.setupLatencyMeasurement(this.elements.latencyDisplay);
 		}
 	}
 
@@ -428,9 +424,6 @@ class App {
 	destroy() {
 		if (this.timerInterval) {
 			clearInterval(this.timerInterval);
-		}
-		if (this.latencyInterval) {
-			clearInterval(this.latencyInterval);
 		}
 		this.gameState.clearTimers();
 	}
