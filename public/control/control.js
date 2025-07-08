@@ -336,17 +336,17 @@ class ControlApp {
 		this.setLoginLoading(true);
 		
 		const loginData = {
-			pin: this.gamePin
+			gamePin: this.gamePin
 		};
 		
 		// Add credentials if provided
 		if (token) {
-			loginData.moderator_token = token;
+			loginData.moderatorToken = token;
 		} else if (password) {
 			loginData.password = password;
 		}
 		
-		console.log('Attempting login with:', { pin: this.gamePin, hasPassword: !!password, hasToken: !!token });
+		console.log('Attempting login with:', { gamePin: this.gamePin, hasPassword: !!password, hasToken: !!token });
 		
 		// Set timeout to prevent freezing
 		const loginTimeout = setTimeout(() => {
