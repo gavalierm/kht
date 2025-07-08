@@ -1,6 +1,9 @@
 module.exports = {
-  // Test environment
+  // Test environment - use jsdom for DOM tests
   testEnvironment: 'node',
+  
+  // Override test environment for specific files
+  testEnvironmentOptions: {},
   
   // Test file patterns
   testMatch: [
