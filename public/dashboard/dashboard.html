@@ -13,24 +13,6 @@
 			height: 100%;
 			width: 100%;
 			font-family: Arial, sans-serif;
-			background: var(--dark-bg);
-			color: white;
-		}
-
-		.dashboard-container {
-			min-height: 100vh;
-			display: flex;
-			flex-direction: column;
-			padding: 2rem;
-		}
-
-		.dashboard-header {
-			display: flex;
-			justify-content: space-between;
-			align-items: center;
-			margin-bottom: 2rem;
-			flex-wrap: wrap;
-			gap: 1rem;
 		}
 
 		.game-title {
@@ -44,38 +26,8 @@
 			align-items: center;
 		}
 
-		.game-info {
-			display: flex;
-			gap: 1rem;
-			font-size: 1rem;
-		}
-
-		.info-item {
-			padding: 0.5rem 1rem;
-			background: rgba(255, 255, 255, 0.1);
-			border-radius: 0.5rem;
-			white-space: nowrap;
-		}
-
 		.dashboard-content {
-			flex: 1;
-			display: grid;
 			grid-template-columns: 1fr 1fr;
-			gap: 2rem;
-		}
-
-		.control-panel,
-		.game-monitor {
-			background: rgba(255, 255, 255, 0.1);
-			border-radius: 1rem;
-			padding: 2rem;
-		}
-
-		.panel-title {
-			font-size: 1.8rem;
-			font-weight: bold;
-			margin-bottom: 1.5rem;
-			text-align: center;
 		}
 
 		.control-section {
@@ -93,57 +45,6 @@
 			display: flex;
 			flex-direction: column;
 			gap: 1rem;
-		}
-
-		.control-button {
-			padding: 1rem 1.5rem;
-			font-size: 1.1rem;
-			border: none;
-			border-radius: 0.5rem;
-			cursor: pointer;
-			transition: all 0.3s ease;
-			font-weight: bold;
-		}
-
-		.primary-button {
-			background: var(--primary-color);
-			color: white;
-		}
-
-		.primary-button:hover:not(:disabled) {
-			background: var(--primary-hover);
-		}
-
-		.success-button {
-			background: #28a745;
-			color: white;
-		}
-
-		.success-button:hover:not(:disabled) {
-			background: #218838;
-		}
-
-		.danger-button {
-			background: #dc3545;
-			color: white;
-		}
-
-		.danger-button:hover:not(:disabled) {
-			background: #c82333;
-		}
-
-		.warning-button {
-			background: #ffc107;
-			color: #212529;
-		}
-
-		.warning-button:hover:not(:disabled) {
-			background: #e0a800;
-		}
-
-		.control-button:disabled {
-			opacity: 0.6;
-			cursor: not-allowed;
 		}
 
 		.current-question {
@@ -215,30 +116,6 @@
 			color: #dc3545;
 		}
 
-		.game-stats {
-			display: grid;
-			grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-			gap: 1rem;
-			margin-bottom: 1.5rem;
-		}
-
-		.stat-item {
-			text-align: center;
-			padding: 1rem;
-			background: rgba(0, 0, 0, 0.2);
-			border-radius: 0.5rem;
-		}
-
-		.stat-value {
-			font-size: 2rem;
-			font-weight: bold;
-			color: var(--primary-color);
-		}
-
-		.stat-label {
-			font-size: 0.9rem;
-			opacity: 0.8;
-		}
 
 		.empty-state {
 			text-align: center;
@@ -280,42 +157,36 @@
 </head>
 
 <body>
-	<div class="dashboard-container">
-		<div class="dashboard-header">
+	<div class="container">
+		<div class="header">
 			<h1 class="game-title" id="gameTitle">Kvízová hra - Dashboard</h1>
 			<div class="game-controls">
-				<div class="game-info">
+				<div class="info-grid">
 					<div class="info-item">
 						<span>PIN: </span><span id="gamePin">------</span>
 					</div>
 					<div class="info-item">
 						<span>Status: </span><span id="gameStatus">Čakanie</span>
 					</div>
-					<div class="info-item">
-						<span>Hráči: </span><span id="playerCount">0</span>
-					</div>
-					<div class="info-item">
-						<span>Otázka: </span><span id="questionProgress">0/0</span>
-					</div>
 				</div>
 			</div>
 		</div>
 
-		<div class="dashboard-content">
+		<div class="content dashboard-content">
 			<!-- Control Panel -->
-			<div class="control-panel">
-				<h2 class="panel-title">🎮 Ovládanie hry</h2>
+			<div class="card">
+				<h2 class="card-title">🎮 Ovládanie hry</h2>
 
 				<div class="control-section">
 					<h3 class="section-title">Hra</h3>
 					<div class="control-buttons">
-						<button id="startGameBtn" class="control-button success-button">
+						<button id="startGameBtn" class="btn btn-success btn-lg">
 							▶️ Spustiť hru
 						</button>
-						<button id="pauseGameBtn" class="control-button warning-button" disabled>
+						<button id="pauseGameBtn" class="btn btn-warning btn-lg" disabled>
 							⏸️ Pozastaviť hru
 						</button>
-						<button id="endGameBtn" class="control-button danger-button" disabled>
+						<button id="endGameBtn" class="btn btn-danger btn-lg" disabled>
 							⏹️ Ukončiť hru
 						</button>
 					</div>
@@ -324,13 +195,13 @@
 				<div class="control-section">
 					<h3 class="section-title">Otázky</h3>
 					<div class="control-buttons">
-						<button id="nextQuestionBtn" class="control-button primary-button" disabled>
+						<button id="nextQuestionBtn" class="btn btn-primary btn-lg" disabled>
 							⏭️ Ďalšia otázka
 						</button>
-						<button id="endQuestionBtn" class="control-button warning-button" disabled>
+						<button id="endQuestionBtn" class="btn btn-warning btn-lg" disabled>
 							⏹️ Ukončiť otázku
 						</button>
-						<button id="showResultsBtn" class="control-button primary-button" disabled>
+						<button id="showResultsBtn" class="btn btn-primary btn-lg" disabled>
 							📊 Zobraziť výsledky
 						</button>
 					</div>
@@ -339,13 +210,13 @@
 				<div class="control-section">
 					<h3 class="section-title">Navigácia</h3>
 					<div class="control-buttons">
-						<button id="viewGameBtn" class="control-button primary-button">
+						<button id="viewGameBtn" class="btn btn-primary btn-lg">
 							🎯 Zobraziť hru
 						</button>
-						<button id="viewPanelBtn" class="control-button primary-button">
+						<button id="viewPanelBtn" class="btn btn-primary btn-lg">
 							📺 Zobraziť panel
 						</button>
-						<button id="viewStageBtn" class="control-button primary-button">
+						<button id="viewStageBtn" class="btn btn-primary btn-lg">
 							🏆 Zobraziť výsledky
 						</button>
 					</div>
@@ -353,10 +224,10 @@
 			</div>
 
 			<!-- Game Monitor -->
-			<div class="game-monitor">
-				<h2 class="panel-title">📊 Monitor hry</h2>
+			<div class="card">
+				<h2 class="card-title">📊 Monitor hry</h2>
 
-				<div class="game-stats">
+				<div class="stats-grid">
 					<div class="stat-item">
 						<div class="stat-value" id="totalPlayers">0</div>
 						<div class="stat-label">Celkom hráčov</div>

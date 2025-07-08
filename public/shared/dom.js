@@ -237,6 +237,22 @@ export class DOMHelper {
 	}
 
 	/**
+	 * Enable or disable element
+	 * @param {string|HTMLElement} element - Element ID or element
+	 * @param {boolean} enabled - Whether element should be enabled
+	 */
+	setEnabled(element, enabled) {
+		const el = typeof element === 'string' ? this.getElementById(element) : element;
+		if (el) {
+			if (enabled) {
+				el.removeAttribute('disabled');
+			} else {
+				el.setAttribute('disabled', 'disabled');
+			}
+		}
+	}
+
+	/**
 	 * Clear element cache
 	 */
 	clearCache() {
@@ -276,4 +292,5 @@ export const setStyle = defaultDOMHelper.setStyle.bind(defaultDOMHelper);
 export const setStyles = defaultDOMHelper.setStyles.bind(defaultDOMHelper);
 export const show = defaultDOMHelper.show.bind(defaultDOMHelper);
 export const hide = defaultDOMHelper.hide.bind(defaultDOMHelper);
+export const setEnabled = defaultDOMHelper.setEnabled.bind(defaultDOMHelper);
 export const domReady = defaultDOMHelper.ready.bind(defaultDOMHelper);

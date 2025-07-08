@@ -38,8 +38,6 @@ class DashboardApp {
 			'gameTitle',
 			'gamePin',
 			'gameStatus',
-			'playerCount',
-			'questionProgress',
 			'totalPlayers',
 			'activePlayers',
 			'currentQuestionIndex',
@@ -169,6 +167,15 @@ class DashboardApp {
 			this.onSocketDisconnect();
 		});
 
+		// Moderator reconnection
+		this.socket.on('moderator_reconnected', (data) => {
+			this.handleModeratorReconnected(data);
+		});
+
+		this.socket.on('moderator_reconnect_error', (error) => {
+			this.handleModeratorReconnectError(error);
+		});
+
 		// Error handling
 		this.socket.on('error', (error) => {
 			this.handleSocketError(error);
@@ -211,7 +218,7 @@ class DashboardApp {
 	connectAsModerator() {
 		if (this.gamePin) {
 			this.socket.emit(SOCKET_EVENTS.RECONNECT_MODERATOR, { 
-				pin: this.gamePin 
+				gamePin: this.gamePin 
 			});
 			this.isModerator = true;
 		}
@@ -237,8 +244,6 @@ class DashboardApp {
 	}
 
 	updateQuestionProgress() {
-		const progress = `${this.questionIndex}/${this.totalQuestions}`;
-		this.dom.setText(this.elements.questionProgress, progress);
 		this.dom.setText(this.elements.currentQuestionIndex, this.questionIndex);
 		this.dom.setText(this.elements.totalQuestions, this.totalQuestions);
 	}
@@ -248,7 +253,6 @@ class DashboardApp {
 		
 		this.dom.setText(this.elements.totalPlayers, this.players.length);
 		this.dom.setText(this.elements.activePlayers, activePlayers);
-		this.dom.setText(this.elements.playerCount, this.players.length);
 	}
 
 	updateControlButtons() {
@@ -494,6 +498,54 @@ class DashboardApp {
 	handleSocketError(error) {
 		console.error('Dashboard socket error:', error);
 		this.notifications.showError('Chyba komunikácie so serverom');
+	}
+
+	handleModeratorReconnected(data) {
+		console.log('Moderator reconnected:', data);
+		
+		// Update game info
+		if (data.title) this.gameTitle = data.title;
+		if (data.questionCount !== undefined) this.totalQuestions = data.questionCount;
+		if (data.currentQuestionIndex !== undefined) this.questionIndex = data.currentQuestionIndex;
+		if (data.status) this.gameStatus = data.status.toUpperCase();
+		
+		// Update players
+		if (data.players && Array.isArray(data.players)) {
+			// Convert player names to player objects if needed
+			this.players = data.players.map((player, index) => {
+				if (typeof player === 'string') {
+					return { id: index + 1, name: player, connected: true, score: 0 };
+				}
+				return player;
+			});
+		}
+		
+		// Store moderator token if provided
+		if (data.moderatorToken) {
+			this.gameState.setModeratorToken(data.moderatorToken);
+		}
+		
+		// Update UI
+		this.updateGameInfo({ 
+			title: this.gameTitle, 
+			status: this.gameStatus, 
+			currentQuestionIndex: this.questionIndex, 
+			questionCount: this.totalQuestions 
+		});
+		this.updateGameStats();
+		this.renderPlayersList();
+		
+		this.notifications.showSuccess('Úspešne pripojené ako moderátor');
+	}
+
+	handleModeratorReconnectError(error) {
+		console.error('Moderator reconnect error:', error);
+		this.notifications.showError(error.message || 'Nepodarilo sa pripojiť ako moderátor');
+		
+		// Redirect to home or show game creation
+		setTimeout(() => {
+			this.showGameCreation();
+		}, 2000);
 	}
 
 	// Cleanup when leaving the page

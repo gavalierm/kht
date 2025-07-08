@@ -50,6 +50,7 @@
 	border-radius: 4px;
 	cursor: pointer;
 	transition: background-color 0.2s;
+	font-weight: bold;
 }
 
 .btn:hover:not(:disabled) {
@@ -59,6 +60,54 @@
 .btn:disabled {
 	background-color: #ccc;
 	cursor: not-allowed;
+	opacity: 0.6;
+}
+
+/* Button variants */
+.btn-primary {
+	background-color: var(--primary-purple);
+}
+
+.btn-primary:hover:not(:disabled) {
+	background-color: #3a0d7e;
+}
+
+.btn-success {
+	background-color: #28a745;
+}
+
+.btn-success:hover:not(:disabled) {
+	background-color: #218838;
+}
+
+.btn-danger {
+	background-color: #dc3545;
+}
+
+.btn-danger:hover:not(:disabled) {
+	background-color: #c82333;
+}
+
+.btn-warning {
+	background-color: #ffc107;
+	color: #212529;
+}
+
+.btn-warning:hover:not(:disabled) {
+	background-color: #e0a800;
+}
+
+/* Button sizes */
+.btn-lg {
+	font-size: 1.4rem;
+	padding: 1rem 1.5rem;
+	border-radius: 0.5rem;
+}
+
+.btn-sm {
+	font-size: 1rem;
+	padding: 0.5rem 1rem;
+	border-radius: 0.3rem;
 }
 
 /* Notification styles */
@@ -111,3 +160,86 @@
 
 .hidden { display: none !important; }
 .visible { display: block !important; }
+
+/* Layout styles */
+.container {
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
+	padding: 2rem;
+	background: var(--dark-bg);
+	color: white;
+}
+
+.header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 2rem;
+	flex-wrap: wrap;
+	gap: 1rem;
+}
+
+.content {
+	flex: 1;
+	display: grid;
+	gap: 2rem;
+}
+
+.card {
+	background: rgba(255, 255, 255, 0.1);
+	border-radius: 1rem;
+	padding: 2rem;
+}
+
+.card-title {
+	font-size: 1.8rem;
+	font-weight: bold;
+	margin-bottom: 1.5rem;
+	text-align: center;
+}
+
+.info-grid {
+	display: flex;
+	gap: 1rem;
+	font-size: 1rem;
+	flex-wrap: wrap;
+}
+
+.info-item {
+	padding: 0.5rem 1rem;
+	background: rgba(255, 255, 255, 0.1);
+	border-radius: 0.5rem;
+	white-space: nowrap;
+}
+
+.stats-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+	gap: 1rem;
+	margin-bottom: 1.5rem;
+}
+
+.stat-item {
+	text-align: center;
+	padding: 1rem;
+	background: rgba(0, 0, 0, 0.2);
+	border-radius: 0.5rem;
+}
+
+.stat-value {
+	font-size: 2rem;
+	font-weight: bold;
+	color: var(--primary-purple);
+}
+
+.stat-label {
+	font-size: 0.9rem;
+	opacity: 0.8;
+}
+
+/* Color scheme updates */
+:root {
+	--primary-color: var(--primary-purple);
+	--primary-hover: #3a0d7e;
+}
