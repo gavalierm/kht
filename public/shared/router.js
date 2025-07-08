@@ -250,6 +250,45 @@ export class Router {
 	}
 
 	/**
+	 * Redirect to game view (full page redirect)
+	 * @param {string} pin - Game PIN
+	 */
+	redirectToGame(pin) {
+		window.location.href = `/app/${pin}/game`;
+	}
+
+	/**
+	 * Redirect to panel view (full page redirect)
+	 * @param {string} pin - Game PIN
+	 */
+	redirectToPanel(pin) {
+		window.location.href = `/app/${pin}/panel`;
+	}
+
+	/**
+	 * Redirect to stage view (full page redirect)
+	 * @param {string} pin - Game PIN
+	 */
+	redirectToStage(pin) {
+		window.location.href = `/app/${pin}/stage`;
+	}
+
+	/**
+	 * Redirect to dashboard view (full page redirect)
+	 * @param {string} pin - Game PIN
+	 */
+	redirectToDashboard(pin) {
+		window.location.href = `/app/${pin}/dashboard`;
+	}
+
+	/**
+	 * Redirect to join screen (full page redirect)
+	 */
+	redirectToJoin() {
+		window.location.href = '/app';
+	}
+
+	/**
 	 * Navigate to panel view
 	 * @param {string} pin - Game PIN
 	 */
@@ -290,3 +329,10 @@ export const navigateToGame = defaultRouter.navigateToGame.bind(defaultRouter);
 export const navigateToPanel = defaultRouter.navigateToPanel.bind(defaultRouter);
 export const navigateToStage = defaultRouter.navigateToStage.bind(defaultRouter);
 export const navigateToDashboard = defaultRouter.navigateToDashboard.bind(defaultRouter);
+
+// Export redirect methods (full page redirects)
+export const redirectToGame = defaultRouter.redirectToGame.bind(defaultRouter);
+export const redirectToPanel = defaultRouter.redirectToPanel.bind(defaultRouter);
+export const redirectToStage = defaultRouter.redirectToStage.bind(defaultRouter);
+export const redirectToDashboard = defaultRouter.redirectToDashboard.bind(defaultRouter);
+export const redirectToJoin = defaultRouter.redirectToJoin.bind(defaultRouter);

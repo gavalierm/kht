@@ -458,19 +458,19 @@ class DashboardApp {
 	// Navigation handlers
 	handleViewGame() {
 		if (this.gamePin) {
-			this.router.navigateToGame(this.gamePin);
+			this.router.redirectToGame(this.gamePin);
 		}
 	}
 
 	handleViewPanel() {
 		if (this.gamePin) {
-			this.router.navigateToPanel(this.gamePin);
+			this.router.redirectToPanel(this.gamePin);
 		}
 	}
 
 	handleViewStage() {
 		if (this.gamePin) {
-			this.router.navigateToStage(this.gamePin);
+			this.router.redirectToStage(this.gamePin);
 		}
 	}
 

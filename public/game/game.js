@@ -196,7 +196,7 @@ class App {
 
 				case GAME_STATES.ENDED:
 					// Game has ended - redirect to results
-					this.router.navigateToStage(gamePin);
+					this.router.redirectToStage(gamePin);
 					break;
 
 				case GAME_STATES.WAITING:
@@ -256,7 +256,7 @@ class App {
 	}
 
 	redirectToLogin() {
-		this.router.navigateTo('/app');
+		this.router.redirectToJoin();
 	}
 
 	enableJoinButton() {

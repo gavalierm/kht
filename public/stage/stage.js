@@ -113,7 +113,7 @@ class StageApp {
 				
 				// If game is not ended, redirect to appropriate view
 				if (gameData.status === GAME_STATES.RUNNING || gameData.status === GAME_STATES.WAITING) {
-					this.router.navigateToGame(this.gamePin);
+					this.router.redirectToGame(this.gamePin);
 					return;
 				}
 				
@@ -170,7 +170,7 @@ class StageApp {
 			
 			// If game status changed from ended to running or waiting, redirect
 			if (data.status === GAME_STATES.RUNNING || data.status === GAME_STATES.WAITING) {
-				this.router.navigateToGame(this.gamePin);
+				this.router.redirectToGame(this.gamePin);
 			}
 		}
 	}
@@ -255,12 +255,12 @@ class StageApp {
 
 	handleNewGame() {
 		// Navigate to dashboard to create new game
-		this.router.navigateToDashboard(this.gamePin);
+		this.router.redirectToDashboard(this.gamePin);
 	}
 
 	handleBackToJoin() {
 		// Navigate back to join screen
-		this.router.navigateToJoin();
+		this.router.redirectToJoin();
 	}
 
 	onSocketConnect() {
