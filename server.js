@@ -5,7 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const GameDatabase = require('./database');
 const { GameInstance } = require('./lib/gameInstance');
-const { generateGamePin, loadQuestions } = require('./lib/gameUtils');
+const { generateGamePin } = require('./lib/gameUtils');
 
 const app = express();
 const server = http.createServer(app);
@@ -18,6 +18,28 @@ const io = socketIo(server, {
 
 // Initialize database
 const db = new GameDatabase();
+
+// Helper function to validate question structure
+function validateQuestions(questions) {
+  if (!Array.isArray(questions)) {
+    return false;
+  }
+  
+  return questions.every(q => 
+    q && 
+    typeof q === 'object' &&
+    q.question && 
+    typeof q.question === 'string' &&
+    Array.isArray(q.options) && 
+    q.options.length === 4 && 
+    q.options.every(opt => typeof opt === 'string') &&
+    typeof q.correct === 'number' && 
+    q.correct >= 0 && 
+    q.correct <= 3 &&
+    typeof q.timeLimit === 'number' &&
+    q.timeLimit > 0
+  );
+}
 
 // Middleware
 app.use(express.json());
@@ -116,6 +138,101 @@ app.get('/api/game/:pin', async (req, res) => {
   }
 });
 
+// Question template API endpoints
+app.get('/api/question-templates', async (req, res) => {
+  try {
+    const templates = await db.getQuestionTemplates();
+    res.json(templates);
+  } catch (error) {
+    console.error('Error fetching question templates:', error);
+    res.status(500).json({ error: 'Failed to fetch question templates' });
+  }
+});
+
+app.get('/api/question-templates/:category', async (req, res) => {
+  try {
+    const { category } = req.params;
+    const template = await db.getQuestionTemplate(category);
+    
+    if (!template) {
+      return res.status(404).json({ error: 'Question template not found' });
+    }
+    
+    res.json(template);
+  } catch (error) {
+    console.error('Error fetching question template:', error);
+    res.status(500).json({ error: 'Failed to fetch question template' });
+  }
+});
+
+app.post('/api/question-templates', async (req, res) => {
+  try {
+    const { category, title, questions } = req.body;
+    
+    if (!category || !title || !questions) {
+      return res.status(400).json({ error: 'Missing required fields: category, title, questions' });
+    }
+    
+    // Validate questions structure
+    if (!validateQuestions(questions)) {
+      return res.status(400).json({ error: 'Invalid question format' });
+    }
+    
+    const templateId = await db.createQuestionTemplate(category, title, questions);
+    res.json({ id: templateId, category, title, questions });
+  } catch (error) {
+    console.error('Error creating question template:', error);
+    if (error.code === 'SQLITE_CONSTRAINT') {
+      res.status(409).json({ error: 'Category already exists' });
+    } else {
+      res.status(500).json({ error: 'Failed to create question template' });
+    }
+  }
+});
+
+app.put('/api/question-templates/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, questions } = req.body;
+    
+    if (!title || !questions) {
+      return res.status(400).json({ error: 'Missing required fields: title, questions' });
+    }
+    
+    // Validate questions structure
+    if (!validateQuestions(questions)) {
+      return res.status(400).json({ error: 'Invalid question format' });
+    }
+    
+    const updated = await db.updateQuestionTemplate(id, title, questions);
+    
+    if (!updated) {
+      return res.status(404).json({ error: 'Question template not found' });
+    }
+    
+    res.json({ message: 'Question template updated successfully' });
+  } catch (error) {
+    console.error('Error updating question template:', error);
+    res.status(500).json({ error: 'Failed to update question template' });
+  }
+});
+
+app.delete('/api/question-templates/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await db.deleteQuestionTemplate(id);
+    
+    if (!deleted) {
+      return res.status(404).json({ error: 'Question template not found' });
+    }
+    
+    res.json({ message: 'Question template deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting question template:', error);
+    res.status(500).json({ error: 'Failed to delete question template' });
+  }
+});
+
 // Socket.io connection handling
 io.on('connection', (socket) => {
   console.log('New connection:', socket.id);
@@ -143,18 +260,26 @@ io.on('connection', (socket) => {
         return;
       }
       
-      const questionsData = await loadQuestions(data.category || 'general');
+      // Get question template from database instead of loading from JSON
+      const questionTemplate = await db.getQuestionTemplate(data.category || 'general');
+      
+      if (!questionTemplate) {
+        socket.emit('create_game_error', { 
+          message: `Šablóna otázok pre kategóriu "${data.category || 'general'}" neexistuje` 
+        });
+        return;
+      }
       
       // Save to database
       const dbResult = await db.createGame(
         gamePin, 
-        questionsData.quiz.title, 
-        questionsData.quiz.questions,
+        questionTemplate.title, 
+        questionTemplate.questions,
         data.moderatorPassword
       );
       
       // Create in-memory game instance
-      const game = new GameInstance(gamePin, questionsData.quiz.questions, dbResult.gameId);
+      const game = new GameInstance(gamePin, questionTemplate.questions, dbResult.gameId);
       game.moderatorSocket = socket.id;
       activeGames.set(gamePin, game);
       
@@ -168,8 +293,8 @@ io.on('connection', (socket) => {
       socket.join(`game_${gamePin}_moderator`);
       socket.emit('game_created', {
         gamePin: gamePin,
-        title: questionsData.quiz.title,
-        questionCount: questionsData.quiz.questions.length,
+        title: questionTemplate.title,
+        questionCount: questionTemplate.questions.length,
         moderatorToken: dbResult.moderatorToken
       });
       
@@ -793,12 +918,17 @@ process.on('unhandledRejection', (reason, promise) => {
   gracefulShutdown('unhandledRejection');
 });
 
-// Start server
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Quiz server running on http://localhost:${PORT}`);
-  console.log(`Player app: http://localhost:${PORT}/app`);
-  console.log(`Dashboard: http://localhost:${PORT}/dashboard`);
-  console.log(`Panel: http://localhost:${PORT}/panel`);
-});// Force restart
+// Start server only if this is the main module
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  server.listen(PORT, () => {
+    console.log(`Quiz server running on http://localhost:${PORT}`);
+    console.log(`Player app: http://localhost:${PORT}/app`);
+    console.log(`Dashboard: http://localhost:${PORT}/dashboard`);
+    console.log(`Panel: http://localhost:${PORT}/panel`);
+  });
+}
+
+// Export for testing
+module.exports = app;
 

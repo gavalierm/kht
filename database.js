@@ -6,10 +6,11 @@ class GameDatabase {
   constructor(dbPath = './quiz.db', options = {}) {
     this.db = new sqlite3.Database(dbPath);
     this.skipTestGame = options.skipTestGame || process.env.NODE_ENV === 'test';
-    this.initTables();
+    this.initialized = false;
+    this.initializationPromise = this.initTables();
   }
 
-  initTables() {
+  async initTables() {
     const sql = `
       CREATE TABLE IF NOT EXISTS games (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -21,6 +22,15 @@ class GameDatabase {
         current_question_index INTEGER DEFAULT 0,
         question_start_time INTEGER,
         questions_data TEXT,
+        created_at INTEGER DEFAULT (strftime('%s', 'now')),
+        updated_at INTEGER DEFAULT (strftime('%s', 'now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS question_templates (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        category TEXT UNIQUE NOT NULL,
+        title TEXT NOT NULL,
+        questions_data TEXT NOT NULL,
         created_at INTEGER DEFAULT (strftime('%s', 'now')),
         updated_at INTEGER DEFAULT (strftime('%s', 'now'))
       );
@@ -55,19 +65,39 @@ class GameDatabase {
       CREATE INDEX IF NOT EXISTS idx_games_pin ON games(pin);
       CREATE INDEX IF NOT EXISTS idx_players_token ON players(player_token);
       CREATE INDEX IF NOT EXISTS idx_players_game ON players(game_id);
+      CREATE INDEX IF NOT EXISTS idx_question_templates_category ON question_templates(category);
     `;
     
-    this.db.exec(sql, (err) => {
-      if (err) {
-        console.error('Database init error:', err);
-      } else {
-        console.log('Database initialized successfully');
-        // Create test game if it doesn't exist and not in test mode
-        if (!this.skipTestGame) {
-          this.createTestGame();
+    return new Promise((resolve, reject) => {
+      this.db.exec(sql, (err) => {
+        if (err) {
+          console.error('Database init error:', err);
+          reject(err);
+        } else {
+          console.log('Database initialized successfully');
+          this.initialized = true;
+          
+          // Create test game if it doesn't exist and not in test mode
+          if (!this.skipTestGame) {
+            this.createTestGame();
+          }
+          // Initialize default question templates (only if not in test mode)
+          if (!this.skipTestGame) {
+            this.initDefaultTemplates();
+          }
+          
+          resolve();
         }
-      }
+      });
     });
+  }
+
+  // Method to wait for initialization completion
+  async waitForInitialization() {
+    if (this.initialized) {
+      return;
+    }
+    await this.initializationPromise;
   }
 
   // Create test game with PIN 123456
@@ -428,6 +458,225 @@ class GameDatabase {
       this.db.get(sql, [gameId], (err, row) => {
         if (err) reject(err);
         else resolve(row);
+      });
+    });
+  }
+
+  // Initialize default question templates
+  async initDefaultTemplates() {
+    try {
+      // Check if templates already exist
+      const existing = await this.getQuestionTemplates();
+      if (existing.length > 0) {
+        console.log('Question templates already exist');
+        return;
+      }
+
+      // Default question templates
+      const templates = [
+        {
+          category: 'general',
+          title: 'Všeobecné vedomosti',
+          questions: [
+            {
+              id: 1,
+              question: "Aké je hlavné mesto Slovenska?",
+              options: ["Bratislava", "Košice", "Praha", "Viedeň"],
+              correct: 0,
+              timeLimit: 30
+            },
+            {
+              id: 2,
+              question: "Koľko kontinentov má Zem?",
+              options: ["5", "6", "7", "8"],
+              correct: 2,
+              timeLimit: 25
+            },
+            {
+              id: 3,
+              question: "Aký je najvyšší vrch na Slovensku?",
+              options: ["Gerlachovský štít", "Lomnický štít", "Kriváň", "Rysy"],
+              correct: 0,
+              timeLimit: 30
+            },
+            {
+              id: 4,
+              question: "V ktorom roku vznikla Slovenská republika?",
+              options: ["1993", "1989", "1991", "1995"],
+              correct: 0,
+              timeLimit: 30
+            },
+            {
+              id: 5,
+              question: "Aký je najdlhší slovenský river?",
+              options: ["Dunaj", "Váh", "Hron", "Nitra"],
+              correct: 1,
+              timeLimit: 25
+            }
+          ]
+        },
+        {
+          category: 'history',
+          title: 'História',
+          questions: [
+            {
+              id: 1,
+              question: "V ktorom roku skončila druhá svetová vojna?",
+              options: ["1944", "1945", "1946", "1947"],
+              correct: 1,
+              timeLimit: 25
+            },
+            {
+              id: 2,
+              question: "Kto bol prvým prezidentom Československa?",
+              options: ["Tomáš Garrigue Masaryk", "Edvard Beneš", "Klement Gottwald", "Antonín Zápotocký"],
+              correct: 0,
+              timeLimit: 30
+            },
+            {
+              id: 3,
+              question: "V ktorom roku sa zrútil Berlínsky múr?",
+              options: ["1987", "1988", "1989", "1990"],
+              correct: 2,
+              timeLimit: 25
+            },
+            {
+              id: 4,
+              question: "V ktorom roku sa konala Nežná revolúcia na Slovensku?",
+              options: ["1988", "1989", "1990", "1991"],
+              correct: 1,
+              timeLimit: 25
+            }
+          ]
+        },
+        {
+          category: 'science',
+          title: 'Veda a technika',
+          questions: [
+            {
+              id: 1,
+              question: "Aký je chemický symbol pre zlato?",
+              options: ["Go", "Au", "Ag", "Al"],
+              correct: 1,
+              timeLimit: 25
+            },
+            {
+              id: 2,
+              question: "Koľko kostí má dospelý človek?",
+              options: ["206", "208", "210", "212"],
+              correct: 0,
+              timeLimit: 30
+            },
+            {
+              id: 3,
+              question: "Ktorá planéta je najbližšie k Slnku?",
+              options: ["Venuša", "Merkúr", "Mars", "Zem"],
+              correct: 1,
+              timeLimit: 20
+            },
+            {
+              id: 4,
+              question: "Aký plyn tvorí väčšinu zemskej atmosféry?",
+              options: ["Kyslík", "Dusík", "Oxid uhličitý", "Argón"],
+              correct: 1,
+              timeLimit: 25
+            }
+          ]
+        }
+      ];
+
+      // Insert templates
+      for (const template of templates) {
+        await this.createQuestionTemplate(template.category, template.title, template.questions);
+      }
+
+      console.log('Default question templates created successfully');
+    } catch (error) {
+      console.error('Error initializing default templates:', error);
+    }
+  }
+
+  // Create question template
+  async createQuestionTemplate(category, title, questions) {
+    return new Promise((resolve, reject) => {
+      const questionsJson = JSON.stringify(questions);
+      const sql = `
+        INSERT INTO question_templates (category, title, questions_data)
+        VALUES (?, ?, ?)
+      `;
+
+      this.db.run(sql, [category, title, questionsJson], function(err) {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(this.lastID);
+        }
+      });
+    });
+  }
+
+  // Get all question templates
+  async getQuestionTemplates() {
+    return new Promise((resolve, reject) => {
+      this.db.all('SELECT * FROM question_templates ORDER BY category', (err, rows) => {
+        if (err) {
+          reject(err);
+        } else {
+          const templates = rows.map(row => ({
+            ...row,
+            questions: JSON.parse(row.questions_data || '[]')
+          }));
+          resolve(templates);
+        }
+      });
+    });
+  }
+
+  // Get question template by category
+  async getQuestionTemplate(category) {
+    return new Promise((resolve, reject) => {
+      this.db.get('SELECT * FROM question_templates WHERE category = ?', [category], (err, row) => {
+        if (err) {
+          reject(err);
+        } else if (row) {
+          row.questions = JSON.parse(row.questions_data || '[]');
+          resolve(row);
+        } else {
+          resolve(null);
+        }
+      });
+    });
+  }
+
+  // Update question template
+  async updateQuestionTemplate(id, title, questions) {
+    return new Promise((resolve, reject) => {
+      const questionsJson = JSON.stringify(questions);
+      const sql = `
+        UPDATE question_templates 
+        SET title = ?, questions_data = ?, updated_at = strftime('%s', 'now')
+        WHERE id = ?
+      `;
+
+      this.db.run(sql, [title, questionsJson, id], function(err) {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(this.changes > 0);
+        }
+      });
+    });
+  }
+
+  // Delete question template
+  async deleteQuestionTemplate(id) {
+    return new Promise((resolve, reject) => {
+      this.db.run('DELETE FROM question_templates WHERE id = ?', [id], function(err) {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(this.changes > 0);
+        }
       });
     });
   }

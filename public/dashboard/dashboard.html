@@ -47,6 +47,45 @@
 			gap: 1rem;
 		}
 
+		.form-group {
+			margin-bottom: 1.5rem;
+		}
+
+		.form-group label {
+			display: block;
+			margin-bottom: 0.5rem;
+			font-weight: bold;
+			color: var(--primary-color);
+		}
+
+		.form-control {
+			width: 100%;
+			padding: 0.75rem;
+			border: 2px solid rgba(255, 255, 255, 0.2);
+			border-radius: 0.5rem;
+			background: rgba(255, 255, 255, 0.1);
+			color: white;
+			font-size: 1rem;
+		}
+
+		.form-control:focus {
+			outline: none;
+			border-color: var(--primary-color);
+			background: rgba(255, 255, 255, 0.15);
+		}
+
+		.form-control option {
+			background: #2c3e50;
+			color: white;
+		}
+
+		.form-group small {
+			display: block;
+			margin-top: 0.25rem;
+			color: rgba(255, 255, 255, 0.7);
+			font-size: 0.875rem;
+		}
+
 		.current-question {
 			background: rgba(0, 0, 0, 0.2);
 			border-radius: 0.8rem;
@@ -159,7 +198,7 @@
 <body>
 	<div class="container">
 		<div class="header">
-			<h1 class="game-title" id="gameTitle">Kvízová hra - Dashboard</h1>
+			<h1 class="game-title" id="gameTitle">Dashboard</h1>
 			<div class="game-controls">
 				<div class="info-grid">
 					<div class="info-item">
@@ -173,8 +212,41 @@
 		</div>
 
 		<div class="content dashboard-content">
+			<!-- Game Creation Panel -->
+			<div id="gameCreationCard" class="card" style="display: none;">
+				<h2 class="card-title">🎮 Vytvorenie hry</h2>
+				
+				<div class="control-section">
+					<h3 class="section-title">Detaily hry</h3>
+					<div class="form-group">
+						<label for="gameCategory">Kategória otázok:</label>
+						<select id="gameCategory" class="form-control">
+							<option value="general">Všeobecné vedomosti</option>
+							<option value="history">História</option>
+							<option value="science">Veda a technika</option>
+						</select>
+					</div>
+					
+					<div class="form-group">
+						<label for="customPin">Vlastný PIN (voliteľný):</label>
+						<input type="text" id="customPin" class="form-control" placeholder="Nechajte prázdne pre automatický PIN" maxlength="6" pattern="[0-9]{6}">
+						<small>6 číslic alebo nechajte prázdne pre automatický PIN</small>
+					</div>
+					
+					<div class="form-group">
+						<label for="moderatorPassword">Heslo moderátora (voliteľné):</label>
+						<input type="password" id="moderatorPassword" class="form-control" placeholder="Nechajte prázdne ak nechcete heslo">
+						<small>Ak nastavite heslo, budete ho potrebovať pri pripojení</small>
+					</div>
+					
+					<button id="createGameBtn" class="btn btn-success btn-lg">
+						⚙️ Vytvoriť hru
+					</button>
+				</div>
+			</div>
+
 			<!-- Control Panel -->
-			<div class="card">
+			<div id="gameControlCard" class="card">
 				<h2 class="card-title">🎮 Ovládanie hry</h2>
 
 				<div class="control-section">
@@ -207,20 +279,6 @@
 					</div>
 				</div>
 
-				<div class="control-section">
-					<h3 class="section-title">Navigácia</h3>
-					<div class="control-buttons">
-						<button id="viewGameBtn" class="btn btn-primary btn-lg">
-							🎯 Zobraziť hru
-						</button>
-						<button id="viewPanelBtn" class="btn btn-primary btn-lg">
-							📺 Zobraziť panel
-						</button>
-						<button id="viewStageBtn" class="btn btn-primary btn-lg">
-							🏆 Zobraziť výsledky
-						</button>
-					</div>
-				</div>
 			</div>
 
 			<!-- Game Monitor -->
@@ -243,6 +301,10 @@
 					<div class="stat-item">
 						<div class="stat-value" id="totalQuestions">0</div>
 						<div class="stat-label">Celkom</div>
+					</div>
+					<div class="stat-item">
+						<div class="stat-value" id="gameCategory">-</div>
+						<div class="stat-label">Kategória</div>
 					</div>
 				</div>
 

@@ -18,13 +18,15 @@ class DashboardApp {
 		
 		// Dashboard state
 		this.gamePin = null;
-		this.gameTitle = DEFAULTS.GAME_TITLE;
+		this.gameTitle = 'Dashboard';
 		this.gameStatus = GAME_STATES.WAITING;
+		this.gameCategory = null;
 		this.players = [];
 		this.currentQuestion = null;
 		this.questionIndex = 0;
 		this.totalQuestions = 0;
 		this.isModerator = false;
+		this.availableTemplates = [];
 
 		// Element references
 		this.elements = {};
@@ -42,6 +44,10 @@ class DashboardApp {
 			'activePlayers',
 			'currentQuestionIndex',
 			'totalQuestions',
+			'gameCategory',
+			'gameCreationCard',
+			'gameControlCard',
+			'createGameBtn',
 			'currentQuestionSection',
 			'currentQuestionText',
 			'currentQuestionOptions',
@@ -53,9 +59,7 @@ class DashboardApp {
 			'nextQuestionBtn',
 			'endQuestionBtn',
 			'showResultsBtn',
-			'viewGameBtn',
-			'viewPanelBtn',
-			'viewStageBtn'
+			// Navigation buttons removed
 		]);
 
 		// Setup event listeners
@@ -66,6 +70,9 @@ class DashboardApp {
 		
 		// Initialize from route
 		this.initializeFromRoute();
+		
+		// Load available question templates
+		this.loadQuestionTemplates();
 		
 		// Load game data
 		this.loadGameData();
@@ -110,24 +117,14 @@ class DashboardApp {
 			});
 		}
 
-		// Navigation buttons
-		if (this.elements.viewGameBtn) {
-			this.elements.viewGameBtn.addEventListener('click', () => {
-				this.handleViewGame();
+		// Game creation button
+		if (this.elements.createGameBtn) {
+			this.elements.createGameBtn.addEventListener('click', () => {
+				this.handleCreateGame();
 			});
 		}
 
-		if (this.elements.viewPanelBtn) {
-			this.elements.viewPanelBtn.addEventListener('click', () => {
-				this.handleViewPanel();
-			});
-		}
-
-		if (this.elements.viewStageBtn) {
-			this.elements.viewStageBtn.addEventListener('click', () => {
-				this.handleViewStage();
-			});
-		}
+		// Navigation buttons removed per user request
 	}
 
 	setupSocketEvents() {
@@ -176,6 +173,15 @@ class DashboardApp {
 			this.handleModeratorReconnectError(error);
 		});
 
+		// Game creation events
+		this.socket.on('game_created', (data) => {
+			this.handleGameCreated(data);
+		});
+
+		this.socket.on('create_game_error', (error) => {
+			this.handleCreateGameError(error);
+		});
+
 		// Error handling
 		this.socket.on('error', (error) => {
 			this.handleSocketError(error);
@@ -188,6 +194,9 @@ class DashboardApp {
 		
 		if (this.gamePin) {
 			this.updateGamePin(this.gamePin);
+			this.showGameControl();
+		} else {
+			this.showGameCreation();
 		}
 	}
 
@@ -229,10 +238,15 @@ class DashboardApp {
 		this.gameStatus = gameData.status || GAME_STATES.WAITING;
 		this.questionIndex = gameData.currentQuestionIndex || 0;
 		this.totalQuestions = gameData.questionCount || 0;
+		this.gameCategory = gameData.category || null;
 		
 		// Update UI
 		this.dom.setText(this.elements.gameTitle, this.gameTitle);
 		this.dom.setText(this.elements.gameStatus, this.getStatusText(this.gameStatus));
+		if (this.gameCategory) {
+			const template = this.availableTemplates.find(t => t.category === this.gameCategory);
+			this.dom.setText(this.elements.gameCategory, template ? template.title : this.gameCategory);
+		}
 		this.updateQuestionProgress();
 		this.updateGameStats();
 		this.updateControlButtons();
@@ -257,25 +271,30 @@ class DashboardApp {
 
 	updateControlButtons() {
 		const isWaiting = this.gameStatus === GAME_STATES.WAITING;
-		const isRunning = this.gameStatus === GAME_STATES.RUNNING;
-		const isEnded = this.gameStatus === GAME_STATES.ENDED;
+		const isRunning = this.gameStatus === GAME_STATES.RUNNING || this.gameStatus === GAME_STATES.ACTIVE;
+		const isQuestionActive = this.gameStatus === GAME_STATES.QUESTION_ACTIVE;
+		const isEnded = this.gameStatus === GAME_STATES.ENDED || this.gameStatus === GAME_STATES.FINISHED;
 
 		// Game control buttons
-		this.dom.setEnabled(this.elements.startGameBtn, isWaiting && this.players.length > 0);
-		this.dom.setEnabled(this.elements.pauseGameBtn, isRunning);
-		this.dom.setEnabled(this.elements.endGameBtn, isRunning);
+		this.dom.setEnabled(this.elements.startGameBtn, isWaiting);
+		this.dom.setEnabled(this.elements.pauseGameBtn, isRunning || isQuestionActive);
+		this.dom.setEnabled(this.elements.endGameBtn, isRunning || isQuestionActive);
 
-		// Question control buttons
-		this.dom.setEnabled(this.elements.nextQuestionBtn, isRunning);
-		this.dom.setEnabled(this.elements.endQuestionBtn, isRunning && this.currentQuestion);
-		this.dom.setEnabled(this.elements.showResultsBtn, isRunning || isEnded);
+		// Question control buttons  
+		this.dom.setEnabled(this.elements.nextQuestionBtn, isWaiting || isRunning);
+		this.dom.setEnabled(this.elements.endQuestionBtn, isQuestionActive);
+		this.dom.setEnabled(this.elements.showResultsBtn, isRunning || isEnded || isQuestionActive);
 	}
 
 	getStatusText(status) {
 		switch (status) {
 			case GAME_STATES.WAITING: return 'Čakanie';
-			case GAME_STATES.RUNNING: return 'Aktívna';
-			case GAME_STATES.ENDED: return 'Ukončená';
+			case GAME_STATES.RUNNING:
+			case GAME_STATES.ACTIVE: return 'Aktívna';
+			case GAME_STATES.QUESTION_ACTIVE: return 'Otázka aktívna';
+			case GAME_STATES.RESULTS: return 'Výsledky';
+			case GAME_STATES.ENDED:
+			case GAME_STATES.FINISHED: return 'Ukončená';
 			default: return 'Neznámy';
 		}
 	}
@@ -459,28 +478,131 @@ class DashboardApp {
 		this.notifications.showInfo('Zobrazujem výsledky...');
 	}
 
-	// Navigation handlers
-	handleViewGame() {
-		if (this.gamePin) {
-			this.router.redirectToGame(this.gamePin);
+	// Navigation handlers removed per user request
+
+	async loadQuestionTemplates() {
+		try {
+			const response = await fetch('/api/question-templates');
+			if (response.ok) {
+				this.availableTemplates = await response.json();
+				this.populateTemplateSelect();
+			} else {
+				console.error('Failed to load question templates');
+			}
+		} catch (error) {
+			console.error('Error loading question templates:', error);
 		}
 	}
 
-	handleViewPanel() {
-		if (this.gamePin) {
-			this.router.redirectToPanel(this.gamePin);
-		}
-	}
+	populateTemplateSelect() {
+		const select = document.getElementById('gameCategory');
+		if (!select || this.availableTemplates.length === 0) return;
 
-	handleViewStage() {
-		if (this.gamePin) {
-			this.router.redirectToStage(this.gamePin);
-		}
+		// Clear existing options
+		select.innerHTML = '';
+		
+		// Add template options
+		this.availableTemplates.forEach(template => {
+			const option = document.createElement('option');
+			option.value = template.category;
+			option.textContent = template.title;
+			select.appendChild(option);
+		});
 	}
 
 	showGameCreation() {
-		// TODO: Implement game creation interface
-		this.notifications.showInfo('Funkcia vytvárania hier bude dostupná čoskoro');
+		if (this.elements.gameCreationCard) {
+			this.elements.gameCreationCard.style.display = 'block';
+		}
+		if (this.elements.gameControlCard) {
+			this.elements.gameControlCard.style.display = 'none';
+		}
+		this.dom.setText(this.elements.gameTitle, 'Vytvorenie novej hry');
+	}
+
+	showGameControl() {
+		if (this.elements.gameCreationCard) {
+			this.elements.gameCreationCard.style.display = 'none';
+		}
+		if (this.elements.gameControlCard) {
+			this.elements.gameControlCard.style.display = 'block';
+		}
+		this.dom.setText(this.elements.gameTitle, 'Dashboard');
+	}
+
+	async handleCreateGame() {
+		try {
+			const category = document.getElementById('gameCategory')?.value || 'general';
+			const customPin = document.getElementById('customPin')?.value?.trim();
+			const moderatorPassword = document.getElementById('moderatorPassword')?.value?.trim();
+
+			// Validate custom PIN if provided
+			if (customPin && (customPin.length !== 6 || !/^[0-9]{6}$/.test(customPin))) {
+				this.notifications.showError('PIN musí mať presne 6 číslic');
+				return;
+			}
+
+			// Disable create button to prevent double-clicking
+			this.dom.setEnabled(this.elements.createGameBtn, false);
+			this.dom.setText(this.elements.createGameBtn, '⏳ Vytváram hru...');
+
+			// Send create game request
+			const gameData = {
+				category: category,
+				customPin: customPin || undefined,
+				moderatorPassword: moderatorPassword || undefined
+			};
+
+			this.socket.emit(SOCKET_EVENTS.CREATE_GAME, gameData);
+
+		} catch (error) {
+			console.error('Error creating game:', error);
+			this.notifications.showError('Chyba pri vytváraní hry');
+			this.resetCreateButton();
+		}
+	}
+
+	resetCreateButton() {
+		this.dom.setEnabled(this.elements.createGameBtn, true);
+		this.dom.setText(this.elements.createGameBtn, '⚙️ Vytvoriť hru');
+	}
+
+	handleGameCreated(data) {
+		console.log('Game created successfully:', data);
+		
+		// Update game state
+		this.gamePin = data.gamePin;
+		this.gameTitle = data.title;
+		this.totalQuestions = data.questionCount;
+		this.isModerator = true;
+		
+		// Store moderator token
+		if (data.moderatorToken) {
+			this.gameState.setModeratorToken(data.moderatorToken);
+		}
+		
+		// Update URL without page reload
+		const newUrl = `/app/${data.gamePin}/dashboard`;
+		window.history.pushState(null, '', newUrl);
+		
+		// Update UI
+		this.updateGamePin(data.gamePin);
+		this.showGameControl();
+		this.updateGameInfo({
+			title: data.title,
+			status: GAME_STATES.WAITING,
+			currentQuestionIndex: 0,
+			questionCount: data.questionCount
+		});
+		
+		this.notifications.showSuccess(`Hra úspešne vytvorená! PIN: ${data.gamePin}`);
+		this.resetCreateButton();
+	}
+
+	handleCreateGameError(error) {
+		console.error('Game creation error:', error);
+		this.notifications.showError(error.message || 'Chyba pri vytváraní hry');
+		this.resetCreateButton();
 	}
 
 	onSocketConnect() {

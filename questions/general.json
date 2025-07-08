@@ -1,0 +1,63 @@
+{
+  "quiz": {
+    "title": "Všeobecné vedomosti",
+    "questions": [
+      {
+        "id": 1,
+        "question": "Aké je hlavné mesto Slovenska?",
+        "options": ["Bratislava", "Košice", "Praha", "Viedeň"],
+        "correct": 0,
+        "timeLimit": 30
+      },
+      {
+        "id": 2,
+        "question": "Koľko kontinentov má Zem?",
+        "options": ["5", "6", "7", "8"],
+        "correct": 2,
+        "timeLimit": 25
+      },
+      {
+        "id": 3,
+        "question": "Aký je najvyšší vrch na Slovensku?",
+        "options": ["Gerlachovský štít", "Lomnický štít", "Kriváň", "Rysy"],
+        "correct": 0,
+        "timeLimit": 30
+      },
+      {
+        "id": 4,
+        "question": "V ktorom roku vznikla Slovenská republika?",
+        "options": ["1993", "1989", "1991", "1995"],
+        "correct": 0,
+        "timeLimit": 30
+      },
+      {
+        "id": 5,
+        "question": "Aký je najdlhší slovenský river?",
+        "options": ["Dunaj", "Váh", "Hron", "Nitra"],
+        "correct": 1,
+        "timeLimit": 25
+      },
+      {
+        "id": 6,
+        "question": "Ktoré mesto je známe ako 'Spiš'?",
+        "options": ["Poprad", "Levoča", "Spišská Nová Ves", "Kežmarok"],
+        "correct": 2,
+        "timeLimit": 30
+      },
+      {
+        "id": 7,
+        "question": "Aká je mena Slovenska?",
+        "options": ["Koruna", "Euro", "Dolár", "Frank"],
+        "correct": 1,
+        "timeLimit": 20
+      },
+      {
+        "id": 8,
+        "question": "Ktorý slovenský futbalista hral za Real Madrid?",
+        "options": ["Marek Hamšík", "Martin Škrtel", "Vladimír Weiss", "Stanislav Šesták"],
+        "correct": 2,
+        "timeLimit": 30
+      }
+    ]
+  }
+}

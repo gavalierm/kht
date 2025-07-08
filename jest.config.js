@@ -7,6 +7,7 @@ module.exports = {
       testMatch: [
         '**/tests/unit/server-*.test.js',
         '**/tests/unit/database*.test.js', 
+        '**/tests/unit/dashboard-functionality.test.js',
         '**/tests/unit/game-instance.test.js',
         '**/tests/unit/game-logic.test.js',
         '**/tests/integration/*.test.js',
