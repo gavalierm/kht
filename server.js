@@ -669,7 +669,7 @@ io.on('connection', (socket) => {
     
       // Add to in-memory game
       game.addPlayer(playerResult.playerId, {
-        name: `Player ${playerResult.playerId}`,
+        name: `Hráč ${playerResult.playerId}`,
         player_token: playerResult.playerToken,
         score: 0
       });

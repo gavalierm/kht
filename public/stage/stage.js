@@ -103,23 +103,13 @@ class StageApp {
 		if (!this.gamePin) return;
 
 		try {
-			// Load game info from API
-			const gameData = await this.api.getGame(this.gamePin);
+			// Always load leaderboard for stage - this is the final results view
+			await this.loadLeaderboard();
 			
+			// Also load game info for validation
+			const gameData = await this.api.getGame(this.gamePin);
 			if (gameData) {
 				this.updateGameInfo(gameData);
-				
-				// If game is not ended, redirect to appropriate view
-				if (gameData.status === GAME_STATES.RUNNING || gameData.status === GAME_STATES.WAITING) {
-					this.router.redirectToGame(this.gamePin);
-					return;
-				}
-				
-				// Load final leaderboard
-				this.loadLeaderboard();
-			} else {
-				this.notifications.showError('Hra nenájdená');
-				this.showEmptyState();
 			}
 		} catch (error) {
 			console.error('Error loading game data:', error);
@@ -136,8 +126,15 @@ class StageApp {
 			const response = await fetch(API_ENDPOINTS.GAME_LEADERBOARD(this.gamePin));
 			if (response.ok) {
 				const data = await response.json();
-				this.handleLeaderboardUpdate({ leaderboard: data.leaderboard });
+				console.log('Loaded leaderboard data:', data);
+				if (data.leaderboard && data.leaderboard.length > 0) {
+					this.handleLeaderboardUpdate({ leaderboard: data.leaderboard });
+				} else {
+					console.log('No leaderboard data available');
+					this.showEmptyState();
+				}
 			} else {
+				console.error('Failed to load leaderboard, status:', response.status);
 				throw new Error('Failed to load leaderboard');
 			}
 		} catch (error) {
@@ -196,8 +193,81 @@ class StageApp {
 			'Žiadni hráči'
 		);
 
+		// Add staggered animation to items
+		this.addStaggeredAnimation();
+
 		// Show current player position
 		this.showPlayerPosition(sortedLeaderboard);
+	}
+
+	addStaggeredAnimation() {
+		const items = this.elements.top3Leaderboard.querySelectorAll('.top3-item');
+		items.forEach((item, index) => {
+			// Reset animation
+			item.style.animation = 'none';
+			item.offsetHeight; // Trigger reflow
+			
+			// Apply staggered animation
+			if (item.classList.contains('first')) {
+				item.style.animation = `bounceIn 0.8s ease-out ${0.1 + index * 0.1}s both, glow 2s ease-in-out ${1 + index * 0.1}s infinite alternate`;
+				// Add floating particles for winner
+				this.addParticleEffect(item);
+			} else {
+				item.style.animation = `slideUp 0.6s ease-out ${0.2 + index * 0.1}s both`;
+			}
+
+			// Add score counting animation
+			const scoreElement = item.querySelector('.top3-player-score');
+			if (scoreElement) {
+				this.animateScore(scoreElement);
+			}
+		});
+	}
+
+	addParticleEffect(winnerItem) {
+		// Create floating particles around the winner
+		const particles = ['⭐', '🎉', '✨', '🏆', '💫'];
+		
+		for (let i = 0; i < 3; i++) {
+			const particle = document.createElement('span');
+			particle.textContent = particles[i % particles.length];
+			particle.className = 'particle';
+			particle.style.position = 'absolute';
+			particle.style.fontSize = '1.2rem';
+			particle.style.pointerEvents = 'none';
+			particle.style.zIndex = '5';
+			
+			// Random positioning around the item
+			const positions = [
+				{ top: '10%', left: '-25px' },
+				{ top: '60%', right: '-30px' },
+				{ top: '30%', left: '-20px' },
+			];
+			
+			const pos = positions[i];
+			Object.assign(particle.style, pos);
+			
+			particle.style.animation = `float 3s ease-in-out infinite ${i * 1}s`;
+			winnerItem.appendChild(particle);
+		}
+	}
+
+	animateScore(scoreElement) {
+		const finalScore = parseInt(scoreElement.textContent);
+		let currentScore = 0;
+		const increment = Math.max(1, Math.floor(finalScore / 30));
+		
+		scoreElement.textContent = '0';
+		
+		const countInterval = setInterval(() => {
+			currentScore += increment;
+			if (currentScore >= finalScore) {
+				currentScore = finalScore;
+				clearInterval(countInterval);
+				scoreElement.classList.add('animated');
+			}
+			scoreElement.textContent = currentScore.toString();
+		}, 50);
 	}
 
 
@@ -233,6 +303,8 @@ class StageApp {
 		// Rejoin game room if we have a PIN
 		if (this.gamePin) {
 			this.socket.emit(SOCKET_EVENTS.JOIN_PANEL, { pin: this.gamePin });
+			// Reload leaderboard data after reconnection
+			setTimeout(() => this.loadLeaderboard(), 500);
 		}
 	}
 

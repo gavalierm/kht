@@ -342,7 +342,7 @@ class GameDatabase {
       // Store database reference to avoid context issues
       const db = this.db;
       
-      db.run(sql, [gameId, 'Player', playerToken], function(err) {
+      db.run(sql, [gameId, 'Hráč', playerToken], function(err) {
         if (err) {
           console.error('Error inserting player:', err);
           reject(new Error(`Failed to create player: ${err.message}`));
@@ -356,7 +356,7 @@ class GameDatabase {
           
           // Update name to include ID using stored database reference
           const updateSql = `UPDATE players SET name = ? WHERE id = ?`;
-          db.run(updateSql, [`Player ${playerId}`, playerId], (updateErr) => {
+          db.run(updateSql, [`Hráč ${playerId}`, playerId], (updateErr) => {
             if (updateErr) {
               console.error('Error updating player name:', updateErr);
               reject(new Error(`Failed to update player name: ${updateErr.message}`));
@@ -364,7 +364,7 @@ class GameDatabase {
               resolve({
                 playerId: playerId,
                 playerToken,
-                name: `Player ${playerId}`
+                name: `Hráč ${playerId}`
               });
             }
           });
