@@ -220,6 +220,71 @@ app.put('/api/question-templates/:templateId', async (req, res) => {
   }
 });
 
+// Game-specific question management API endpoints
+app.get('/api/games/:gamePin/questions', async (req, res) => {
+  try {
+    const gamePin = req.params.gamePin;
+    
+    // Get game and its questions from database
+    const gameData = await new Promise((resolve, reject) => {
+      gameDatabase.getGameByPin(gamePin, (err, game) => {
+        if (err) reject(err);
+        else resolve(game);
+      });
+    });
+    
+    if (!gameData) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    
+    // Return questions in the format expected by frontend
+    res.json({
+      id: gamePin,
+      gameId: gameData.id,
+      questions: gameData.questions || []
+    });
+  } catch (error) {
+    console.error('Error loading game questions:', error);
+    res.status(500).json({ error: 'Failed to load game questions' });
+  }
+});
+
+app.put('/api/games/:gamePin/questions', async (req, res) => {
+  try {
+    const gamePin = req.params.gamePin;
+    const { questions } = req.body;
+    
+    if (!questions || !Array.isArray(questions)) {
+      return res.status(400).json({ error: 'Questions array is required' });
+    }
+    
+    // Get game ID first
+    const gameData = await new Promise((resolve, reject) => {
+      gameDatabase.getGameByPin(gamePin, (err, game) => {
+        if (err) reject(err);
+        else resolve(game);
+      });
+    });
+    
+    if (!gameData) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    
+    // Update questions in database
+    await new Promise((resolve, reject) => {
+      gameDatabase.updateGameQuestions(gameData.id, questions, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+    
+    res.json({ success: true, message: 'Questions updated successfully' });
+  } catch (error) {
+    console.error('Error updating game questions:', error);
+    res.status(500).json({ error: 'Failed to update game questions' });
+  }
+});
+
 
 // Socket.io connection handling
 io.on('connection', (socket) => {

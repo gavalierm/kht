@@ -632,6 +632,67 @@ class GameDatabase {
     ];
   }
 
+  // Update questions for an existing game
+  updateGameQuestions(gameId, questions, callback) {
+    // Start a transaction to ensure data consistency
+    this.db.serialize(() => {
+      this.db.run('BEGIN TRANSACTION');
+      
+      // Delete existing questions for this game
+      this.db.run('DELETE FROM questions WHERE game_id = ?', [gameId], (err) => {
+        if (err) {
+          this.db.run('ROLLBACK');
+          return callback(err);
+        }
+        
+        // Insert new questions
+        const questionSQL = `
+          INSERT INTO questions (game_id, question_text, option_a, option_b, option_c, option_d, correct_option, time_limit, question_order)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+        
+        let completedInserts = 0;
+        let hasError = false;
+        
+        if (questions.length === 0) {
+          // No questions to insert, just commit
+          this.db.run('COMMIT', callback);
+          return;
+        }
+        
+        questions.forEach((question, index) => {
+          if (hasError) return;
+          
+          const timeLimit = question.timeLimit || 30;
+          const questionOrder = index + 1;
+          
+          this.db.run(questionSQL, [
+            gameId,
+            question.question,
+            question.options[0],
+            question.options[1], 
+            question.options[2],
+            question.options[3],
+            question.correct,
+            timeLimit,
+            questionOrder
+          ], (err) => {
+            if (err && !hasError) {
+              hasError = true;
+              this.db.run('ROLLBACK');
+              return callback(err);
+            }
+            
+            completedInserts++;
+            if (completedInserts === questions.length) {
+              this.db.run('COMMIT', callback);
+            }
+          });
+        });
+      });
+    });
+  }
+
 
   close() {
     if (this.db) {

@@ -11,12 +11,14 @@ class ControlApp {
 		// Initialize managers
 		this.notifications = defaultNotificationManager;
 		this.dom = defaultDOMHelper;
+		this.router = defaultRouter;
 		
 		// Question editing state
 		this.questions = [];
 		this.currentQuestionEdit = null;
 		this.isEditingQuestion = false;
 		this.editingQuestionIndex = -1;
+		this.gamePin = null;
 		this.currentTemplateId = 'general';
 
 		// Element references
@@ -45,6 +47,9 @@ class ControlApp {
 			'answer2',
 			'answer3'
 		]);
+
+		// Extract game PIN from URL
+		this.gamePin = this.router.extractGamePin(window.location.pathname);
 
 		// Setup event listeners
 		this.setupEventListeners();
@@ -78,11 +83,19 @@ class ControlApp {
 	async loadQuestions() {
 		try {
 			this.showLoading('Načítavam otázky...');
-			const response = await fetch(`/api/question-templates/${this.currentTemplateId}`);
+			
+			let response;
+			if (this.gamePin) {
+				// Load questions from specific game
+				response = await fetch(`/api/games/${this.gamePin}/questions`);
+			} else {
+				// Load questions from template
+				response = await fetch(`/api/question-templates/${this.currentTemplateId}`);
+			}
 			
 			if (response.ok) {
-				const template = await response.json();
-				this.questions = template.questions || [];
+				const data = await response.json();
+				this.questions = data.questions || [];
 				this.renderQuestionList();
 			} else {
 				this.notifications.showError('Chyba pri načítavaní otázok');
@@ -311,18 +324,36 @@ class ControlApp {
 		try {
 			this.showLoading('Ukladám otázky...');
 			
-			const response = await fetch(`/api/question-templates/${this.currentTemplateId}`, {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					questions: this.questions
-				})
-			});
+			let response;
+			if (this.gamePin) {
+				// Save questions to specific game
+				response = await fetch(`/api/games/${this.gamePin}/questions`, {
+					method: 'PUT',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						questions: this.questions
+					})
+				});
+			} else {
+				// Save questions to template
+				response = await fetch(`/api/question-templates/${this.currentTemplateId}`, {
+					method: 'PUT',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						questions: this.questions
+					})
+				});
+			}
 			
 			if (response.ok) {
-				this.notifications.showSuccess('Otázky boli úspešne uložené');
+				const successMessage = this.gamePin ? 
+					'Otázky hry boli úspešne uložené' : 
+					'Otázky boli úspešne uložené';
+				this.notifications.showSuccess(successMessage);
 				this.hideQuestionEditForm();
 				this.renderQuestionList();
 			} else {
