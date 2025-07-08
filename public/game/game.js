@@ -148,6 +148,17 @@ class App {
 
 	checkInitialRoute() {
 		const path = window.location.pathname;
+		
+		// Handle direct /app/:pin route - smart redirect logic
+		if (path.match(/^\/app\/\d{6}$/)) {
+			const gamePin = this.router.extractGamePin(path);
+			if (gamePin) {
+				this.handleSmartRedirect(gamePin);
+				return;
+			}
+		}
+		
+		// Handle specific routes like /app/:pin/game
 		if (path.startsWith('/app/') && path.length > 5) {
 			const gamePin = this.router.extractGamePin(path);
 			if (gamePin) {
@@ -158,6 +169,62 @@ class App {
 			}
 		} else {
 			this.redirectToLogin();
+		}
+	}
+
+	async handleSmartRedirect(gamePin) {
+		try {
+			// Show loading state
+			this.showLoadingState('Kontrolujem stav hry...');
+			
+			// Fetch game data
+			const gameData = await this.api.getGame(gamePin);
+			
+			if (!gameData) {
+				this.notifications.showError('Hra nenájdená');
+				this.redirectToLogin();
+				return;
+			}
+
+			// Redirect based on game status
+			switch (gameData.status) {
+				case GAME_STATES.RUNNING:
+					// Game is active - redirect to game view
+					this.router.navigateToGame(gamePin);
+					break;
+
+				case GAME_STATES.ENDED:
+					// Game has ended - redirect to results
+					this.router.navigateToStage(gamePin);
+					break;
+
+				case GAME_STATES.WAITING:
+					// Game is waiting to start - redirect to game view (waiting room)
+					this.router.navigateToGame(gamePin);
+					break;
+
+				default:
+					// Unknown status - show error
+					this.notifications.showError(`Neznámy stav hry: ${gameData.status}`);
+					this.redirectToLogin();
+					break;
+			}
+		} catch (error) {
+			console.error('Smart redirect error:', error);
+			this.notifications.showError('Chyba pri načítavaní údajov o hre');
+			this.redirectToLogin();
+		}
+	}
+
+	showLoadingState(message) {
+		// Show login page with loading message
+		this.router.showPage('login');
+		this.notifications.showInfo(message);
+		
+		// Disable join button during loading
+		if (this.elements.joinGameBtn) {
+			this.elements.joinGameBtn.disabled = true;
+			this.dom.setText(this.elements.joinGameBtn, 'Načítavam...');
 		}
 	}
 

@@ -24,6 +24,7 @@ app.use(express.json());
 app.use('/app', express.static(path.join(__dirname, 'public/game')));
 app.use('/dashboard', express.static(path.join(__dirname, 'public/dashboard')));
 app.use('/panel', express.static(path.join(__dirname, 'public/panel')));
+app.use('/stage', express.static(path.join(__dirname, 'public/stage')));
 app.use('/shared', express.static(path.join(__dirname, 'public/shared')));
 
 // Global variables
@@ -230,7 +231,17 @@ app.get('/app/:pin/panel', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/panel/panel.html'));
 });
 
-// Dashboard routes
+// App stage page (post-game leaderboard)
+app.get('/app/:pin/stage', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/stage/stage.html'));
+});
+
+// App dashboard page (moderator control panel)
+app.get('/app/:pin/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/dashboard/dashboard.html'));
+});
+
+// Dashboard routes (legacy - will be phased out)
 app.get('/dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/dashboard/dashboard.html'));
 });

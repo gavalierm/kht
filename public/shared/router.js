@@ -219,8 +219,8 @@ export class Router {
 	 * @returns {string|null} Game PIN or null
 	 */
 	extractGamePin(path = this.currentPath) {
-		// Pattern: /app/123456/game or /app/123456/panel
-		const match = path.match(/\/app\/(\d+)\/(game|panel)/);
+		// Pattern: /app/123456/game, /app/123456/panel, /app/123456/stage, /app/123456/dashboard
+		const match = path.match(/\/app\/(\d+)\/(game|panel|stage|dashboard)/);
 		if (match) {
 			return match[1];
 		}
@@ -233,6 +233,45 @@ export class Router {
 		
 		return null;
 	}
+
+	/**
+	 * Navigate to join screen
+	 */
+	navigateToJoin() {
+		this.navigateTo('/app');
+	}
+
+	/**
+	 * Navigate to game view
+	 * @param {string} pin - Game PIN
+	 */
+	navigateToGame(pin) {
+		this.navigateTo(`/app/${pin}/game`);
+	}
+
+	/**
+	 * Navigate to panel view
+	 * @param {string} pin - Game PIN
+	 */
+	navigateToPanel(pin) {
+		this.navigateTo(`/app/${pin}/panel`);
+	}
+
+	/**
+	 * Navigate to stage view (results)
+	 * @param {string} pin - Game PIN
+	 */
+	navigateToStage(pin) {
+		this.navigateTo(`/app/${pin}/stage`);
+	}
+
+	/**
+	 * Navigate to dashboard view
+	 * @param {string} pin - Game PIN
+	 */
+	navigateToDashboard(pin) {
+		this.navigateTo(`/app/${pin}/dashboard`);
+	}
 }
 
 // Create default instance
@@ -244,3 +283,10 @@ export const addRoute = defaultRouter.addRoute.bind(defaultRouter);
 export const getCurrentPath = defaultRouter.getCurrentPath.bind(defaultRouter);
 export const extractGamePin = defaultRouter.extractGamePin.bind(defaultRouter);
 export const getPathParameter = defaultRouter.getPathParameter.bind(defaultRouter);
+
+// Export navigation methods
+export const navigateToJoin = defaultRouter.navigateToJoin.bind(defaultRouter);
+export const navigateToGame = defaultRouter.navigateToGame.bind(defaultRouter);
+export const navigateToPanel = defaultRouter.navigateToPanel.bind(defaultRouter);
+export const navigateToStage = defaultRouter.navigateToStage.bind(defaultRouter);
+export const navigateToDashboard = defaultRouter.navigateToDashboard.bind(defaultRouter);
