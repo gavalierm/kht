@@ -156,7 +156,6 @@ class CreateApp {
 		// Store moderator token in localStorage (same format as control.js)
 		if (data.moderatorToken) {
 			localStorage.setItem(`moderator_token_${data.gamePin}`, data.moderatorToken);
-			console.log('Stored moderator token for game:', data.gamePin);
 		}
 		
 		this.notifications.showSuccess(`Hra vytvorená! PIN: ${data.gamePin}`);

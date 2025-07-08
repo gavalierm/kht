@@ -175,14 +175,12 @@ class ControlApp {
 			this.notifications.showError(error.message || 'Chyba pri vytváraní hry');
 		});
 
-		// Moderator reconnection events - add debugging
+		// Moderator reconnection events
 		this.socket.on('moderator_reconnected', (data) => {
-			console.log('Received moderator_reconnected event:', data);
 			this.handleLoginSuccess(data);
 		});
 
 		this.socket.on('moderator_reconnect_error', (error) => {
-			console.log('Received moderator_reconnect_error event:', error);
 			this.handleLoginError(error);
 		});
 
@@ -213,17 +211,6 @@ class ControlApp {
 			this.handleLiveStats(data);
 		});
 		
-		// Test ping response - add debugging
-		this.socket.on('test_pong', (data) => {
-			console.log('✅ Received test pong:', data);
-		});
-		
-		this.socket.on('test_pong_direct', (data) => {
-			console.log('✅ Received direct test pong:', data);
-		});
-		
-		// Add general event debugging
-		console.log('Socket listeners registered, socket connected:', this.socket.connected());
 	}
 
 
@@ -295,15 +282,10 @@ class ControlApp {
 		// Check if we have a stored moderator token
 		const moderatorToken = localStorage.getItem(`moderator_token_${this.gamePin}`);
 		
-		console.log('Checking existing login for game:', this.gamePin);
-		console.log('Found stored token:', !!moderatorToken);
-		
 		if (moderatorToken) {
-			console.log('Auto-login with stored token');
 			// Auto-login with stored token (automatic, no user interaction needed)
 			this.autoLoginWithToken(moderatorToken);
 		} else {
-			console.log('No stored token, showing login page');
 			// Show login page with pre-filled password for test game
 			this.showLoginPage();
 			this.prefillTestGamePassword();
@@ -311,18 +293,14 @@ class ControlApp {
 	}
 
 	autoLoginWithToken(token) {
-		console.log('Auto-login with token for game:', this.gamePin);
 		this.socket.connect();
 		
 		// Small delay to ensure socket is ready
 		setTimeout(() => {
 			if (this.socket.connected()) {
-				console.log('Socket connected, attempting auto-login');
 				this.attemptLogin(null, token);
 			} else {
-				console.log('Socket not connected, waiting for connection');
 				this.socket.once(SOCKET_EVENTS.CONNECT, () => {
-					console.log('Socket connected, attempting auto-login');
 					this.attemptLogin(null, token);
 				});
 			}
@@ -344,20 +322,15 @@ class ControlApp {
 		}
 		this.setLoginLoading(false);
 		
-		console.log('Manual login attempt for game:', this.gamePin, 'with password');
-		
 		// Connect socket if not connected
 		this.socket.connect();
 		
 		// Small delay to ensure socket is ready
 		setTimeout(() => {
 			if (this.socket.connected()) {
-				console.log('Socket connected, attempting login with password');
 				this.attemptLogin(password, null);
 			} else {
-				console.log('Socket not connected, waiting for connection');
 				this.socket.once(SOCKET_EVENTS.CONNECT, () => {
-					console.log('Socket connected, attempting login with password');
 					this.attemptLogin(password, null);
 				});
 			}
@@ -379,11 +352,8 @@ class ControlApp {
 			loginData.password = password;
 		}
 		
-		console.log('Attempting login with:', { gamePin: this.gamePin, hasPassword: !!password, hasToken: !!token });
-		
 		// Set timeout to prevent freezing
 		const loginTimeout = setTimeout(() => {
-			console.log('Login timeout reached');
 			this.setLoginLoading(false);
 			this.notifications.showError('Prihlásenie trvá príliš dlho. Skúste to znovu.');
 		}, 10000); // 10 second timeout
@@ -392,25 +362,7 @@ class ControlApp {
 		this.loginTimeout = loginTimeout;
 		
 		// Emit reconnect moderator event
-		console.log('Socket connected status:', this.socket.connected());
-		console.log('Emitting reconnect_moderator event with data:', loginData);
-		console.log('Event name constant:', SOCKET_EVENTS.RECONNECT_MODERATOR);
 		this.socket.emit(SOCKET_EVENTS.RECONNECT_MODERATOR, loginData);
-		console.log('Event emitted, waiting for response...');
-		
-		// Test socket communication with a simple ping
-		console.log('Socket manager:', this.socket);
-		console.log('Socket instance:', this.socket.getSocket());
-		console.log('Socket URL:', this.socket.getSocket()?.io?.uri);
-		console.log('Socket namespace:', this.socket.getSocket()?.nsp);
-		this.socket.emit('test_ping', { message: 'testing socket' });
-		
-		// Also try direct socket emit
-		const directSocket = this.socket.getSocket();
-		if (directSocket) {
-			console.log('Direct socket connected:', directSocket.connected);
-			directSocket.emit('test_ping_direct', { message: 'direct socket test' });
-		}
 	}
 
 	prefillTestGamePassword() {
@@ -433,15 +385,9 @@ class ControlApp {
 		this.gameState = data.status || 'waiting';
 		this.playerCount = data.totalPlayers || 0;
 		
-		console.log('Login successful for game:', this.gamePin);
-		console.log('Received moderator token:', this.moderatorToken);
-		
 		// Store token for future use
 		if (this.moderatorToken) {
 			localStorage.setItem(`moderator_token_${this.gamePin}`, this.moderatorToken);
-			console.log('Token stored in localStorage for future auto-login');
-		} else {
-			console.log('No moderator token received - auto-login will not work');
 		}
 		
 		// Show control interface
@@ -464,7 +410,6 @@ class ControlApp {
 		this.setLoginLoading(false);
 		this.isLoggedIn = false;
 		
-		console.log('Login error for game:', this.gamePin, error);
 		this.notifications.showError(error.message || 'Chyba pri prihlasovaní');
 	}
 

@@ -160,7 +160,6 @@ class GameDatabase {
       );
 
       console.log('Test game created successfully with PIN: 123456');
-      console.log('Moderator token:', result.moderatorToken);
       
     } catch (error) {
       console.error('Error creating test game:', error);
@@ -281,21 +280,16 @@ class GameDatabase {
   // Validate moderator
   async validateModerator(pin, password, token) {
     return new Promise((resolve, reject) => {
-      console.log(`Validating moderator for PIN: ${pin}, hasPassword: ${!!password}, hasToken: ${!!token}`);
-      
       this.db.get('SELECT * FROM games WHERE pin = ?', [pin], (err, row) => {
         if (err) {
           console.error('Database error during moderator validation:', err);
           reject(err);
         } else if (!row) {
-          console.log(`No game found with PIN: ${pin}`);
           resolve(false);
         } else {
-          console.log(`Game found: ${pin}, hasPasswordHash: ${!!row.moderator_password_hash}, tokenMatch: ${token === row.moderator_token}`);
           
           // Check token first (for reconnection)
           if (token && row.moderator_token === token) {
-            console.log('Token validation successful');
             row.questions = JSON.parse(row.questions_data || '[]');
             resolve(row);
             return;
@@ -304,7 +298,6 @@ class GameDatabase {
           // Check password
           if (password && row.moderator_password_hash && 
               bcrypt.compareSync(password, row.moderator_password_hash)) {
-            console.log('Password validation successful');
             row.questions = JSON.parse(row.questions_data || '[]');
             resolve(row);
             return;
@@ -312,13 +305,10 @@ class GameDatabase {
           
           // If no password protection, allow connection
           if (!row.moderator_password_hash && !password) {
-            console.log('No password protection, allowing connection');
             row.questions = JSON.parse(row.questions_data || '[]');
             resolve(row);
             return;
           }
-          
-          console.log('Moderator validation failed - no valid credentials');
           resolve(false);
         }
       });

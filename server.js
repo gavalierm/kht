@@ -343,49 +343,29 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Test ping for debugging socket communication
-  socket.on('test_ping', (data) => {
-    console.log('Received test ping:', data);
-    socket.emit('test_pong', { message: 'pong received' });
-  });
-  
-  socket.on('test_ping_direct', (data) => {
-    console.log('Received direct test ping:', data);
-    socket.emit('test_pong_direct', { message: 'direct pong received' });
-  });
 
   // Dashboard: Reconnect moderator
   socket.on('reconnect_moderator', async (data) => {
     try {
-      console.log(`Moderator reconnect attempt for game: ${data.gamePin}`);
-      console.log(`Data received:`, { gamePin: data.gamePin, hasPassword: !!data.password, hasToken: !!data.moderatorToken });
-      console.log(`Full data object:`, data);
 
       // Check if moderator is already connected to prevent duplicates
       const existingModeratorInfo = socketToModerator.get(socket.id);
       if (existingModeratorInfo && existingModeratorInfo.gamePin === data.gamePin) {
-        console.log(`Moderator ${socket.id} already connected to game ${data.gamePin}`);
         return;
       }
 
-      console.log(`About to validate moderator for game: ${data.gamePin}`);
       const gameData = await db.validateModerator(data.gamePin, data.password, data.moderatorToken);
-      console.log(`Validation result:`, { success: !!gameData, gameExists: !!gameData });
       
       if (!gameData) {
-        console.log(`Moderator validation failed for game: ${data.gamePin}`);
         socket.emit('moderator_reconnect_error', { 
           message: 'Neplatné prihlásenie moderátora alebo hra neexistuje' 
         });
         return;
       }
 
-      console.log(`Moderator validation successful for game: ${data.gamePin}`);
-
       // Check if game exists in memory
       let game = activeGames.get(data.gamePin);
       if (!game) {
-        console.log(`Restoring game ${data.gamePin} from database`);
         // Restore game from database
         const players = await db.getGamePlayers(gameData.id);
         game = new GameInstance(data.gamePin, gameData.questions, gameData.id);
@@ -399,14 +379,12 @@ io.on('connection', (socket) => {
         });
         
         activeGames.set(data.gamePin, game);
-        console.log(`Game ${data.gamePin} restored with ${players.length} players`);
       }
       
       // Remove any existing moderator connection for this game
       for (const [existingSocketId, info] of socketToModerator.entries()) {
         if (info.gamePin === data.gamePin) {
           socketToModerator.delete(existingSocketId);
-          console.log(`Removed old moderator socket connection for game ${data.gamePin}`);
         }
       }
       
@@ -433,7 +411,6 @@ io.on('connection', (socket) => {
         moderatorToken: gameData.moderator_token
       });
       
-      console.log(`Moderator successfully reconnected to game ${data.gamePin} with ${connectedPlayers.length} players`);
       
     } catch (error) {
       console.error('Moderator reconnect error:', error);

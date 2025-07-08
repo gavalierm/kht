@@ -30,7 +30,6 @@ export class SocketManager {
 	 */
 	setupBaseEvents() {
 		this.socket.on('connect', () => {
-			console.log('Connected to server');
 			this.isConnected = true;
 			
 			// Hide connection banner if it was visible
