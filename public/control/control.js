@@ -232,7 +232,7 @@ class ControlApp {
 
 	// Socket event handlers
 	handleGameCreated(data) {
-		this.moderatorToken = data.moderator_token;
+		this.moderatorToken = data.moderatorToken;
 		this.gamePin = data.pin;
 		this.isConnectedToGame = true;
 		
@@ -291,10 +291,15 @@ class ControlApp {
 		// Check if we have a stored moderator token
 		const moderatorToken = localStorage.getItem(`moderator_token_${this.gamePin}`);
 		
+		console.log('Checking existing login for game:', this.gamePin);
+		console.log('Found stored token:', !!moderatorToken);
+		
 		if (moderatorToken) {
+			console.log('Auto-login with stored token');
 			// Auto-login with stored token (automatic, no user interaction needed)
 			this.autoLoginWithToken(moderatorToken);
 		} else {
+			console.log('No stored token, showing login page');
 			// Show login page with pre-filled password for test game
 			this.showLoginPage();
 			this.prefillTestGamePassword();
@@ -414,15 +419,19 @@ class ControlApp {
 		this.setLoginLoading(false);
 		this.isLoggedIn = true;
 		this.isConnectedToGame = true;
-		this.moderatorToken = data.moderator_token;
+		this.moderatorToken = data.moderatorToken;
 		this.gameState = data.game?.state || 'waiting';
 		this.playerCount = data.game?.players?.length || 0;
 		
 		console.log('Login successful for game:', this.gamePin);
+		console.log('Received moderator token:', this.moderatorToken);
 		
 		// Store token for future use
 		if (this.moderatorToken) {
 			localStorage.setItem(`moderator_token_${this.gamePin}`, this.moderatorToken);
+			console.log('Token stored in localStorage for future auto-login');
+		} else {
+			console.log('No moderator token received - auto-login will not work');
 		}
 		
 		// Show control interface
