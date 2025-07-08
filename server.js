@@ -914,16 +914,51 @@ setInterval(async () => {
 }, 60 * 60 * 1000);
 
 // Graceful shutdown
-process.on('SIGINT', async () => {
-  console.log('Shutting down gracefully...');
+const gracefulShutdown = async (signal) => {
+  console.log(`Received ${signal}, shutting down gracefully...`);
   
-  // Sync all active games to database
-  for (const [gamePin, game] of activeGames.entries()) {
-    await game.syncToDatabase();
+  try {
+    // Close the HTTP server
+    server.close(() => {
+      console.log('HTTP server closed');
+    });
+    
+    // Close socket.io connections
+    io.close(() => {
+      console.log('Socket.io connections closed');
+    });
+    
+    // Sync all active games to database
+    for (const [gamePin, game] of activeGames.entries()) {
+      await game.syncToDatabase();
+    }
+    
+    // Close database connection
+    db.close();
+    console.log('Database connection closed');
+    
+    process.exit(0);
+  } catch (error) {
+    console.error('Error during shutdown:', error);
+    process.exit(1);
   }
-  
-  db.close();
-  process.exit(0);
+};
+
+// Handle various shutdown signals
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGQUIT', () => gracefulShutdown('SIGQUIT'));
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  gracefulShutdown('uncaughtException');
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  gracefulShutdown('unhandledRejection');
 });
 
 // Start server

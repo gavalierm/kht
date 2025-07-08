@@ -10,7 +10,9 @@
     "test:integration": "jest tests/integration",
     "test:e2e": "jest tests/e2e",
     "dev": "nodemon server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "cleanup": "pkill -f 'node.*server.js' || pkill -f 'nodemon.*server.js' || true",
+    "dev:clean": "npm run cleanup && npm run dev"
   },
   "keywords": [],
   "author": "",
