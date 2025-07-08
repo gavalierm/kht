@@ -215,6 +215,10 @@ class ControlApp {
 		this.socket.on('test_pong', (data) => {
 			console.log('Received test pong:', data);
 		});
+		
+		this.socket.on('test_pong_direct', (data) => {
+			console.log('Received direct test pong:', data);
+		});
 	}
 
 
@@ -371,7 +375,16 @@ class ControlApp {
 		console.log('Event emitted, waiting for response...');
 		
 		// Test socket communication with a simple ping
+		console.log('Socket manager:', this.socket);
+		console.log('Socket instance:', this.socket.getSocket());
 		this.socket.emit('test_ping', { message: 'testing socket' });
+		
+		// Also try direct socket emit
+		const directSocket = this.socket.getSocket();
+		if (directSocket) {
+			console.log('Direct socket connected:', directSocket.connected);
+			directSocket.emit('test_ping_direct', { message: 'direct socket test' });
+		}
 	}
 
 	prefillTestGamePassword() {

@@ -348,6 +348,11 @@ io.on('connection', (socket) => {
     console.log('Received test ping:', data);
     socket.emit('test_pong', { message: 'pong received' });
   });
+  
+  socket.on('test_ping_direct', (data) => {
+    console.log('Received direct test ping:', data);
+    socket.emit('test_pong_direct', { message: 'direct pong received' });
+  });
 
   // Dashboard: Reconnect moderator
   socket.on('reconnect_moderator', async (data) => {
