@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="sk">
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Načítavam hru...</title>
+	<link rel="stylesheet" href="/shared/common.css">
+	<style>
+		html,
+		body {
+			margin: 0;
+			height: 100%;
+			width: 100%;
+			font-family: Arial, sans-serif;
+			background: var(--dark-bg);
+			color: white;
+			overflow: hidden;
+		}
+
+		.redirect-container {
+			height: 100vh;
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+			text-align: center;
+			padding: 2rem;
+		}
+
+		.loading-section {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 2rem;
+		}
+
+		.loading-spinner {
+			width: 80px;
+			height: 80px;
+			border: 8px solid rgba(255, 255, 255, 0.1);
+			border-top: 8px solid var(--primary-color);
+			border-radius: 50%;
+			animation: spin 1s linear infinite;
+		}
+
+		@keyframes spin {
+			0% { transform: rotate(0deg); }
+			100% { transform: rotate(360deg); }
+		}
+
+		.loading-text {
+			font-size: 1.5rem;
+			font-weight: bold;
+		}
+
+		.loading-subtext {
+			font-size: 1rem;
+			opacity: 0.8;
+		}
+
+		.game-info {
+			margin-top: 2rem;
+			padding: 1.5rem;
+			background: rgba(255, 255, 255, 0.1);
+			border-radius: 1rem;
+			min-width: 300px;
+		}
+
+		.game-pin {
+			font-size: 2rem;
+			font-weight: bold;
+			color: var(--primary-color);
+			margin-bottom: 0.5rem;
+		}
+
+		.game-title {
+			font-size: 1.2rem;
+			opacity: 0.9;
+		}
+
+		.error-section {
+			display: none;
+			flex-direction: column;
+			align-items: center;
+			gap: 2rem;
+			max-width: 500px;
+		}
+
+		.error-icon {
+			font-size: 4rem;
+		}
+
+		.error-title {
+			font-size: 2rem;
+			font-weight: bold;
+			color: #dc3545;
+		}
+
+		.error-message {
+			font-size: 1.2rem;
+			opacity: 0.9;
+			text-align: center;
+			line-height: 1.5;
+		}
+
+		.error-actions {
+			display: flex;
+			gap: 1rem;
+			margin-top: 1rem;
+		}
+
+		.action-button {
+			padding: 1rem 2rem;
+			font-size: 1.1rem;
+			border: none;
+			border-radius: 0.5rem;
+			cursor: pointer;
+			transition: all 0.3s ease;
+			font-weight: bold;
+		}
+
+		.primary-button {
+			background: var(--primary-color);
+			color: white;
+		}
+
+		.primary-button:hover {
+			background: var(--primary-hover);
+		}
+
+		.secondary-button {
+			background: rgba(255, 255, 255, 0.2);
+			color: white;
+		}
+
+		.secondary-button:hover {
+			background: rgba(255, 255, 255, 0.3);
+		}
+
+		.progress-bar {
+			width: 100%;
+			max-width: 300px;
+			height: 4px;
+			background: rgba(255, 255, 255, 0.1);
+			border-radius: 2px;
+			overflow: hidden;
+			margin-top: 1rem;
+		}
+
+		.progress-fill {
+			height: 100%;
+			background: var(--primary-color);
+			width: 0%;
+			transition: width 0.3s ease;
+			animation: pulse 2s ease-in-out infinite;
+		}
+
+		@keyframes pulse {
+			0%, 100% { opacity: 1; }
+			50% { opacity: 0.7; }
+		}
+
+		/* Responsive adjustments */
+		@media (max-width: 768px) {
+			.redirect-container {
+				padding: 1rem;
+			}
+
+			.loading-text {
+				font-size: 1.3rem;
+			}
+
+			.game-info {
+				min-width: auto;
+				width: 100%;
+				max-width: 350px;
+			}
+
+			.error-actions {
+				flex-direction: column;
+				width: 100%;
+			}
+
+			.action-button {
+				width: 100%;
+			}
+		}
+	</style>
+</head>
+
+<body>
+	<div class="redirect-container">
+		<!-- Loading State -->
+		<div id="loadingSection" class="loading-section">
+			<div class="loading-spinner"></div>
+			<div class="loading-text">Načítavam hru...</div>
+			<div class="loading-subtext" id="loadingSubtext">Kontrolujem stav hry</div>
+			
+			<div class="progress-bar">
+				<div class="progress-fill" id="progressFill"></div>
+			</div>
+
+			<div id="gameInfo" class="game-info" style="display: none;">
+				<div class="game-pin" id="gamePin">------</div>
+				<div class="game-title" id="gameTitle">Kvízová hra</div>
+			</div>
+		</div>
+
+		<!-- Error State -->
+		<div id="errorSection" class="error-section">
+			<div class="error-icon">❌</div>
+			<div class="error-title" id="errorTitle">Chyba</div>
+			<div class="error-message" id="errorMessage">
+				Nastala neočakávaná chyba pri načítavaní hry.
+			</div>
+			<div class="error-actions">
+				<button id="retryBtn" class="action-button primary-button">
+					🔄 Skúsiť znovu
+				</button>
+				<button id="backToJoinBtn" class="action-button secondary-button">
+					🏠 Späť na úvod
+				</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- Message container for notifications -->
+	<div id="messageBox"></div>
+
+	<script type="module" src="/redirect/redirect.js"></script>
+</body>
+
+</html>
