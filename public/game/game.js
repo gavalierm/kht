@@ -150,6 +150,13 @@ class App {
 	checkInitialRoute() {
 		const path = window.location.pathname;
 		
+		// Handle /app or /app/ as the join page - no redirect needed
+		if (path === '/app' || path === '/app/') {
+			// Already on the join page, just show it
+			this.router.showPage('login');
+			return;
+		}
+		
 		// Handle direct /app/:pin route - smart redirect logic
 		if (path.match(/^\/app\/\d{6}$/)) {
 			const gamePin = this.router.extractGamePin(path);
@@ -168,8 +175,6 @@ class App {
 			} else {
 				this.redirectToLogin();
 			}
-		} else {
-			this.redirectToLogin();
 		}
 	}
 

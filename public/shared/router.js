@@ -79,8 +79,12 @@ export class Router {
 			this.showPhase('playground');
 		} else if (path.startsWith('/app/') && path.includes('/panel')) {
 			this.showPage('panel');
-		} else if (path.startsWith('/app/') || path === '/app') {
+		} else if (path === '/app' || path === '/app/') {
+			// Show the join/login page for base /app route
 			this.showPage('login');
+		} else if (path.startsWith('/app/')) {
+			// Other /app/ routes - let the app handle them
+			this.showPage('game');
 		} else {
 			console.warn('Unknown route:', path);
 			this.showPage('login');
