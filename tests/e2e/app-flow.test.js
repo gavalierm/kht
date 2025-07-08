@@ -12,7 +12,7 @@ describe('End-to-End Application Flow', () => {
     const app = express();
     
     // Static file serving
-    app.use('/app', express.static(path.join(__dirname, '../../public/app')));
+    app.use('/app', express.static(path.join(__dirname, '../../public/game')));
     app.use('/dashboard', express.static(path.join(__dirname, '../../public/dashboard')));
     app.use('/panel', express.static(path.join(__dirname, '../../public/panel')));
     app.use('/shared', express.static(path.join(__dirname, '../../public/shared')));
@@ -23,15 +23,15 @@ describe('End-to-End Application Flow', () => {
     });
     
     app.get('/app', (req, res) => {
-      res.sendFile(path.join(__dirname, '../../public/app/app.html'));
+      res.sendFile(path.join(__dirname, '../../public/game/game.html'));
     });
     
     app.get('/app/:pin', (req, res) => {
-      res.sendFile(path.join(__dirname, '../../public/app/app.html'));
+      res.sendFile(path.join(__dirname, '../../public/game/game.html'));
     });
     
     app.get('/app/:pin/game', (req, res) => {
-      res.sendFile(path.join(__dirname, '../../public/app/app.html'));
+      res.sendFile(path.join(__dirname, '../../public/game/game.html'));
     });
     
     app.get('/app/:pin/panel', (req, res) => {
@@ -72,7 +72,7 @@ describe('End-to-End Application Flow', () => {
 
   describe('Static File Serving', () => {
     test('should serve the main app page', async () => {
-      const response = await fetch(`http://localhost:${port}/app`);
+      const response = await fetch(`http://localhost:${port}/app/`);
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toContain('text/html');
       
@@ -177,7 +177,7 @@ describe('End-to-End Application Flow', () => {
       expect(html).toContain('socket.io/socket.io.js');
       
       // Check for app script
-      expect(html).toContain('/app/app.js');
+      expect(html).toContain('/app/game.js');
     });
 
     test('should have responsive meta tag', async () => {
