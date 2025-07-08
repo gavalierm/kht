@@ -490,6 +490,174 @@
 			color: white;
 		}
 
+		/* Collapsible Styles */
+		.collapsible-box {
+			transition: all 0.3s ease;
+			flex: none; /* Override flex behavior when collapsed */
+		}
+
+		.collapsible-box.collapsed {
+			flex: none !important; /* Override the flex: 1 from .control-box */
+			min-height: auto !important;
+			flex-grow: 0 !important;
+			flex-shrink: 0 !important;
+		}
+
+		.questions-title-section {
+			display: flex;
+			align-items: center;
+			gap: 15px;
+		}
+
+		.toggle-btn {
+			display: flex;
+			align-items: center;
+			gap: 6px;
+			padding: 6px 12px;
+			font-size: 0.9rem;
+			border-radius: 4px;
+			transition: all 0.2s;
+		}
+
+		.toggle-icon {
+			font-size: 0.8rem;
+			transition: transform 0.3s ease;
+		}
+
+		.collapsible-content {
+			max-height: 500px; /* Reduced from 1000px */
+			overflow: hidden;
+			transition: max-height 0.4s ease, opacity 0.3s ease, padding 0.3s ease;
+		}
+
+		.collapsible-box.collapsed .collapsible-content {
+			max-height: 0;
+			opacity: 0;
+			padding-top: 0;
+			padding-bottom: 0;
+			margin: 0;
+		}
+
+		.collapsible-box.collapsed .questions-list {
+			flex: none !important;
+			max-height: 0 !important;
+			margin: 0 !important;
+			padding: 0 !important;
+			border: none !important;
+		}
+
+		.collapsible-box.collapsed .toggle-icon {
+			transform: rotate(-90deg);
+		}
+
+		/* Game Control Styles */
+		.game-control-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 25px;
+		}
+
+		.game-control-title {
+			font-size: 1.8rem;
+			font-weight: bold;
+			color: #47109e;
+		}
+
+		.game-status {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+
+		.status-indicator {
+			width: 12px;
+			height: 12px;
+			border-radius: 50%;
+			background: #dc3545;
+			animation: pulse 2s infinite;
+		}
+
+		.status-indicator.active {
+			background: #28a745;
+		}
+
+		.status-indicator.paused {
+			background: #ffc107;
+		}
+
+		@keyframes pulse {
+			0% { opacity: 1; }
+			50% { opacity: 0.5; }
+			100% { opacity: 1; }
+		}
+
+		.status-text {
+			font-weight: bold;
+			color: #333;
+		}
+
+		.game-control-actions {
+			display: flex;
+			gap: 15px;
+			margin-bottom: 20px;
+			flex-wrap: wrap;
+		}
+
+		.game-control-btn {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			font-size: 1.1rem;
+			padding: 12px 20px;
+			border: none;
+			border-radius: 8px;
+			cursor: pointer;
+			transition: all 0.2s;
+			font-weight: bold;
+			min-width: 150px;
+			justify-content: center;
+		}
+
+		.game-control-btn:disabled {
+			background: #ccc !important;
+			cursor: not-allowed;
+			opacity: 0.6;
+		}
+
+		.control-icon {
+			font-size: 1.2rem;
+		}
+
+		.game-info {
+			background: #f8f9fa;
+			border-radius: 8px;
+			padding: 20px;
+			border: 1px solid #e0e0e0;
+		}
+
+		.info-item {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 10px;
+		}
+
+		.info-item:last-child {
+			margin-bottom: 0;
+		}
+
+		.info-label {
+			font-weight: bold;
+			color: #666;
+		}
+
+		.info-value {
+			font-weight: bold;
+			color: #47109e;
+			font-size: 1.1rem;
+		}
+
 		/* Responsive adjustments */
 		@media (max-width: 768px) {
 			.control-container {
@@ -517,6 +685,26 @@
 				flex-direction: column;
 				gap: 15px;
 			}
+
+			.questions-title-section {
+				justify-content: space-between;
+				width: 100%;
+			}
+
+			.game-control-header {
+				flex-direction: column;
+				gap: 15px;
+				text-align: center;
+			}
+
+			.game-control-actions {
+				flex-direction: column;
+			}
+
+			.game-control-btn {
+				min-width: auto;
+				width: 100%;
+			}
 		}
 	</style>
 </head>
@@ -529,6 +717,47 @@
 		</div>
 
 		<div class="control-content">
+			<!-- Game Control Block -->
+			<div class="control-box" id="gameControlBox">
+				<div class="game-control-header">
+					<h2 class="game-control-title">Ovládanie hry</h2>
+					<div class="game-status" id="gameStatus">
+						<span class="status-indicator" id="statusIndicator"></span>
+						<span class="status-text" id="statusText">Hra nie je spustená</span>
+					</div>
+				</div>
+				
+				<div class="game-control-actions">
+					<button id="startGameBtn" class="btn-success game-control-btn">
+						<span class="control-icon">▶️</span>
+						<span>Spustiť hru</span>
+					</button>
+					<button id="pauseGameBtn" class="btn-warning game-control-btn" disabled>
+						<span class="control-icon">⏸️</span>
+						<span>Pozastaviť hru</span>
+					</button>
+					<button id="endGameBtn" class="btn-danger game-control-btn" disabled>
+						<span class="control-icon">⏹️</span>
+						<span>Ukončiť hru</span>
+					</button>
+				</div>
+				
+				<div class="game-info" id="gameInfo" style="display: none;">
+					<div class="info-item">
+						<span class="info-label">PIN hry:</span>
+						<span class="info-value" id="gamePinDisplay">-</span>
+					</div>
+					<div class="info-item">
+						<span class="info-label">Počet hráčov:</span>
+						<span class="info-value" id="playerCountDisplay">0</span>
+					</div>
+					<div class="info-item">
+						<span class="info-label">Aktuálna otázka:</span>
+						<span class="info-value" id="currentQuestionDisplay">-</span>
+					</div>
+				</div>
+			</div>
+
 			<!-- Question Form -->
 			<div id="questionForm" class="question-form">
 				<div class="form-group">
@@ -588,19 +817,27 @@
 			</div>
 
 			<!-- Questions List -->
-			<div class="control-box">
+			<div class="control-box collapsible-box">
 				<div class="questions-header">
-					<h2 class="questions-title">Otázky</h2>
+					<div class="questions-title-section">
+						<h2 class="questions-title">Otázky</h2>
+						<button id="toggleQuestionsBtn" class="btn-secondary btn-sm toggle-btn">
+							<span class="toggle-icon">▼</span>
+							<span class="toggle-text">Skryť</span>
+						</button>
+					</div>
 					<button id="addQuestionBtn" class="btn-primary">
 						+ Pridať otázku
 					</button>
 				</div>
 
-				<div id="questionsList" class="questions-list">
-					<div class="empty-state" id="emptyState">
-						<div class="empty-state-icon">📝</div>
-						<p>Žiadne otázky nenájdené</p>
-						<p style="font-size: 0.9rem; opacity: 0.7; margin-top: 10px;">Kliknite na "Pridať otázku" pre vytvorenie novej otázky</p>
+				<div id="questionsContent" class="collapsible-content">
+					<div id="questionsList" class="questions-list">
+						<div class="empty-state" id="emptyState">
+							<div class="empty-state-icon">📝</div>
+							<p>Žiadne otázky nenájdené</p>
+							<p style="font-size: 0.9rem; opacity: 0.7; margin-top: 10px;">Kliknite na "Pridať otázku" pre vytvorenie novej otázky</p>
+						</div>
 					</div>
 				</div>
 			</div>

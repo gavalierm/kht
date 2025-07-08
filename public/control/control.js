@@ -20,6 +20,14 @@ class ControlApp {
 		this.editingQuestionIndex = -1;
 		this.gamePin = null;
 		this.currentTemplateId = 'general';
+		
+		// Game control state
+		this.gameState = 'stopped'; // stopped, running, paused
+		this.playerCount = 0;
+		this.currentQuestion = 0;
+		
+		// UI state
+		this.questionsCollapsed = false;
 
 		// Element references
 		this.elements = {};
@@ -45,7 +53,18 @@ class ControlApp {
 			'answer0',
 			'answer1',
 			'answer2',
-			'answer3'
+			'answer3',
+			'startGameBtn',
+			'pauseGameBtn',
+			'endGameBtn',
+			'statusIndicator',
+			'statusText',
+			'gamePinDisplay',
+			'playerCountDisplay',
+			'currentQuestionDisplay',
+			'gameInfo',
+			'toggleQuestionsBtn',
+			'questionsContent'
 		]);
 
 		// Extract game PIN from URL
@@ -53,6 +72,9 @@ class ControlApp {
 
 		// Setup event listeners
 		this.setupEventListeners();
+		
+		// Initialize game control UI
+		this.updateGameControlUI();
 		
 		// Load questions
 		this.loadQuestions();
@@ -75,6 +97,32 @@ class ControlApp {
 		if (this.elements.cancelQuestionBtn) {
 			this.elements.cancelQuestionBtn.addEventListener('click', () => {
 				this.handleCancelQuestion();
+			});
+		}
+
+		// Game control buttons
+		if (this.elements.startGameBtn) {
+			this.elements.startGameBtn.addEventListener('click', () => {
+				this.handleStartGame();
+			});
+		}
+
+		if (this.elements.pauseGameBtn) {
+			this.elements.pauseGameBtn.addEventListener('click', () => {
+				this.handlePauseGame();
+			});
+		}
+
+		if (this.elements.endGameBtn) {
+			this.elements.endGameBtn.addEventListener('click', () => {
+				this.handleEndGame();
+			});
+		}
+
+		// Toggle questions section
+		if (this.elements.toggleQuestionsBtn) {
+			this.elements.toggleQuestionsBtn.addEventListener('click', () => {
+				this.toggleQuestionsSection();
 			});
 		}
 	}
@@ -365,6 +413,145 @@ class ControlApp {
 			this.notifications.showError('Chyba pri ukladaní otázok');
 		} finally {
 			this.hideLoading();
+		}
+	}
+
+	// Game Control Methods
+	handleStartGame() {
+		if (this.questions.length === 0) {
+			this.notifications.showError('Pridajte aspoň jednu otázku pred spustením hry');
+			return;
+		}
+
+		if (!this.gamePin) {
+			this.notifications.showError('Nie je dostupný PIN hry');
+			return;
+		}
+
+		this.gameState = 'running';
+		this.currentQuestion = 0;
+		this.updateGameControlUI();
+		this.autoCollapseQuestions();
+		this.notifications.showSuccess('Hra bola spustená');
+	}
+
+	handlePauseGame() {
+		if (this.gameState === 'running') {
+			this.gameState = 'paused';
+			this.updateGameControlUI();
+			this.notifications.showInfo('Hra bola pozastavená');
+		} else if (this.gameState === 'paused') {
+			this.gameState = 'running';
+			this.updateGameControlUI();
+			this.notifications.showInfo('Hra bola obnovená');
+		}
+	}
+
+	handleEndGame() {
+		if (confirm('Naozaj chcete ukončiť hru? Všetok postup bude stratený.')) {
+			this.gameState = 'stopped';
+			this.currentQuestion = 0;
+			this.playerCount = 0;
+			this.updateGameControlUI();
+			this.notifications.showSuccess('Hra bola ukončená');
+		}
+	}
+
+	updateGameControlUI() {
+		// Update status indicator and text
+		if (this.elements.statusIndicator && this.elements.statusText) {
+			this.elements.statusIndicator.className = 'status-indicator';
+			
+			switch (this.gameState) {
+				case 'running':
+					this.elements.statusIndicator.classList.add('active');
+					this.elements.statusText.textContent = 'Hra beží';
+					break;
+				case 'paused':
+					this.elements.statusIndicator.classList.add('paused');
+					this.elements.statusText.textContent = 'Hra je pozastavená';
+					break;
+				default:
+					this.elements.statusText.textContent = 'Hra nie je spustená';
+			}
+		}
+
+		// Update button states
+		if (this.elements.startGameBtn) {
+			this.elements.startGameBtn.disabled = this.gameState === 'running';
+		}
+
+		if (this.elements.pauseGameBtn) {
+			this.elements.pauseGameBtn.disabled = this.gameState === 'stopped';
+			const pauseText = this.elements.pauseGameBtn.querySelector('span:last-child');
+			if (pauseText) {
+				pauseText.textContent = this.gameState === 'paused' ? 'Obnoviť hru' : 'Pozastaviť hru';
+			}
+		}
+
+		if (this.elements.endGameBtn) {
+			this.elements.endGameBtn.disabled = this.gameState === 'stopped';
+		}
+
+		// Update game info
+		if (this.elements.gameInfo) {
+			const shouldShow = this.gameState !== 'stopped';
+			this.elements.gameInfo.style.display = shouldShow ? 'block' : 'none';
+		}
+
+		// Update game PIN display
+		if (this.elements.gamePinDisplay && this.gamePin) {
+			this.elements.gamePinDisplay.textContent = this.gamePin;
+		}
+
+		// Update player count
+		if (this.elements.playerCountDisplay) {
+			this.elements.playerCountDisplay.textContent = this.playerCount;
+		}
+
+		// Update current question
+		if (this.elements.currentQuestionDisplay) {
+			if (this.gameState === 'stopped') {
+				this.elements.currentQuestionDisplay.textContent = '-';
+			} else {
+				this.elements.currentQuestionDisplay.textContent = `${this.currentQuestion + 1} / ${this.questions.length}`;
+			}
+		}
+	}
+
+	// UI Control Methods
+	toggleQuestionsSection() {
+		const questionsBox = document.querySelector('.collapsible-box');
+		const toggleIcon = this.elements.toggleQuestionsBtn?.querySelector('.toggle-icon');
+		const toggleText = this.elements.toggleQuestionsBtn?.querySelector('.toggle-text');
+
+		this.questionsCollapsed = !this.questionsCollapsed;
+
+		if (questionsBox) {
+			if (this.questionsCollapsed) {
+				questionsBox.classList.add('collapsed');
+			} else {
+				questionsBox.classList.remove('collapsed');
+			}
+		}
+
+		// Update button text and icon
+		if (toggleText) {
+			toggleText.textContent = this.questionsCollapsed ? 'Zobraziť' : 'Skryť';
+		}
+
+		// Auto-collapse when game is running to focus on game controls
+		if (this.gameState === 'running' && !this.questionsCollapsed) {
+			setTimeout(() => {
+				this.notifications.showInfo('Otázky boli automaticky skryté počas hry');
+			}, 300);
+		}
+	}
+
+	// Auto-collapse questions when game starts
+	autoCollapseQuestions() {
+		if (!this.questionsCollapsed) {
+			this.toggleQuestionsSection();
 		}
 	}
 
