@@ -305,7 +305,7 @@ io.on('connection', (socket) => {
       const gamePin = generateGamePin(null, activeGames);
       
       // Get default questions
-      const questions = db.getDefaultQuestions();
+      const questions = []; // Start with empty questions - moderators will add their own
       
       // Save to database
       const dbResult = await db.createGame(
