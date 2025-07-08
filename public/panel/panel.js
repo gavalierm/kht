@@ -16,13 +16,15 @@ class PanelApp {
 		this.gamePin = null;
 		this.gameTitle = DEFAULTS.GAME_TITLE;
 		this.currentQuestion = null;
-		this.playerCount = 0;
 		this.gameStatus = GAME_STATES.WAITING;
 		this.countdownTimer = null;
 		this.timeRemaining = 0;
 
 		// Element references
 		this.elements = {};
+		
+		// Loading state
+		this.isLoading = true;
 
 		this.init();
 	}
@@ -32,9 +34,8 @@ class PanelApp {
 		this.elements = this.dom.cacheElements([
 			'panelPinCode',
 			'panelCountdown',
+			'panelLoadingOverlay',
 			ELEMENT_IDS.PANEL_GAME_TITLE,
-			ELEMENT_IDS.PANEL_GAME_STATUS,
-			ELEMENT_IDS.PANEL_PLAYER_COUNT,
 			ELEMENT_IDS.PANEL_QUESTION_NUMBER,
 			ELEMENT_IDS.PANEL_QUESTION_TEXT,
 			ELEMENT_IDS.PANEL_OPTION_A,
@@ -45,8 +46,10 @@ class PanelApp {
 			ELEMENT_IDS.PANEL_OPTIONS_GRID
 		]);
 
-		// Get container element
+		// Get container and loading elements
 		this.elements.container = this.dom.querySelector('.panel-container');
+		this.elements.loadingText = this.dom.querySelector('.panel-loading-text');
+		this.elements.timerText = this.dom.querySelector('.timer-text');
 		
 		// Extract game PIN from URL
 		this.extractGamePin();
@@ -54,9 +57,13 @@ class PanelApp {
 		// Setup socket events
 		this.setupSocketEvents();
 		
+		// Show loading initially
+		this.showLoading('Pripájame sa k serveru...');
+		
 		// Connect to game when socket is ready
 		this.socket.on(SOCKET_EVENTS.CONNECT, () => {
 			console.log('Panel connected to server');
+			this.updateLoadingText('Pripájame sa k hre...');
 			if (this.gamePin) {
 				this.joinPanel();
 			} else {
@@ -80,7 +87,7 @@ class PanelApp {
 
 	updatePinDisplay() {
 		if (this.elements.panelPinCode && this.gamePin) {
-			this.dom.setText(this.elements.panelPinCode, this.gamePin);
+			this.dom.setText(this.elements.panelPinCode, `#${this.gamePin}`);
 		}
 	}
 
@@ -90,12 +97,14 @@ class PanelApp {
 			console.log('Panel joined game:', data);
 			this.gameTitle = data.title || DEFAULTS.GAME_TITLE;
 			this.gamePin = data.gamePin;
+			this.hideLoading();
 			this.updateGameInfo();
 			this.updateStatus(GAME_STATES.WAITING);
 		});
 
 		this.socket.on(SOCKET_EVENTS.PANEL_JOIN_ERROR, (data) => {
 			console.error('Panel join error:', data.message);
+			this.hideLoading();
 			this.showError(data.message);
 		});
 
@@ -124,6 +133,7 @@ class PanelApp {
 
 		this.socket.on(SOCKET_EVENTS.RECONNECT, () => {
 			console.log('Panel reconnected to server');
+			this.showLoading('Obnovujem pripojenie...');
 			if (this.gamePin) {
 				this.joinPanel();
 			}
@@ -152,15 +162,16 @@ class PanelApp {
 		this.gameStatus = status;
 		
 		const statusText = {
-			[GAME_STATES.WAITING]: 'Čakáme na začiatok',
-			[GAME_STATES.QUESTION_ACTIVE]: 'Otázka prebieha',
+			[GAME_STATES.WAITING]: 'Pripravte sa na kvíz!',
+			[GAME_STATES.QUESTION_ACTIVE]: 'Odpovedajte na otázku',
 			[GAME_STATES.RESULTS]: 'Zobrazujú sa výsledky',
 			[GAME_STATES.FINISHED]: 'Hra skončila',
-			'disconnected': 'Odpojené'
+			'disconnected': 'Pripojenie prerušené'
 		};
 
-		if (this.elements.panelGameStatus) {
-			this.dom.setText(this.elements.panelGameStatus, statusText[status] || status);
+		// Use question text area for status messages
+		if (this.elements.panelQuestionText && status !== GAME_STATES.QUESTION_ACTIVE) {
+			this.dom.setText(this.elements.panelQuestionText, statusText[status] || status);
 		}
 
 		// Update container class for styling
@@ -170,20 +181,16 @@ class PanelApp {
 		
 		if (status === GAME_STATES.WAITING) {
 			this.dom.addClass(this.elements.container, CSS_CLASSES.PANEL_WAITING);
+			// Show spinner in countdown during waiting
+			this.dom.addClass(this.elements.panelCountdown, 'waiting');
 		} else if (status === GAME_STATES.FINISHED) {
 			this.dom.addClass(this.elements.container, CSS_CLASSES.PANEL_FINISHED);
+		} else {
+			// Remove waiting spinner when not waiting
+			this.dom.removeClass(this.elements.panelCountdown, 'waiting');
 		}
 	}
 
-	updatePlayerCount(count) {
-		this.playerCount = count;
-		if (this.elements.panelPlayerCount) {
-			const playerText = count === 1 ? 'hráč' : 
-							   (count >= 2 && count <= 4) ? 'hráči' : 'hráčov';
-			this.dom.setText(this.elements.panelPlayerCount, 
-				`${count} ${playerText}`);
-		}
-	}
 
 	showQuestion(data) {
 		this.currentQuestion = data;
@@ -267,9 +274,11 @@ class PanelApp {
 	}
 
 	updateCountdown() {
+		if (this.elements.timerText) {
+			this.dom.setText(this.elements.timerText, this.timeRemaining);
+		}
+		
 		if (this.elements.panelCountdown) {
-			this.dom.setText(this.elements.panelCountdown, this.timeRemaining);
-			
 			// Change color when time is running out
 			if (this.timeRemaining <= 10) {
 				this.elements.panelCountdown.style.background = 'red';
@@ -339,10 +348,12 @@ class PanelApp {
 	updateLeaderboard(leaderboard) {
 		if (!this.elements.panelLeaderboardList || !leaderboard) return;
 
+		const totalPlayers = leaderboard.length;
+
 		// Clear current leaderboard
 		this.dom.setHTML(this.elements.panelLeaderboardList, '');
 
-		if (leaderboard.length === 0) {
+		if (totalPlayers === 0) {
 			const item = document.createElement('div');
 			item.className = 'panel-leaderboard-item';
 			item.innerHTML = `
@@ -350,33 +361,59 @@ class PanelApp {
 				<span class="panel-player-score">-</span>
 			`;
 			this.elements.panelLeaderboardList.appendChild(item);
-			this.updatePlayerCount(0);
 			return;
 		}
 
-		// Add leaderboard items (top 10)
-		leaderboard.slice(0, DEFAULTS.LEADERBOARD_DISPLAY_COUNT).forEach((player, index) => {
+		// Show only top 3 players with details
+		const top3Players = leaderboard.slice(0, 3);
+		top3Players.forEach((player, index) => {
 			const item = document.createElement('div');
 			item.className = 'panel-leaderboard-item';
+			
+			// Add medal emojis for top 3
+			const medals = ['🥇', '🥈', '🥉'];
+			const medal = medals[index] || '';
+			
 			item.innerHTML = `
-				<span class="panel-player-name">${index + 1}. ${player.name}</span>
+				<span class="panel-player-name">${medal} ${player.name}</span>
 				<span class="panel-player-score">${player.score}</span>
 			`;
 			this.elements.panelLeaderboardList.appendChild(item);
 		});
 
-		this.updatePlayerCount(leaderboard.length);
 	}
 
 	showError(message) {
 		console.error('Panel error:', message);
+		this.hideLoading();
 		
 		if (this.elements.panelQuestionText) {
-			this.dom.setText(this.elements.panelQuestionText, `Error: ${message}`);
+			this.dom.setText(this.elements.panelQuestionText, `Chyba: ${message}`);
 		}
 		
-		if (this.elements.panelGameStatus) {
-			this.dom.setText(this.elements.panelGameStatus, 'Error');
+		// Show error notification
+		this.notifications.showError(message);
+	}
+
+	// Loading state management methods (like in game.js)
+	showLoading(message = 'Načítavam...') {
+		this.isLoading = true;
+		if (this.elements.panelLoadingOverlay) {
+			this.dom.removeClass(this.elements.panelLoadingOverlay, 'hidden');
+		}
+		this.updateLoadingText(message);
+	}
+
+	hideLoading() {
+		this.isLoading = false;
+		if (this.elements.panelLoadingOverlay) {
+			this.dom.addClass(this.elements.panelLoadingOverlay, 'hidden');
+		}
+	}
+
+	updateLoadingText(message) {
+		if (this.elements.loadingText) {
+			this.dom.setText(this.elements.loadingText, message);
 		}
 	}
 }
