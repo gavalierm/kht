@@ -18,6 +18,8 @@ class PanelApp {
 		this.currentQuestion = null;
 		this.playerCount = 0;
 		this.gameStatus = GAME_STATES.WAITING;
+		this.countdownTimer = null;
+		this.timeRemaining = 0;
 
 		// Element references
 		this.elements = {};
@@ -29,6 +31,7 @@ class PanelApp {
 		// Cache elements
 		this.elements = this.dom.cacheElements([
 			'panelPinCode',
+			'panelCountdown',
 			ELEMENT_IDS.PANEL_GAME_TITLE,
 			ELEMENT_IDS.PANEL_GAME_STATUS,
 			ELEMENT_IDS.PANEL_PLAYER_COUNT,
@@ -219,9 +222,67 @@ class PanelApp {
 				this.dom.removeClass(el, CSS_CLASSES.SELECTED);
 			});
 		}
+
+		// Start countdown
+		this.startCountdown(data.timeLimit || 30);
+	}
+
+	startCountdown(timeLimit) {
+		this.timeRemaining = timeLimit;
+		this.showCountdown();
+		
+		if (this.countdownTimer) {
+			clearInterval(this.countdownTimer);
+		}
+		
+		this.countdownTimer = setInterval(() => {
+			this.timeRemaining--;
+			this.updateCountdown();
+			
+			if (this.timeRemaining <= 0) {
+				this.stopCountdown();
+			}
+		}, 1000);
+	}
+
+	stopCountdown() {
+		if (this.countdownTimer) {
+			clearInterval(this.countdownTimer);
+			this.countdownTimer = null;
+		}
+		this.hideCountdown();
+	}
+
+	showCountdown() {
+		if (this.elements.panelCountdown) {
+			this.elements.panelCountdown.style.display = 'block';
+			this.updateCountdown();
+		}
+	}
+
+	hideCountdown() {
+		if (this.elements.panelCountdown) {
+			this.elements.panelCountdown.style.display = 'none';
+		}
+	}
+
+	updateCountdown() {
+		if (this.elements.panelCountdown) {
+			this.dom.setText(this.elements.panelCountdown, this.timeRemaining);
+			
+			// Change color when time is running out
+			if (this.timeRemaining <= 10) {
+				this.elements.panelCountdown.style.background = 'red';
+				this.elements.panelCountdown.style.color = 'white';
+			} else {
+				this.elements.panelCountdown.style.background = 'white';
+				this.elements.panelCountdown.style.color = 'var(--primary-purple)';
+			}
+		}
 	}
 
 	showResults(data) {
+		this.stopCountdown();
 		this.updateStatus(GAME_STATES.RESULTS);
 
 		// Highlight correct answer
@@ -244,6 +305,7 @@ class PanelApp {
 	}
 
 	resetToWaiting() {
+		this.stopCountdown();
 		this.updateStatus(GAME_STATES.WAITING);
 		
 		if (this.elements.panelQuestionText) {
