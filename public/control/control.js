@@ -12,6 +12,7 @@ class ControlApp {
 		this.notifications = defaultNotificationManager;
 		this.dom = defaultDOMHelper;
 		this.router = defaultRouter;
+		this.socket = defaultSocketManager;
 		
 		// Question editing state
 		this.questions = [];
@@ -25,6 +26,8 @@ class ControlApp {
 		this.gameState = 'stopped'; // stopped, running, paused
 		this.playerCount = 0;
 		this.currentQuestion = 0;
+		this.moderatorToken = null;
+		this.isConnectedToGame = false;
 		
 		// UI state
 		this.questionsCollapsed = false;
@@ -72,6 +75,12 @@ class ControlApp {
 
 		// Setup event listeners
 		this.setupEventListeners();
+		
+		// Setup socket listeners
+		this.setupSocketListeners();
+		
+		// Initialize socket connection
+		this.initializeSocket();
 		
 		// Initialize game control UI
 		this.updateGameControlUI();
@@ -125,6 +134,134 @@ class ControlApp {
 				this.toggleQuestionsSection();
 			});
 		}
+	}
+
+	setupSocketListeners() {
+		// Game connection events
+		this.socket.on(SOCKET_EVENTS.GAME_CREATED, (data) => {
+			this.handleGameCreated(data);
+		});
+
+		this.socket.on(SOCKET_EVENTS.CREATE_GAME_ERROR, (error) => {
+			this.notifications.showError(error.message || 'Chyba pri vytváraní hry');
+		});
+
+		// Moderator reconnection events
+		this.socket.on('moderator_reconnected', (data) => {
+			this.handleModeratorReconnected(data);
+		});
+
+		this.socket.on('moderator_reconnect_error', (error) => {
+			this.notifications.showError(error.message || 'Chyba pri pripájaní k hre');
+		});
+
+		// Game control events
+		this.socket.on('question_started_dashboard', (data) => {
+			this.handleQuestionStarted(data);
+		});
+
+		this.socket.on('question_ended_dashboard', (data) => {
+			this.handleQuestionEnded(data);
+		});
+
+		this.socket.on('start_question_error', (error) => {
+			this.notifications.showError(error.message || 'Chyba pri spustení otázky');
+		});
+
+		// Player updates
+		this.socket.on('player_joined', (data) => {
+			this.handlePlayerJoined(data);
+		});
+
+		this.socket.on('player_left', (data) => {
+			this.handlePlayerLeft(data);
+		});
+
+		// Live stats during questions
+		this.socket.on('live_stats', (data) => {
+			this.handleLiveStats(data);
+		});
+	}
+
+	initializeSocket() {
+		if (this.gamePin) {
+			// Try to reconnect as moderator if we have a game PIN
+			this.reconnectAsModerator();
+		}
+	}
+
+	reconnectAsModerator() {
+		// Try to reconnect using moderator token from localStorage
+		const moderatorToken = localStorage.getItem(`moderator_token_${this.gamePin}`);
+		
+		if (moderatorToken) {
+			this.socket.emit(SOCKET_EVENTS.RECONNECT_MODERATOR, {
+				pin: this.gamePin,
+				moderator_token: moderatorToken
+			});
+		} else {
+			// If no token, try reconnecting with just the PIN (for development)
+			this.socket.emit(SOCKET_EVENTS.RECONNECT_MODERATOR, {
+				pin: this.gamePin
+			});
+		}
+	}
+
+	// Socket event handlers
+	handleGameCreated(data) {
+		this.moderatorToken = data.moderator_token;
+		this.gamePin = data.pin;
+		this.isConnectedToGame = true;
+		
+		// Store moderator token for reconnection
+		localStorage.setItem(`moderator_token_${this.gamePin}`, this.moderatorToken);
+		
+		this.notifications.showSuccess(`Hra vytvorená s PIN: ${data.pin}`);
+		this.updateGameControlUI();
+	}
+
+	handleModeratorReconnected(data) {
+		this.isConnectedToGame = true;
+		this.gameState = data.game?.state || 'waiting';
+		this.playerCount = data.game?.players?.length || 0;
+		
+		this.notifications.showSuccess('Pripojený k hre ako moderátor');
+		this.updateGameControlUI();
+	}
+
+	handleQuestionStarted(data) {
+		this.gameState = 'running';
+		this.currentQuestion = data.questionIndex || 0;
+		this.updateGameControlUI();
+		this.autoCollapseQuestions();
+		this.notifications.showInfo(`Otázka ${this.currentQuestion + 1} bola spustená`);
+	}
+
+	handleQuestionEnded(data) {
+		this.gameState = 'waiting';
+		this.updateGameControlUI();
+		
+		const message = data.hasMoreQuestions ? 
+			'Otázka ukončená. Pripravená ďalšia otázka.' : 
+			'Posledná otázka ukončená. Hra dokončená.';
+		this.notifications.showInfo(message);
+	}
+
+	handlePlayerJoined(data) {
+		this.playerCount++;
+		this.updateGameControlUI();
+		this.notifications.showInfo(`Hráč ${data.player.name} sa pripojil`);
+	}
+
+	handlePlayerLeft(data) {
+		this.playerCount--;
+		this.updateGameControlUI();
+		this.notifications.showInfo(`Hráč ${data.player.name} opustil hru`);
+	}
+
+	handleLiveStats(data) {
+		// Update real-time stats during question if needed
+		// This could show answer counts, etc.
 	}
 
 	// Question Management Methods
@@ -423,35 +560,38 @@ class ControlApp {
 			return;
 		}
 
-		if (!this.gamePin) {
-			this.notifications.showError('Nie je dostupný PIN hry');
+		if (!this.isConnectedToGame) {
+			this.notifications.showError('Nie ste pripojený k hre');
 			return;
 		}
 
-		this.gameState = 'running';
-		this.currentQuestion = 0;
-		this.updateGameControlUI();
-		this.autoCollapseQuestions();
-		this.notifications.showSuccess('Hra bola spustená');
+		// Start the first question via socket
+		this.socket.emit(SOCKET_EVENTS.START_QUESTION);
+		this.notifications.showInfo('Spúšťam prvú otázku...');
 	}
 
 	handlePauseGame() {
 		if (this.gameState === 'running') {
-			this.gameState = 'paused';
-			this.updateGameControlUI();
-			this.notifications.showInfo('Hra bola pozastavená');
-		} else if (this.gameState === 'paused') {
-			this.gameState = 'running';
-			this.updateGameControlUI();
-			this.notifications.showInfo('Hra bola obnovená');
+			// End current question to effectively pause
+			this.socket.emit(SOCKET_EVENTS.END_QUESTION);
+			this.notifications.showInfo('Ukončujem aktuálnu otázku...');
+		} else {
+			// Start next question to resume
+			this.socket.emit(SOCKET_EVENTS.START_QUESTION);
+			this.notifications.showInfo('Spúšťam ďalšiu otázku...');
 		}
 	}
 
 	handleEndGame() {
 		if (confirm('Naozaj chcete ukončiť hru? Všetok postup bude stratený.')) {
-			this.gameState = 'stopped';
+			// First end current question if running
+			if (this.gameState === 'running') {
+				this.socket.emit(SOCKET_EVENTS.END_QUESTION);
+			}
+			
+			// Reset local state
+			this.gameState = 'waiting';
 			this.currentQuestion = 0;
-			this.playerCount = 0;
 			this.updateGameControlUI();
 			this.notifications.showSuccess('Hra bola ukončená');
 		}
@@ -478,24 +618,24 @@ class ControlApp {
 
 		// Update button states
 		if (this.elements.startGameBtn) {
-			this.elements.startGameBtn.disabled = this.gameState === 'running';
+			this.elements.startGameBtn.disabled = !this.isConnectedToGame || this.gameState === 'running';
 		}
 
 		if (this.elements.pauseGameBtn) {
-			this.elements.pauseGameBtn.disabled = this.gameState === 'stopped';
+			this.elements.pauseGameBtn.disabled = !this.isConnectedToGame;
 			const pauseText = this.elements.pauseGameBtn.querySelector('span:last-child');
 			if (pauseText) {
-				pauseText.textContent = this.gameState === 'paused' ? 'Obnoviť hru' : 'Pozastaviť hru';
+				pauseText.textContent = this.gameState === 'running' ? 'Ukončiť otázku' : 'Spustiť otázku';
 			}
 		}
 
 		if (this.elements.endGameBtn) {
-			this.elements.endGameBtn.disabled = this.gameState === 'stopped';
+			this.elements.endGameBtn.disabled = !this.isConnectedToGame;
 		}
 
 		// Update game info
 		if (this.elements.gameInfo) {
-			const shouldShow = this.gameState !== 'stopped';
+			const shouldShow = this.isConnectedToGame;
 			this.elements.gameInfo.style.display = shouldShow ? 'block' : 'none';
 		}
 
@@ -511,7 +651,7 @@ class ControlApp {
 
 		// Update current question
 		if (this.elements.currentQuestionDisplay) {
-			if (this.gameState === 'stopped') {
+			if (!this.isConnectedToGame) {
 				this.elements.currentQuestionDisplay.textContent = '-';
 			} else {
 				this.elements.currentQuestionDisplay.textContent = `${this.currentQuestion + 1} / ${this.questions.length}`;
@@ -574,7 +714,19 @@ class ControlApp {
 
 	// Cleanup when leaving the page
 	cleanup() {
-		// Nothing to cleanup for now
+		// Remove socket listeners
+		if (this.socket) {
+			this.socket.off(SOCKET_EVENTS.GAME_CREATED);
+			this.socket.off(SOCKET_EVENTS.CREATE_GAME_ERROR);
+			this.socket.off('moderator_reconnected');
+			this.socket.off('moderator_reconnect_error');
+			this.socket.off('question_started_dashboard');
+			this.socket.off('question_ended_dashboard');
+			this.socket.off('start_question_error');
+			this.socket.off('player_joined');
+			this.socket.off('player_left');
+			this.socket.off('live_stats');
+		}
 	}
 }
 
