@@ -271,25 +271,30 @@ class DashboardApp {
 
 	updateControlButtons() {
 		const isWaiting = this.gameStatus === GAME_STATES.WAITING;
-		const isRunning = this.gameStatus === GAME_STATES.RUNNING;
-		const isEnded = this.gameStatus === GAME_STATES.ENDED;
+		const isRunning = this.gameStatus === GAME_STATES.RUNNING || this.gameStatus === GAME_STATES.ACTIVE;
+		const isQuestionActive = this.gameStatus === GAME_STATES.QUESTION_ACTIVE;
+		const isEnded = this.gameStatus === GAME_STATES.ENDED || this.gameStatus === GAME_STATES.FINISHED;
 
 		// Game control buttons
-		this.dom.setEnabled(this.elements.startGameBtn, isWaiting && this.players.length > 0);
-		this.dom.setEnabled(this.elements.pauseGameBtn, isRunning);
-		this.dom.setEnabled(this.elements.endGameBtn, isRunning);
+		this.dom.setEnabled(this.elements.startGameBtn, isWaiting);
+		this.dom.setEnabled(this.elements.pauseGameBtn, isRunning || isQuestionActive);
+		this.dom.setEnabled(this.elements.endGameBtn, isRunning || isQuestionActive);
 
-		// Question control buttons
-		this.dom.setEnabled(this.elements.nextQuestionBtn, isRunning);
-		this.dom.setEnabled(this.elements.endQuestionBtn, isRunning && this.currentQuestion);
-		this.dom.setEnabled(this.elements.showResultsBtn, isRunning || isEnded);
+		// Question control buttons  
+		this.dom.setEnabled(this.elements.nextQuestionBtn, isWaiting || isRunning);
+		this.dom.setEnabled(this.elements.endQuestionBtn, isQuestionActive);
+		this.dom.setEnabled(this.elements.showResultsBtn, isRunning || isEnded || isQuestionActive);
 	}
 
 	getStatusText(status) {
 		switch (status) {
 			case GAME_STATES.WAITING: return 'Čakanie';
-			case GAME_STATES.RUNNING: return 'Aktívna';
-			case GAME_STATES.ENDED: return 'Ukončená';
+			case GAME_STATES.RUNNING:
+			case GAME_STATES.ACTIVE: return 'Aktívna';
+			case GAME_STATES.QUESTION_ACTIVE: return 'Otázka aktívna';
+			case GAME_STATES.RESULTS: return 'Výsledky';
+			case GAME_STATES.ENDED:
+			case GAME_STATES.FINISHED: return 'Ukončená';
 			default: return 'Neznámy';
 		}
 	}

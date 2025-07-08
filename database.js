@@ -76,8 +76,10 @@ class GameDatabase {
         if (!this.skipTestGame) {
           this.createTestGame();
         }
-        // Initialize default question templates
-        this.initDefaultTemplates();
+        // Initialize default question templates (only if not in test mode)
+        if (!this.skipTestGame) {
+          this.initDefaultTemplates();
+        }
       }
     });
   }
