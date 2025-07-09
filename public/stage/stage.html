@@ -9,54 +9,27 @@
 	<style>
 		html,
 		body {
-			margin: 0;
-			height: 100%;
-			width: 100%;
+			display: flex;
+			justify-content: center;
 			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-			background: linear-gradient(135deg, var(--primary-purple) 0%, #4a1a5c 50%, #2d0a36 100%);
-			color: white;
-			overflow: hidden;
+			position: relative;
+			background: #47109e;
 		}
 
 		.stage-container {
-			height: 100vh;
 			display: flex;
 			flex-direction: column;
 			padding: 1.5rem;
 			animation: fadeIn 0.8s ease-out;
 			position: relative;
-			overflow: hidden;
-		}
-
-		.stage-container::before {
-			content: '';
-			position: fixed;
-			top: -50%;
-			left: -50%;
-			width: 200%;
-			height: 200%;
-			background: radial-gradient(circle, transparent 20%, rgba(255, 215, 0, 0.02) 40%, transparent 70%);
-			animation: rotate 20s linear infinite;
-			pointer-events: none;
-			z-index: -1;
-		}
-
-		@keyframes rotate {
-			from {
-				transform: rotate(0deg);
-			}
-			to {
-				transform: rotate(360deg);
-			}
 		}
 
 		.stage-header {
 			display: flex;
-			justify-content: space-between;
+			justify-content: center;
 			align-items: center;
 			margin-bottom: 1rem;
 			padding-bottom: 0.5rem;
-			min-height: 80px;
 		}
 
 		.stage-pin-display {
@@ -74,7 +47,6 @@
 			border-radius: 0.75rem;
 			letter-spacing: 0.15rem;
 			border: 3px solid white;
-			min-width: 150px;
 			text-align: center;
 			box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 			transition: all 0.3s ease;
@@ -97,13 +69,6 @@
 			font-weight: bold;
 			backdrop-filter: blur(10px);
 			transition: all 0.3s ease;
-		}
-
-		.stage-content {
-			flex: 1;
-			display: flex;
-			flex-direction: column;
-			gap: 2rem;
 		}
 
 		.results-section {
@@ -158,17 +123,27 @@
 			display: flex;
 			align-items: center;
 			justify-content: space-between;
-			padding: 2.5rem 3rem;
+			padding: 1rem;
 			background: #ffffff;
 			border-radius: 1.5rem;
 			font-size: 1.8rem;
-			min-height: 120px;
 			box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
 			transition: all 0.4s ease;
-			transform: translateY(0);
-			animation: slideUp 0.6s ease-out forwards;
+			animation: slideUp 0.6s ease-out var(--animation-delay, 0s) forwards;
 			opacity: 0;
 			border: 3px solid rgba(138, 43, 226, 0.15);
+		}
+
+		.top3-item:nth-child(1) {
+			--animation-delay: 0.1s;
+		}
+
+		.top3-item:nth-child(2) {
+			--animation-delay: 0.2s;
+		}
+
+		.top3-item:nth-child(3) {
+			--animation-delay: 0.3s;
 		}
 
 		/* Default (non-medal) items get high contrast */
@@ -189,9 +164,7 @@
 			font-weight: 900;
 			border: 5px solid #ffd700;
 			box-shadow: 0 10px 30px rgba(255, 215, 0, 0.5);
-			transform: scale(1.08);
-			animation: bounceIn 0.8s ease-out 0.1s both, glow 2s ease-in-out infinite alternate;
-			min-height: 140px;
+			animation: bounceIn 0.8s ease-out var(--animation-delay, 0.1s) both, glow 2s ease-in-out 1s infinite alternate;
 			position: relative;
 			overflow: visible;
 		}
@@ -202,7 +175,7 @@
 			top: -25px;
 			left: 50%;
 			transform: translateX(-50%);
-			font-size: 2rem;
+			font-size: 4rem;
 			animation: crown 2s ease-in-out infinite;
 			z-index: 10;
 		}
@@ -220,32 +193,43 @@
 			animation: gradientShift 3s ease-in-out infinite;
 		}
 
-		/* Floating particles around winner */
-		.top3-item.first .particle {
+		.top3-item.first .particle1,
+		.top3-item.first .particle2,
+		.top3-item.first .particle3 {
 			position: absolute;
-			font-size: 1rem;
+			font-size: 3rem;
 			animation: float 3s ease-in-out infinite;
 			pointer-events: none;
+			z-index: 5;
 		}
 
-		.top3-item.first .particle:nth-child(1) {
+		.top3-item.first .particle1::before {
 			content: '⭐';
+		}
+
+		.top3-item.first .particle1 {
 			top: 10%;
-			left: -20px;
+			left: -1rem;
 			animation-delay: 0s;
 		}
 
-		.top3-item.first .particle:nth-child(2) {
+		.top3-item.first .particle2::before {
 			content: '🎉';
+		}
+
+		.top3-item.first .particle2 {
 			top: 60%;
-			right: -25px;
+			right: -1rem;
 			animation-delay: 1s;
 		}
 
-		.top3-item.first .particle:nth-child(3) {
+		.top3-item.first .particle3::before {
 			content: '✨';
+		}
+
+		.top3-item.first .particle3 {
 			top: 30%;
-			left: -15px;
+			left: -1.2rem;
 			animation-delay: 2s;
 		}
 
@@ -254,7 +238,7 @@
 			color: #1a1a1a;
 			font-weight: 800;
 			box-shadow: 0 8px 25px rgba(192, 192, 192, 0.4);
-			animation: slideUp 0.6s ease-out 0.2s both;
+			animation: slideUpSecond 0.6s ease-out var(--animation-delay, 0.2s) both;
 			border: 4px solid #c0c0c0;
 		}
 
@@ -263,7 +247,7 @@
 			color: #1a1a1a;
 			font-weight: 800;
 			box-shadow: 0 8px 25px rgba(205, 127, 50, 0.4);
-			animation: slideUp 0.6s ease-out 0.3s both;
+			animation: slideUpThird 0.6s ease-out var(--animation-delay, 0.3s) both;
 			border: 4px solid #cd7f32;
 		}
 
@@ -355,6 +339,7 @@
 			from {
 				opacity: 0;
 			}
+
 			to {
 				opacity: 1;
 			}
@@ -365,6 +350,7 @@
 				opacity: 0;
 				transform: translateY(-30px);
 			}
+
 			to {
 				opacity: 1;
 				transform: translateY(0);
@@ -374,37 +360,65 @@
 		@keyframes slideUp {
 			from {
 				opacity: 0;
-				transform: translateY(30px);
+				transform: translateY(30px) scale(0.8);
 			}
+
 			to {
 				opacity: 1;
-				transform: translateY(0);
+				transform: translateY(0) scale(0.8);
+			}
+		}
+
+		@keyframes slideUpSecond {
+			from {
+				opacity: 0;
+				transform: translateY(30px) scale(0.9);
+			}
+
+			to {
+				opacity: 1;
+				transform: translateY(0) scale(0.9);
+			}
+		}
+
+		@keyframes slideUpThird {
+			from {
+				opacity: 0;
+				transform: translateY(30px) scale(0.85);
+			}
+
+			to {
+				opacity: 1;
+				transform: translateY(0) scale(0.85);
 			}
 		}
 
 		@keyframes fadeInUp {
 			from {
 				opacity: 0;
-				transform: translateY(20px);
+				transform: translateY(20px) scale(1);
 			}
+
 			to {
 				opacity: 1;
-				transform: translateY(0);
+				transform: translateY(0) scale(1);
 			}
 		}
 
 		@keyframes bounceIn {
 			0% {
 				opacity: 0;
-				transform: scale(0.3) translateY(30px);
+				transform: translateY(30px) scale(0.3);
 			}
+
 			50% {
 				opacity: 1;
-				transform: scale(1.1) translateY(-10px);
+				transform: translateY(-10px) scale(0.95);
 			}
+
 			100% {
 				opacity: 1;
-				transform: scale(1.05) translateY(0);
+				transform: translateY(0) scale(1.0);
 			}
 		}
 
@@ -412,18 +426,26 @@
 			from {
 				box-shadow: 0 10px 30px rgba(255, 215, 0, 0.5);
 			}
+
 			to {
 				box-shadow: 0 10px 30px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 215, 0, 0.5), 0 0 60px rgba(255, 215, 0, 0.2);
 			}
 		}
 
 		@keyframes bounce {
-			0%, 20%, 50%, 80%, 100% {
+
+			0%,
+			20%,
+			50%,
+			80%,
+			100% {
 				transform: translateY(0);
 			}
+
 			40% {
 				transform: translateY(-10px);
 			}
+
 			60% {
 				transform: translateY(-5px);
 			}
@@ -431,21 +453,27 @@
 
 		/* Fancy floating particles */
 		@keyframes float {
-			0%, 100% {
-				transform: translateY(0px) rotate(0deg);
+
+			0%,
+			100% {
+				transform: translateY(0px) rotate(0deg) scale(1);
 				opacity: 1;
 			}
+
 			50% {
-				transform: translateY(-20px) rotate(180deg);
+				transform: translateY(-20px) rotate(180deg) scale(1);
 				opacity: 0.8;
 			}
 		}
 
 		@keyframes sparkle {
-			0%, 100% {
+
+			0%,
+			100% {
 				opacity: 1;
 				transform: scale(1);
 			}
+
 			50% {
 				opacity: 0.3;
 				transform: scale(0.8);
@@ -457,9 +485,11 @@
 			0% {
 				background-position: 0% 50%;
 			}
+
 			50% {
 				background-position: 100% 50%;
 			}
+
 			100% {
 				background-position: 0% 50%;
 			}
@@ -468,9 +498,10 @@
 		/* Number counting effect */
 		@keyframes countUp {
 			from {
-				transform: scale(1.2);
+				transform: scale(0.9);
 				opacity: 0.7;
 			}
+
 			to {
 				transform: scale(1);
 				opacity: 1;
@@ -479,66 +510,79 @@
 
 		/* Winner crown effect */
 		@keyframes crown {
-			0%, 100% {
-				transform: translateY(0px) rotate(-5deg);
+
+			0%,
+			100% {
+				transform: translateY(0px) rotate(-5deg) scale(1);
 			}
+
 			50% {
-				transform: translateY(-3px) rotate(5deg);
+				transform: translateY(-3px) rotate(5deg) scale(1);
 			}
 		}
 
-		/* Responsive adjustments */
-		@media (max-width: 768px) {
-			.stage-container {
-				padding: 0.5rem;
+		/* Visibility utility classes with smooth transitions */
+		.hidden {
+			display: none !important;
+		}
+
+		.visible {
+			display: block !important;
+			animation: fadeIn 0.3s ease-out;
+		}
+
+		.visible-flex {
+			display: flex !important;
+			animation: fadeIn 0.3s ease-out;
+		}
+
+		/* Smooth show/hide animations */
+		.fade-in {
+			animation: fadeIn 0.3s ease-out;
+		}
+
+		.fade-out {
+			animation: fadeOut 0.3s ease-out;
+		}
+
+		@keyframes fadeOut {
+			from {
+				opacity: 1;
 			}
 
-			.stage-header {
-				flex-direction: column;
-				gap: 0.5rem;
-				text-align: center;
-				min-height: auto;
+			to {
+				opacity: 0;
+			}
+		}
+
+		/* CSS-only score counting animation */
+		.score-counting {
+			animation: countUp 0.8s ease-out;
+		}
+
+		.score-counting.animated {
+			animation: countUp 0.8s ease-out;
+		}
+
+		/* CSS-only score reveal animation */
+		.score-reveal {
+			animation: scoreReveal 1.5s ease-out;
+		}
+
+		@keyframes scoreReveal {
+			0% {
+				opacity: 0;
+				transform: scale(0.5);
 			}
 
-			.stage-pin-code {
-				font-size: 1.8rem;
-				min-width: 120px;
-				padding: 0.6rem 1.2rem;
+			50% {
+				opacity: 1;
+				transform: scale(0.95);
 			}
 
-			.info-item {
-				font-size: 0.9rem;
-			}
-
-			.section-title {
-				font-size: 2.8rem;
-				margin-bottom: 2rem;
-			}
-
-			.top3-item {
-				padding: 1.75rem 2rem;
-				font-size: 1.4rem;
-				min-height: 90px;
-			}
-
-			.top3-player-name {
-				font-size: 1.6rem;
-			}
-
-			.top3-player-score {
-				font-size: 1.8rem;
-				min-width: 100px;
-			}
-
-			.player-position-message {
-				font-size: 1.4rem;
-				padding: 1.5rem;
-			}
-
-			.stage-footer {
-				flex-direction: column;
-				align-items: center;
-				gap: 1rem;
+			100% {
+				opacity: 1;
+				transform: scale(1);
 			}
 		}
 	</style>
@@ -556,22 +600,20 @@
 		</div>
 
 		<div class="stage-content">
-			<div class="results-section">
-				<h2 class="section-title">🏆 TOP 3</h2>
-				
-				<div id="top3Leaderboard" class="top3-leaderboard">
-					<!-- TOP 3 items will be populated here -->
-				</div>
-				
-				<div id="playerPositionMessage" class="player-position-message" style="display: none;">
-					<!-- Player position message will be shown here -->
-				</div>
+			<h2 class="section-title">🏆 TOP 3</h2>
 
-				<div id="emptyState" class="empty-state" style="display: none;">
-					<div class="empty-state-icon">🎮</div>
-					<h3>Žiadne výsledky</h3>
-					<p>Hra sa ešte neskončila alebo sa nezúčastnili žiadni hráči.</p>
-				</div>
+			<div id="top3Leaderboard" class="top3-leaderboard">
+				<!-- TOP 3 items will be populated here -->
+			</div>
+
+			<div id="playerPositionMessage" class="player-position-message hidden">
+				<!-- Player position message will be shown here -->
+			</div>
+
+			<div id="emptyState" class="empty-state hidden">
+				<div class="empty-state-icon">🎮</div>
+				<h3>Žiadne výsledky</h3>
+				<p>Hra sa ešte neskončila alebo sa nezúčastnili žiadni hráči.</p>
 			</div>
 		</div>
 

@@ -44,6 +44,14 @@ class StageApp {
 		// Initialize TOP 3 component
 		this.top3 = defaultTop3Leaderboard;
 		
+		// Check if this is a panel context (LED display) and hide back button
+		const urlParams = new URLSearchParams(window.location.search);
+		const context = urlParams.get('context');
+		if (context === 'panel' && this.elements.backToJoinBtn) {
+			// Hide the back button for panel view
+			this.elements.backToJoinBtn.classList.add('hidden');
+		}
+		
 		// Setup event listeners
 		this.setupEventListeners();
 		
@@ -193,102 +201,72 @@ class StageApp {
 			'Žiadni hráči'
 		);
 
-		// Add staggered animation to items
-		this.addStaggeredAnimation();
+		// Add CSS-only particles to winner and handle score animations
+		this.setupItemAnimations();
 
 		// Show current player position
 		this.showPlayerPosition(sortedLeaderboard);
 	}
 
-	addStaggeredAnimation() {
+	setupItemAnimations() {
 		const items = this.elements.top3Leaderboard.querySelectorAll('.top3-item');
-		items.forEach((item, index) => {
-			// Reset animation
-			item.style.animation = 'none';
-			item.offsetHeight; // Trigger reflow
-			
-			// Apply staggered animation
+		items.forEach((item) => {
+			// Add CSS-only floating particles for winner
 			if (item.classList.contains('first')) {
-				item.style.animation = `bounceIn 0.8s ease-out ${0.1 + index * 0.1}s both, glow 2s ease-in-out ${1 + index * 0.1}s infinite alternate`;
-				// Add floating particles for winner
-				this.addParticleEffect(item);
-			} else {
-				item.style.animation = `slideUp 0.6s ease-out ${0.2 + index * 0.1}s both`;
+				this.addCSSParticleEffect(item);
 			}
 
-			// Add score counting animation
+			// Add CSS-only score animation
 			const scoreElement = item.querySelector('.top3-player-score');
 			if (scoreElement) {
-				this.animateScore(scoreElement);
+				this.addScoreAnimation(scoreElement);
 			}
 		});
 	}
 
-	addParticleEffect(winnerItem) {
-		// Create floating particles around the winner
-		const particles = ['⭐', '🎉', '✨', '🏆', '💫'];
+	addCSSParticleEffect(winnerItem) {
+		// Add CSS-only floating particles around the winner
+		// Remove any existing particles first
+		const existingParticles = winnerItem.querySelectorAll('.particle1, .particle2, .particle3');
+		existingParticles.forEach(particle => particle.remove());
 		
-		for (let i = 0; i < 3; i++) {
+		// Create particle elements that will be styled with CSS
+		for (let i = 1; i <= 3; i++) {
 			const particle = document.createElement('span');
-			particle.textContent = particles[i % particles.length];
-			particle.className = 'particle';
-			particle.style.position = 'absolute';
-			particle.style.fontSize = '1.2rem';
-			particle.style.pointerEvents = 'none';
-			particle.style.zIndex = '5';
-			
-			// Random positioning around the item
-			const positions = [
-				{ top: '10%', left: '-25px' },
-				{ top: '60%', right: '-30px' },
-				{ top: '30%', left: '-20px' },
-			];
-			
-			const pos = positions[i];
-			Object.assign(particle.style, pos);
-			
-			particle.style.animation = `float 3s ease-in-out infinite ${i * 1}s`;
+			particle.className = `particle${i}`;
 			winnerItem.appendChild(particle);
 		}
 	}
 
-	animateScore(scoreElement) {
-		const finalScore = parseInt(scoreElement.textContent);
-		let currentScore = 0;
-		const increment = Math.max(1, Math.floor(finalScore / 30));
-		
-		scoreElement.textContent = '0';
-		
-		const countInterval = setInterval(() => {
-			currentScore += increment;
-			if (currentScore >= finalScore) {
-				currentScore = finalScore;
-				clearInterval(countInterval);
-				scoreElement.classList.add('animated');
-			}
-			scoreElement.textContent = currentScore.toString();
-		}, 50);
+	addScoreAnimation(scoreElement) {
+		// Add CSS-only score animation
+		scoreElement.classList.add('score-reveal', 'animated');
 	}
 
 
 	showEmptyState() {
 		if (this.elements.emptyState) {
-			this.elements.emptyState.style.display = 'block';
+			this.elements.emptyState.classList.remove('hidden');
+			this.elements.emptyState.classList.add('visible');
 		}
 		if (this.elements.top3Leaderboard) {
-			this.elements.top3Leaderboard.style.display = 'none';
+			this.elements.top3Leaderboard.classList.add('hidden');
+			this.elements.top3Leaderboard.classList.remove('visible-flex');
 		}
 		if (this.elements.playerPositionMessage) {
-			this.elements.playerPositionMessage.style.display = 'none';
+			this.elements.playerPositionMessage.classList.add('hidden');
+			this.elements.playerPositionMessage.classList.remove('visible');
 		}
 	}
 
 	hideEmptyState() {
 		if (this.elements.emptyState) {
-			this.elements.emptyState.style.display = 'none';
+			this.elements.emptyState.classList.add('hidden');
+			this.elements.emptyState.classList.remove('visible');
 		}
 		if (this.elements.top3Leaderboard) {
-			this.elements.top3Leaderboard.style.display = 'flex';
+			this.elements.top3Leaderboard.classList.remove('hidden');
+			this.elements.top3Leaderboard.classList.add('visible-flex');
 		}
 	}
 
@@ -337,7 +315,8 @@ class StageApp {
 
 	showPlayerPosition(sortedLeaderboard) {
 		if (!this.elements.playerPositionMessage || !this.currentPlayer || !sortedLeaderboard) {
-			this.elements.playerPositionMessage.style.display = 'none';
+			this.elements.playerPositionMessage.classList.add('hidden');
+			this.elements.playerPositionMessage.classList.remove('visible');
 			return;
 		}
 
@@ -345,7 +324,8 @@ class StageApp {
 		const position = this.top3.findPlayerPosition(sortedLeaderboard, this.currentPlayer);
 		
 		if (!position) {
-			this.elements.playerPositionMessage.style.display = 'none';
+			this.elements.playerPositionMessage.classList.add('hidden');
+			this.elements.playerPositionMessage.classList.remove('visible');
 			return;
 		}
 
@@ -353,7 +333,8 @@ class StageApp {
 		const message = this.top3.getPositionMessage(position);
 		
 		this.dom.setText(this.elements.playerPositionMessage, message);
-		this.elements.playerPositionMessage.style.display = 'block';
+		this.elements.playerPositionMessage.classList.remove('hidden');
+		this.elements.playerPositionMessage.classList.add('visible');
 	}
 
 	// Cleanup when leaving the page
