@@ -1,16 +1,35 @@
-const sqlite3 = require('sqlite3').verbose();
+const Database = require('better-sqlite3');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 
 class GameDatabase {
   constructor(dbPath = './quiz.db', options = {}) {
-    this.db = new sqlite3.Database(dbPath);
+    this.db = new Database(dbPath);
+    
+    // Enable WAL mode for better concurrency
+    this.db.pragma('journal_mode = WAL');
+    this.db.pragma('synchronous = NORMAL');
+    this.db.pragma('cache_size = 10000');
+    this.db.pragma('temp_store = MEMORY');
+    this.db.pragma('mmap_size = 134217728'); // 128MB
+    this.db.pragma('foreign_keys = ON');
+    
+    // Prepare commonly used statements for better performance
+    this.stmts = {
+      getGameByPin: this.db.prepare('SELECT * FROM games WHERE pin = ?'),
+      getQuestions: this.db.prepare('SELECT * FROM questions WHERE game_id = ? ORDER BY question_order'),
+      getGamePlayers: this.db.prepare('SELECT * FROM players WHERE game_id = ? ORDER BY joined_at ASC'),
+      updatePlayerScore: this.db.prepare('UPDATE players SET score = ?, last_seen = strftime(\'%s\', \'now\') WHERE id = ?'),
+      disconnectPlayer: this.db.prepare('UPDATE players SET connected = false, last_seen = strftime(\'%s\', \'now\') WHERE id = ?'),
+      updateGameState: this.db.prepare('UPDATE games SET status = ?, current_question_index = ?, question_start_time = ?, updated_at = strftime(\'%s\', \'now\') WHERE id = ?')
+    };
+    
     this.skipTestGame = options.skipTestGame || process.env.NODE_ENV === 'test';
     this.initialized = false;
-    this.initializationPromise = this.initTables();
+    this.initTables();
   }
 
-  async initTables() {
+  initTables() {
     const sql = `
       CREATE TABLE IF NOT EXISTS games (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -75,39 +94,32 @@ class GameDatabase {
       CREATE INDEX IF NOT EXISTS idx_answers_player ON answers(player_id);
     `;
     
-    return new Promise((resolve, reject) => {
-      this.db.exec(sql, (err) => {
-        if (err) {
-          console.error('Database init error:', err);
-          reject(err);
-        } else {
-          console.log('Database initialized successfully');
-          this.initialized = true;
-          
-          // Create test game if it doesn't exist and not in test mode
-          if (!this.skipTestGame) {
-            this.createTestGame();
-          }
-          
-          resolve();
-        }
-      });
-    });
+    try {
+      this.db.exec(sql);
+      console.log('Database initialized successfully');
+      this.initialized = true;
+      
+      // Create test game if it doesn't exist and not in test mode
+      if (!this.skipTestGame) {
+        this.createTestGame();
+      }
+    } catch (err) {
+      console.error('Database init error:', err);
+      throw err;
+    }
   }
 
   // Method to wait for initialization completion
-  async waitForInitialization() {
-    if (this.initialized) {
-      return;
-    }
-    await this.initializationPromise;
+  waitForInitialization() {
+    // With better-sqlite3, initialization is synchronous
+    return this.initialized;
   }
 
   // Create test game with PIN 123456
-  async createTestGame() {
+  createTestGame() {
     try {
       // Check if test game already exists
-      const existingGame = await this.getGameByPin('123456');
+      const existingGame = this.getGameByPin('123456');
       if (existingGame) {
         console.log('Test game with PIN 123456 already exists');
         return;
@@ -153,7 +165,7 @@ class GameDatabase {
       ];
 
       // Create test game with default password same as PIN
-      const result = await this.createGame(
+      const result = this.createGame(
         '123456',
         testQuestions,
         '123456' // default password same as PIN
@@ -171,59 +183,41 @@ class GameDatabase {
   }
 
   // Create new game
-  async createGame(pin, questions, moderatorPassword = null) {
-    return new Promise((resolve, reject) => {
-      // Validate inputs
-      if (!pin) {
-        reject(new Error('PIN is required'));
-        return;
-      }
-      
-      if (!questions || !Array.isArray(questions)) {
-        reject(new Error('Questions must be an array'));
-        return;
-      }
-      
-      const passwordHash = moderatorPassword ? bcrypt.hashSync(String(moderatorPassword), 10) : null;
-      const moderatorToken = this.generateToken();
-      const db = this.db;
+  createGame(pin, questions, moderatorPassword = null) {
+    // Validate inputs
+    if (!pin) {
+      throw new Error('PIN is required');
+    }
+    
+    if (!questions || !Array.isArray(questions)) {
+      throw new Error('Questions must be an array');
+    }
+    
+    const passwordHash = moderatorPassword ? bcrypt.hashSync(String(moderatorPassword), 10) : null;
+    const moderatorToken = this.generateToken();
 
+    // Use transaction for data consistency
+    const transaction = this.db.transaction(() => {
       // First, create the game record
       const gameSQL = `
         INSERT INTO games (pin, moderator_password_hash, moderator_token)
         VALUES (?, ?, ?)
       `;
 
-      db.run(gameSQL, [pin, passwordHash, moderatorToken], function(err) {
-        if (err) {
-          reject(err);
-          return;
-        }
+      const gameResult = this.db.prepare(gameSQL).run(pin, passwordHash, moderatorToken);
+      const gameId = gameResult.lastInsertRowid;
 
-        const gameId = this.lastID;
-
-        // Then, insert all questions for this game
+      // Then, insert all questions for this game
+      if (questions.length > 0) {
         const questionSQL = `
           INSERT INTO questions (game_id, question_text, option_a, option_b, option_c, option_d, correct_option, time_limit, question_order)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
-        const stmt = db.prepare(questionSQL);
+        const stmt = this.db.prepare(questionSQL);
         
-        let completedQuestions = 0;
-        const totalQuestions = questions.length;
-
-        if (totalQuestions === 0) {
-          resolve({
-            gameId,
-            moderatorToken,
-            pin
-          });
-          return;
-        }
-
         questions.forEach((question, index) => {
-          stmt.run([
+          stmt.run(
             gameId,
             question.question,
             question.options[0],
@@ -233,364 +227,249 @@ class GameDatabase {
             question.correct,
             question.timeLimit || 30,
             index + 1
-          ], function(err) {
-            if (err) {
-              reject(err);
-              return;
-            }
-            
-            completedQuestions++;
-            if (completedQuestions === totalQuestions) {
-              stmt.finalize();
-              resolve({
-                gameId,
-                moderatorToken,
-                pin
-              });
-            }
-          });
+          );
         });
-      });
+      }
+
+      return {
+        gameId,
+        moderatorToken,
+        pin
+      };
     });
+
+    return transaction();
   }
 
   // Get game by PIN
-  async getGameByPin(pin) {
-    return new Promise((resolve, reject) => {
-      this.db.get('SELECT * FROM games WHERE pin = ?', [pin], (err, gameRow) => {
-        if (err) {
-          reject(err);
-        } else if (gameRow) {
-          // Get questions for this game
-          this.db.all(
-            'SELECT * FROM questions WHERE game_id = ? ORDER BY question_order',
-            [gameRow.id],
-            (err, questionRows) => {
-              if (err) {
-                reject(err);
-              } else {
-                // Convert questions to the format expected by the application
-                gameRow.questions = questionRows.map(q => ({
-                  id: q.id,
-                  question: q.question_text,
-                  options: [q.option_a, q.option_b, q.option_c, q.option_d],
-                  correct: q.correct_option,
-                  timeLimit: q.time_limit
-                }));
-                resolve(gameRow);
-              }
-            }
-          );
-        } else {
-          resolve(null);
-        }
-      });
-    });
+  getGameByPin(pin) {
+    const gameRow = this.stmts.getGameByPin.get(pin);
+    
+    if (!gameRow) {
+      return null;
+    }
+
+    // Get questions for this game
+    const questionRows = this.stmts.getQuestions.all(gameRow.id);
+    
+    // Convert questions to the format expected by the application
+    gameRow.questions = questionRows.map(q => ({
+      id: q.id,
+      question: q.question_text,
+      options: [q.option_a, q.option_b, q.option_c, q.option_d],
+      correct: q.correct_option,
+      timeLimit: q.time_limit
+    }));
+    
+    return gameRow;
   }
 
   // Validate moderator
-  async validateModerator(pin, password, token) {
-    return new Promise((resolve, reject) => {
-      this.db.get('SELECT * FROM games WHERE pin = ?', [pin], (err, row) => {
-        if (err) {
-          console.error('Database error during moderator validation:', err);
-          reject(err);
-        } else if (!row) {
-          resolve(false);
-        } else {
-          
-          // Check token first (for reconnection)
-          if (token && row.moderator_token === token) {
-            row.questions = JSON.parse(row.questions_data || '[]');
-            resolve(row);
-            return;
-          }
-          
-          // Check password
-          if (password && row.moderator_password_hash && 
-              bcrypt.compareSync(password, row.moderator_password_hash)) {
-            row.questions = JSON.parse(row.questions_data || '[]');
-            resolve(row);
-            return;
-          }
-          
-          // If no password protection, allow connection
-          if (!row.moderator_password_hash && !password) {
-            row.questions = JSON.parse(row.questions_data || '[]');
-            resolve(row);
-            return;
-          }
-          resolve(false);
-        }
-      });
-    });
+  validateModerator(pin, password, token) {
+    const row = this.stmts.getGameByPin.get(pin);
+    
+    if (!row) {
+      return false;
+    }
+    
+    // Helper function to add questions to game row
+    const addQuestions = (gameRow) => {
+      const questionRows = this.stmts.getQuestions.all(gameRow.id);
+      gameRow.questions = questionRows.map(q => ({
+        id: q.id,
+        question: q.question_text,
+        options: [q.option_a, q.option_b, q.option_c, q.option_d],
+        correct: q.correct_option,
+        timeLimit: q.time_limit
+      }));
+      return gameRow;
+    };
+    
+    // Check token first (for reconnection)
+    if (token && row.moderator_token === token) {
+      return addQuestions(row);
+    }
+    
+    // Check password
+    if (password && row.moderator_password_hash && 
+        bcrypt.compareSync(password, row.moderator_password_hash)) {
+      return addQuestions(row);
+    }
+    
+    // If no password protection, allow connection
+    if (!row.moderator_password_hash && !password) {
+      return addQuestions(row);
+    }
+    
+    return false;
   }
 
   // Add player without name
-  async addPlayer(gameId) {
-    return new Promise((resolve, reject) => {
-      // Validate inputs
-      if (!gameId) {
-        reject(new Error('Game ID is required'));
-        return;
-      }
+  addPlayer(gameId) {
+    // Validate inputs
+    if (!gameId) {
+      throw new Error('Game ID is required');
+    }
 
-      // Check database connection
-      if (!this.db) {
-        reject(new Error('Database connection not available'));
-        return;
-      }
+    // Check database connection
+    if (!this.db) {
+      throw new Error('Database connection not available');
+    }
 
-      // Generate player token
-      const playerToken = this.generateToken();
-      
+    // Generate player token
+    const playerToken = this.generateToken();
+    
+    // Use transaction for atomic operations
+    const transaction = this.db.transaction(() => {
       // Insert player with auto-generated ID
       const sql = `
         INSERT INTO players (game_id, name, player_token)
         VALUES (?, ?, ?)
       `;
-
-      // Store database reference to avoid context issues
-      const db = this.db;
       
-      db.run(sql, [gameId, 'Hráč', playerToken], function(err) {
-        if (err) {
-          console.error('Error inserting player:', err);
-          reject(new Error(`Failed to create player: ${err.message}`));
-        } else {
-          const playerId = this.lastID;
-          
-          if (!playerId) {
-            reject(new Error('Failed to get player ID after insertion'));
-            return;
-          }
-          
-          // Update name to include ID using stored database reference
-          const updateSql = `UPDATE players SET name = ? WHERE id = ?`;
-          db.run(updateSql, [`Hráč ${playerId}`, playerId], (updateErr) => {
-            if (updateErr) {
-              console.error('Error updating player name:', updateErr);
-              reject(new Error(`Failed to update player name: ${updateErr.message}`));
-            } else {
-              resolve({
-                playerId: playerId,
-                playerToken,
-                name: `Hráč ${playerId}`
-              });
-            }
-          });
-        }
-      });
+      const result = this.db.prepare(sql).run(gameId, 'Hráč', playerToken);
+      const playerId = result.lastInsertRowid;
+      
+      if (!playerId) {
+        throw new Error('Failed to get player ID after insertion');
+      }
+      
+      // Update name to include ID
+      const updateSql = `UPDATE players SET name = ? WHERE id = ?`;
+      this.db.prepare(updateSql).run(`Hráč ${playerId}`, playerId);
+      
+      return {
+        playerId: playerId,
+        playerToken,
+        name: `Hráč ${playerId}`
+      };
     });
+
+    return transaction();
   }
 
   // Reconnect player
-  async reconnectPlayer(gameId, playerToken) {
-    return new Promise((resolve, reject) => {
-      const sql = `
-        UPDATE players 
-        SET connected = true, last_seen = strftime('%s', 'now')
-        WHERE game_id = ? AND player_token = ?
-      `;
+  reconnectPlayer(gameId, playerToken) {
+    const sql = `
+      UPDATE players 
+      SET connected = true, last_seen = strftime('%s', 'now')
+      WHERE game_id = ? AND player_token = ?
+    `;
 
-      this.db.run(sql, [gameId, playerToken], (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          // Get updated player data
-          this.db.get(
-            'SELECT * FROM players WHERE game_id = ? AND player_token = ?',
-            [gameId, playerToken],
-            (err, row) => {
-              if (err) reject(err);
-              else resolve(row);
-            }
-          );
-        }
-      });
-    });
+    this.db.prepare(sql).run(gameId, playerToken);
+    
+    // Get updated player data
+    return this.db.prepare(
+      'SELECT * FROM players WHERE game_id = ? AND player_token = ?'
+    ).get(gameId, playerToken);
   }
 
   // Get game players
-  async getGamePlayers(gameId) {
-    return new Promise((resolve, reject) => {
-      this.db.all(
-        'SELECT * FROM players WHERE game_id = ? ORDER BY joined_at ASC',
-        [gameId],
-        (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows);
-        }
-      );
-    });
+  getGamePlayers(gameId) {
+    return this.stmts.getGamePlayers.all(gameId);
   }
 
   // Update game state
-  async updateGameState(gameId, state) {
-    return new Promise((resolve, reject) => {
-      const sql = `
-        UPDATE games 
-        SET status = ?, current_question_index = ?, question_start_time = ?, updated_at = strftime('%s', 'now')
-        WHERE id = ?
-      `;
-
-      this.db.run(sql, [state.status, state.currentQuestionIndex, state.questionStartTime, gameId], (err) => {
-        if (err) reject(err);
-        else resolve();
-      });
-    });
+  updateGameState(gameId, state) {
+    this.stmts.updateGameState.run(state.status, state.currentQuestionIndex, state.questionStartTime, gameId);
   }
 
   // Update player score
-  async updatePlayerScore(playerId, score) {
-    return new Promise((resolve, reject) => {
-      const sql = `
-        UPDATE players 
-        SET score = ?, last_seen = strftime('%s', 'now')
-        WHERE id = ?
-      `;
-
-      this.db.run(sql, [score, playerId], (err) => {
-        if (err) reject(err);
-        else resolve();
-      });
-    });
+  updatePlayerScore(playerId, score) {
+    this.stmts.updatePlayerScore.run(score, playerId);
   }
 
   // Get question ID by game ID and question order
-  async getQuestionId(gameId, questionOrder) {
-    return new Promise((resolve, reject) => {
-      const sql = `
-        SELECT id FROM questions 
-        WHERE game_id = ? AND question_order = ?
-      `;
+  getQuestionId(gameId, questionOrder) {
+    const sql = `
+      SELECT id FROM questions 
+      WHERE game_id = ? AND question_order = ?
+    `;
 
-      this.db.get(sql, [gameId, questionOrder], (err, row) => {
-        if (err) reject(err);
-        else resolve(row ? row.id : null);
-      });
-    });
+    const row = this.db.prepare(sql).get(gameId, questionOrder);
+    return row ? row.id : null;
   }
 
   // Save answer
-  async saveAnswer(gameId, playerId, questionIndex, answer, isCorrect, points, responseTime) {
-    return new Promise(async (resolve, reject) => {
-      try {
-        // Get the question ID based on game and question order (questionIndex + 1)
-        const questionId = await this.getQuestionId(gameId, questionIndex + 1);
-        
-        if (!questionId) {
-          reject(new Error(`Question not found for game ${gameId} at index ${questionIndex}`));
-          return;
-        }
+  saveAnswer(gameId, playerId, questionIndex, answer, isCorrect, points, responseTime) {
+    // Get the question ID based on game and question order (questionIndex + 1)
+    const questionId = this.getQuestionId(gameId, questionIndex + 1);
+    
+    if (!questionId) {
+      throw new Error(`Question not found for game ${gameId} at index ${questionIndex}`);
+    }
 
-        // Check if answer already exists for this player and question
-        const checkSql = `
-          SELECT id FROM answers 
-          WHERE question_id = ? AND player_id = ?
-        `;
+    // Check if answer already exists for this player and question
+    const checkSql = `
+      SELECT id FROM answers 
+      WHERE question_id = ? AND player_id = ?
+    `;
 
-        this.db.get(checkSql, [questionId, playerId], (err, existingAnswer) => {
-          if (err) {
-            reject(err);
-            return;
-          }
+    const existingAnswer = this.db.prepare(checkSql).get(questionId, playerId);
+    
+    if (existingAnswer) {
+      // Answer already exists, return existing ID
+      console.log(`Answer already exists for player ${playerId} on question ${questionId}`);
+      return existingAnswer.id;
+    }
 
-          if (existingAnswer) {
-            // Answer already exists, resolve without inserting
-            console.log(`Answer already exists for player ${playerId} on question ${questionId}`);
-            resolve(existingAnswer.id);
-            return;
-          }
+    // Insert new answer
+    const insertSql = `
+      INSERT INTO answers (question_id, player_id, selected_option, is_correct, points_earned, response_time)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `;
 
-          // Insert new answer
-          const insertSql = `
-            INSERT INTO answers (question_id, player_id, selected_option, is_correct, points_earned, response_time)
-            VALUES (?, ?, ?, ?, ?, ?)
-          `;
-
-          this.db.run(insertSql, [questionId, playerId, answer, isCorrect, points, responseTime], function(err) {
-            if (err) reject(err);
-            else resolve(this.lastID);
-          });
-        });
-      } catch (error) {
-        reject(error);
-      }
-    });
+    const result = this.db.prepare(insertSql).run(questionId, playerId, answer, isCorrect, points, responseTime);
+    return result.lastInsertRowid;
   }
 
   // Disconnect player
-  async disconnectPlayer(playerId) {
-    return new Promise((resolve, reject) => {
-      const sql = `
-        UPDATE players 
-        SET connected = false, last_seen = strftime('%s', 'now')
-        WHERE id = ?
-      `;
-
-      this.db.run(sql, [playerId], (err) => {
-        if (err) reject(err);
-        else resolve();
-      });
-    });
+  disconnectPlayer(playerId) {
+    this.stmts.disconnectPlayer.run(playerId);
   }
 
   // Remove all players from a game
-  async removeAllPlayersFromGame(gameId) {
-    return new Promise((resolve, reject) => {
-      const sql = `DELETE FROM players WHERE game_id = ?`;
-
-      this.db.run(sql, [gameId], function(err) {
-        if (err) reject(err);
-        else {
-          console.log(`Removed ${this.changes} players from game ${gameId}`);
-          resolve(this.changes);
-        }
-      });
-    });
+  removeAllPlayersFromGame(gameId) {
+    const sql = `DELETE FROM players WHERE game_id = ?`;
+    const result = this.db.prepare(sql).run(gameId);
+    console.log(`Removed ${result.changes} players from game ${gameId}`);
+    return result.changes;
   }
 
   // Cleanup old games (older than 24 hours)
-  async cleanupOldGames() {
-    return new Promise((resolve, reject) => {
-      const oneDayAgo = Math.floor(Date.now() / 1000) - (24 * 60 * 60);
-      
-      // Delete old games and related data
-      this.db.serialize(() => {
-        this.db.run('DELETE FROM answers WHERE game_id IN (SELECT id FROM games WHERE created_at < ?)', [oneDayAgo]);
-        this.db.run('DELETE FROM players WHERE game_id IN (SELECT id FROM games WHERE created_at < ?)', [oneDayAgo]);
-        this.db.run('DELETE FROM games WHERE created_at < ?', [oneDayAgo], function(err) {
-          if (err) reject(err);
-          else {
-            console.log(`Cleaned up ${this.changes} old games`);
-            resolve(this.changes);
-          }
-        });
-      });
+  cleanupOldGames() {
+    const oneDayAgo = Math.floor(Date.now() / 1000) - (24 * 60 * 60);
+    
+    // Delete old games and related data in a transaction
+    const transaction = this.db.transaction(() => {
+      this.db.prepare('DELETE FROM answers WHERE question_id IN (SELECT id FROM questions WHERE game_id IN (SELECT id FROM games WHERE created_at < ?))').run(oneDayAgo);
+      this.db.prepare('DELETE FROM players WHERE game_id IN (SELECT id FROM games WHERE created_at < ?)').run(oneDayAgo);
+      this.db.prepare('DELETE FROM questions WHERE game_id IN (SELECT id FROM games WHERE created_at < ?)').run(oneDayAgo);
+      const result = this.db.prepare('DELETE FROM games WHERE created_at < ?').run(oneDayAgo);
+      return result.changes;
     });
+    
+    const changes = transaction();
+    console.log(`Cleaned up ${changes} old games`);
+    return changes;
   }
 
   // Get game statistics
-  async getGameStats(gameId) {
-    return new Promise((resolve, reject) => {
-      const sql = `
-        SELECT 
-          COUNT(DISTINCT p.id) as total_players,
-          COUNT(a.id) as total_answers,
-          AVG(a.response_time) as avg_response_time,
-          SUM(CASE WHEN a.is_correct = 1 THEN 1 ELSE 0 END) as correct_answers
-        FROM games g
-        LEFT JOIN players p ON g.id = p.game_id
-        LEFT JOIN answers a ON g.id = a.game_id
-        WHERE g.id = ?
-      `;
+  getGameStats(gameId) {
+    const sql = `
+      SELECT 
+        COUNT(DISTINCT p.id) as total_players,
+        COUNT(a.id) as total_answers,
+        AVG(a.response_time) as avg_response_time,
+        SUM(CASE WHEN a.is_correct = 1 THEN 1 ELSE 0 END) as correct_answers
+      FROM games g
+      LEFT JOIN players p ON g.id = p.game_id
+      LEFT JOIN questions q ON g.id = q.game_id
+      LEFT JOIN answers a ON q.id = a.question_id
+      WHERE g.id = ?
+    `;
 
-      this.db.get(sql, [gameId], (err, row) => {
-        if (err) reject(err);
-        else resolve(row);
-      });
-    });
+    return this.db.prepare(sql).get(gameId);
   }
 
   // Get default questions for all games
@@ -670,40 +549,25 @@ class GameDatabase {
   }
 
   // Update questions for an existing game
-  updateGameQuestions(gameId, questions, callback) {
-    // Start a transaction to ensure data consistency
-    this.db.serialize(() => {
-      this.db.run('BEGIN TRANSACTION');
+  updateGameQuestions(gameId, questions) {
+    const transaction = this.db.transaction(() => {
+      // Delete existing questions for this game (answers will cascade delete)
+      this.db.prepare('DELETE FROM questions WHERE game_id = ?').run(gameId);
       
-      // Delete existing questions for this game
-      this.db.run('DELETE FROM questions WHERE game_id = ?', [gameId], (err) => {
-        if (err) {
-          this.db.run('ROLLBACK');
-          return callback(err);
-        }
-        
-        // Insert new questions
+      // Insert new questions
+      if (questions.length > 0) {
         const questionSQL = `
           INSERT INTO questions (game_id, question_text, option_a, option_b, option_c, option_d, correct_option, time_limit, question_order)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
         
-        let completedInserts = 0;
-        let hasError = false;
-        
-        if (questions.length === 0) {
-          // No questions to insert, just commit
-          this.db.run('COMMIT', callback);
-          return;
-        }
+        const stmt = this.db.prepare(questionSQL);
         
         questions.forEach((question, index) => {
-          if (hasError) return;
-          
           const timeLimit = question.timeLimit || 30;
           const questionOrder = index + 1;
           
-          this.db.run(questionSQL, [
+          stmt.run(
             gameId,
             question.question,
             question.options[0],
@@ -713,21 +577,12 @@ class GameDatabase {
             question.correct,
             timeLimit,
             questionOrder
-          ], (err) => {
-            if (err && !hasError) {
-              hasError = true;
-              this.db.run('ROLLBACK');
-              return callback(err);
-            }
-            
-            completedInserts++;
-            if (completedInserts === questions.length) {
-              this.db.run('COMMIT', callback);
-            }
-          });
+          );
         });
-      });
+      }
     });
+    
+    transaction();
   }
 
 
