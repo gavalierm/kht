@@ -390,9 +390,9 @@ app.put('/api/games/:pin/questions', async (req, res) => {
 });
 
 
-// Helper function to reset test game after proper game end
-async function resetTestGameAfterEnd(game, moderatorSocket) {
-  console.log(`Resetting test game ${game.gamePin} after proper game end, preserving ${game.questions?.length || 0} questions`);
+// Helper function to reset any game back to initial state
+async function resetGame(game, moderatorSocket, isManualReset = false) {
+  console.log(`Resetting game ${game.gamePin} (${isManualReset ? 'manual' : 'automatic'} reset), preserving ${game.questions?.length || 0} questions`);
   
   // Reset the game state server-side for next session
   game.phase = 'WAITING';
@@ -415,8 +415,12 @@ async function resetTestGameAfterEnd(game, moderatorSocket) {
   await game.syncToDatabase(db);
   
   // Notify moderator about reset
+  const resetMessage = isManualReset 
+    ? 'Hra bola resetovaná a je pripravená na ďalšiu hru'
+    : 'Hra bola automaticky resetovaná a je pripravená na ďalšiu hru';
+  
   moderatorSocket.emit('game_reset_success', {
-    message: 'Test hra bola resetovaná a je pripravená na ďalšiu hru'
+    message: resetMessage
   });
   
   // Update moderator interface with reset state (no players)
@@ -433,8 +437,9 @@ async function resetTestGameAfterEnd(game, moderatorSocket) {
   // Update panel leaderboard (empty) - this will be shown after they return from stage
   socketManager.broadcastLeaderboardUpdate(game.gamePin, game.getLeaderboard());
   
-  console.log(`Test game ${game.gamePin} has been reset after proper end - game ready for next session`);
+  console.log(`Game ${game.gamePin} has been reset - game ready for next session`);
 }
+
 
 // Socket.io connection handling with high-concurrency optimizations
 io.on('connection', (socket) => {
@@ -713,11 +718,18 @@ io.on('connection', (socket) => {
     // End the game normally
     await endGame(game);
     
-    // After game is properly ended, check if it's test game and reset it
-    if (data.gamePin === '123456') {
-      console.log('Test game ended, resetting for next session');
-      await resetTestGameAfterEnd(game, socket);
-    }
+    // Game has been ended - moderator can now manually reset if needed
+  });
+
+  // Dashboard: Reset game manually
+  socket.on('reset_game', async (data) => {
+    const game = activeGames.get(data.gamePin);
+    if (!game || game.moderatorSocket !== socket.id) return;
+    
+    console.log(`Manual reset requested for game ${data.gamePin}`);
+    
+    // Reset the game regardless of current state
+    await resetGame(game, socket, true);
   });
 
 
@@ -759,28 +771,8 @@ io.on('connection', (socket) => {
         activeGames.set(data.gamePin, game);
       }
 
-      // Allow joining test game even if finished, but reset it
-      if (data.gamePin === '123456' && game.phase === 'FINISHED') {
-        // Reset test game to WAITING state
-        game.phase = 'WAITING';
-        game.currentQuestionIndex = 0;
-        game.questionStartTime = null;
-        game.answers = [];
-        
-        // Reset all player scores but keep them connected
-        for (const player of game.players.values()) {
-          player.score = 0;
-        }
-        
-        // Sync reset state to database
-        game.syncToDatabase(db);
-        
-        // Notify moderator about reset using optimized broadcasting
-        const rooms = socketManager.getGameRooms(data.gamePin);
-        io.to(rooms.moderators).emit('game_reset', {
-          message: 'Test hra bola resetovaná kvôli novému hráčovi'
-        });
-      } else if (game.phase !== 'WAITING' && game.phase !== 'RESULTS') {
+      // Check if game is in a state where players can join
+      if (game.phase !== 'WAITING' && game.phase !== 'RESULTS') {
         socket.emit('join_error', { message: 'Hra už prebieha, nemôžete sa pripojiť' });
         return;
       }
@@ -1241,16 +1233,7 @@ async function endGame(game) {
   
   console.log(`Game ended: ${game.gamePin}, broadcasting to all interfaces with ${leaderboard.length} players`);
   
-  // If this is the test game ending naturally (after all questions), reset it after delay
-  if (game.gamePin === '123456') {
-    console.log('Test game ended naturally, will reset after stage display time');
-    const moderatorSocket = io.sockets.sockets.get(game.moderatorSocket);
-    if (moderatorSocket) {
-      setTimeout(async () => {
-        await resetTestGameAfterEnd(game, moderatorSocket);
-      }, 10000); // Wait 10 seconds to allow users to see stage results
-    }
-  }
+  // Game ended - moderator can now manually reset if needed
 }
 
 // Helper function to update moderator panel stats (optimized)

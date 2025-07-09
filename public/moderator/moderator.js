@@ -23,7 +23,7 @@ class ModeratorApp {
 		this.currentTemplateId = 'general';
 		
 		// Game moderator state
-		this.gameState = 'stopped'; // stopped, running, paused
+		this.gameState = 'stopped'; // stopped, running
 		this.playerCount = 0;
 		this.currentQuestion = 0;
 		this.moderatorToken = null;
@@ -58,8 +58,8 @@ class ModeratorApp {
 			'answer2',
 			'answer3',
 			'startGameBtn',
-			'pauseGameBtn',
 			'endGameBtn',
+			'resetGameBtn',
 			'gamePinDisplay',
 			'playerCountDisplay',
 			'currentQuestionDisplay',
@@ -221,15 +221,15 @@ class ModeratorApp {
 			});
 		}
 
-		if (this.elements.pauseGameBtn) {
-			this.elements.pauseGameBtn.addEventListener('click', () => {
-				this.handlePauseGame();
-			});
-		}
-
 		if (this.elements.endGameBtn) {
 			this.elements.endGameBtn.addEventListener('click', () => {
 				this.handleEndGame();
+			});
+		}
+
+		if (this.elements.resetGameBtn) {
+			this.elements.resetGameBtn.addEventListener('click', () => {
+				this.handleResetGame();
 			});
 		}
 
@@ -839,19 +839,6 @@ class ModeratorApp {
 		this.notifications.showInfo(`Spúšťam otázku ${questionNumber}...`);
 	}
 
-	handlePauseGame() {
-		if (this.gameState === 'running') {
-			// End current question to effectively pause
-			this.socket.emit(SOCKET_EVENTS.END_QUESTION, { gamePin: this.gamePin });
-			this.notifications.showInfo('Ukončujem aktuálnu otázku...');
-		} else {
-			// Start next question to resume
-			this.socket.emit(SOCKET_EVENTS.START_QUESTION, { gamePin: this.gamePin });
-			const questionNumber = this.currentQuestion + 1;
-			this.notifications.showInfo(`Spúšťam otázku ${questionNumber}...`);
-		}
-	}
-
 	handleEndGame() {
 		if (confirm('Naozaj chcete ukončiť hru? Všetok postup bude stratený.')) {
 			// End the game using the new END_GAME event
@@ -860,6 +847,16 @@ class ModeratorApp {
 			// Don't change local state immediately - let server events handle it
 			// The server will either end the game or reset it (for test game)
 			this.notifications.showInfo('Ukončujem hru...');
+		}
+	}
+
+	handleResetGame() {
+		if (confirm('Naozaj chcete resetovať hru? Všetok postup bude stratený a hra sa vráti na začiatok.')) {
+			// Reset the game using the new RESET_GAME event
+			this.socket.emit(SOCKET_EVENTS.RESET_GAME, { gamePin: this.gamePin });
+			
+			// Don't change local state immediately - let server events handle it
+			this.notifications.showInfo('Resetujem hru...');
 		}
 	}
 
@@ -905,14 +902,6 @@ class ModeratorApp {
 		// Update button states
 		if (this.elements.startGameBtn) {
 			this.elements.startGameBtn.disabled = this.gameState === 'running';
-		}
-
-		if (this.elements.pauseGameBtn) {
-			this.elements.pauseGameBtn.disabled = false;
-			const pauseText = this.elements.pauseGameBtn.querySelector('span:last-child');
-			if (pauseText) {
-				pauseText.textContent = this.gameState === 'running' ? 'Ukončiť otázku' : 'Spustiť otázku';
-			}
 		}
 
 		if (this.elements.endGameBtn) {

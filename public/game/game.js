@@ -618,6 +618,13 @@ class App {
 		const updateTimer = () => {
 			this.dom.setText(this.elements.timer?.querySelector('.timer-text'), timeLeft);
 			
+			// Change color when time is running out
+			if (timeLeft <= 10 && this.elements.timer) {
+				this.elements.timer.classList.add('low-time');
+			} else if (this.elements.timer) {
+				this.elements.timer.classList.remove('low-time');
+			}
+			
 			if (timeLeft <= 0) {
 				clearInterval(this.timerInterval);
 				if (!this.gameState.hasAnswered) {

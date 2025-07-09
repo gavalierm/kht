@@ -19,6 +19,9 @@ class PanelApp {
 		this.gameStatus = GAME_STATES.WAITING;
 		this.countdownTimer = null;
 		this.timeRemaining = 0;
+		this.playerCount = 0;
+		this.currentQuestionNumber = 0;
+		this.totalQuestions = 0;
 
 		// Element references
 		this.elements = {};
@@ -38,6 +41,7 @@ class PanelApp {
 			'panelPinCode',
 			'panelCountdown',
 			'panelLoadingOverlay',
+			'panelUserCount',
 			ELEMENT_IDS.PANEL_TITLE,
 			ELEMENT_IDS.PANEL_QUESTION_NUMBER,
 			ELEMENT_IDS.PANEL_QUESTION_TEXT,
@@ -100,6 +104,7 @@ class PanelApp {
 		this.socket.on(SOCKET_EVENTS.PANEL_GAME_JOINED, (data) => {
 			console.log('Panel joined game:', data);
 			this.gamePin = data.gamePin;
+			this.totalQuestions = data.questionCount || 0;
 			this.showPanelInterface();
 			this.updateGameInfo();
 			// Only update status if server provides current game status, otherwise keep current state
@@ -108,10 +113,14 @@ class PanelApp {
 			} else {
 				// If no game status provided, assume waiting state only for initial connection
 				if (!this.gameStatus || this.gameStatus === 'disconnected') {
-					this.updateStatus(GAME_STATES.WAITING);
-				}
+				this.updateStatus(GAME_STATES.WAITING);
+			}
 				// Otherwise keep the current state (question active, results, etc.)
 			}
+			
+			// Initialize displays
+			this.updatePlayerCountDisplay();
+			this.updateQuestionNumberDisplay();
 		});
 
 		this.socket.on(SOCKET_EVENTS.PANEL_JOIN_ERROR, (data) => {
@@ -146,6 +155,8 @@ class PanelApp {
 		this.socket.on(SOCKET_EVENTS.PANEL_LEADERBOARD_UPDATE, (data) => {
 			console.log('Leaderboard update:', data);
 			this.updateLeaderboard(data.leaderboard);
+			// Update player count from leaderboard
+			this.updatePlayerCountFromLeaderboard(data.leaderboard);
 		});
 
 		// Game state updates
@@ -233,13 +244,12 @@ class PanelApp {
 
 	showQuestion(data) {
 		this.currentQuestion = data;
+		this.currentQuestionNumber = data.questionNumber;
+		this.totalQuestions = data.totalQuestions;
 		this.updateStatus(GAME_STATES.QUESTION_ACTIVE);
 
 		// Update question number
-		if (this.elements.panelQuestionNumber) {
-			this.dom.setText(this.elements.panelQuestionNumber, 
-				`${data.questionNumber}/${data.totalQuestions}`);
-		}
+		this.updateQuestionNumberDisplay();
 
 		// Update question text
 		if (this.elements.panelQuestionText) {
@@ -334,11 +344,9 @@ class PanelApp {
 		if (this.elements.panelCountdown) {
 			// Change color when time is running out
 			if (this.timeRemaining <= 10) {
-				this.elements.panelCountdown.style.background = 'red';
-				this.elements.panelCountdown.style.color = 'white';
+				this.elements.panelCountdown.classList.add('low-time');
 			} else {
-				this.elements.panelCountdown.style.background = 'white';
-				this.elements.panelCountdown.style.color = 'var(--primary-purple)';
+				this.elements.panelCountdown.classList.remove('low-time');
 			}
 		}
 	}
@@ -415,6 +423,34 @@ class PanelApp {
 		);
 	}
 
+	updatePlayerCountFromLeaderboard(leaderboard) {
+		if (leaderboard && Array.isArray(leaderboard)) {
+			// Count unique players from leaderboard
+			const uniquePlayers = new Set(leaderboard.map(player => player.name || player.id));
+			this.playerCount = uniquePlayers.size;
+		} else {
+			this.playerCount = 0;
+		}
+		this.updatePlayerCountDisplay();
+	}
+
+	updatePlayerCountDisplay() {
+		if (this.elements.panelUserCount) {
+			this.dom.setText(this.elements.panelUserCount, `Hráčov ${this.playerCount}`);
+		}
+	}
+
+	updateQuestionNumberDisplay() {
+		if (this.elements.panelQuestionNumber) {
+			if (this.totalQuestions > 0) {
+				this.dom.setText(this.elements.panelQuestionNumber, 
+					`${this.currentQuestionNumber}/${this.totalQuestions}`);
+			} else {
+				this.dom.setText(this.elements.panelQuestionNumber, '0/0');
+			}
+		}
+	}
+
 	showError(message) {
 		console.error('Panel error:', message);
 		this.hideLoading();
@@ -457,6 +493,13 @@ class PanelApp {
 		
 		// Update status to finished
 		this.updateStatus(GAME_STATES.FINISHED);
+		
+		// Update question tracking with final values
+		if (data.totalQuestions) {
+			this.totalQuestions = data.totalQuestions;
+			this.currentQuestionNumber = data.totalQuestions;
+			this.updateQuestionNumberDisplay();
+		}
 		
 		// Show final leaderboard
 		if (data.leaderboard && this.elements.panelLeaderboardList) {
@@ -512,11 +555,18 @@ class PanelApp {
 			// Game is waiting for next question to start
 			this.updateStatus(GAME_STATES.WAITING);
 			
+			// Update question tracking
+			this.currentQuestionNumber = data.questionNumber;
+			this.totalQuestions = data.totalQuestions;
+			
 			// Show waiting message
 			if (this.elements.panelQuestionText) {
 				this.dom.setText(this.elements.panelQuestionText, 
 					`Čakáme na otázku ${data.questionNumber}/${data.totalQuestions}...`);
 			}
+			
+			// Update question number display
+			this.updateQuestionNumberDisplay();
 			
 			// Reset options during waiting but keep them visible
 			const optionElements = [

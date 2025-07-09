@@ -621,7 +621,7 @@
 	left: 50%;
 	top: 50%;
 	transform: translate(-50%, -50%);
-	background: linear-gradient(135deg, #ffffff, #f8f9fa);
+	background: white;
 	font-weight: bold;
 	aspect-ratio: 1;
 	display: flex;
@@ -672,6 +672,15 @@
 
 .quiz-timer.waiting .spinner {
 	display: block;
+}
+
+/* Low time timer styling */
+.quiz-timer.low-time {
+	background-color: var(--option-red);
+}
+
+.quiz-timer.low-time .timer-text {
+	color: white;
 }
 
 /* Quiz Options Container */
