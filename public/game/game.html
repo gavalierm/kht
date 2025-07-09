@@ -223,34 +223,6 @@
 			}
 		}
 
-		.question {
-			padding: 1em;
-			font-size: 1.7em;
-			font-weight: bold;
-			background: linear-gradient(135deg, rgba(71, 16, 158, 0.1), rgba(255, 255, 255, 0.1));
-			border-radius: 1em;
-			margin: 0;
-			box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-			animation: questionAppear 0.8s ease-out;
-			position: relative;
-			flex: 0 0 40%;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			text-align: center;
-		}
-
-		@keyframes questionAppear {
-			from {
-				transform: translateY(-20px) scale(0.95);
-				opacity: 0;
-			}
-
-			to {
-				transform: translateY(0) scale(1);
-				opacity: 1;
-			}
-		}
 
 		#playground .options_container {
 			flex: 0 0 60%;
@@ -259,125 +231,21 @@
 			min-height: 0;
 		}
 
-		#playground .options_container #timer {
-			z-index: 50;
-			flex: 1;
-			position: absolute;
-			left: 50%;
-			top: 50%;
-			transform: translate(-50%, -50%);
-			background: linear-gradient(135deg, #ffffff, #f8f9fa);
-			font-weight: bold;
-			aspect-ratio: 1;
-			display: flex;
-			justify-content: center;
-			align-items: center;
-			width: 3em;
-			overflow: hidden;
-			border-radius: 100%;
-			box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 40px rgba(71, 16, 158, 0.2);
-			font-size: 1.3em;
-			border: 3px solid rgba(71, 16, 158, 0.2);
-			animation: timerPulse 2s ease-in-out infinite;
-		}
 
-		@keyframes timerPulse {
 
-			0%,
-			100% {
-				transform: translate(-50%, -50%) scale(1);
-				box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 40px rgba(71, 16, 158, 0.2);
-			}
 
-			50% {
-				transform: translate(-50%, -50%) scale(1.02);
-				box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), 0 0 45px rgba(71, 16, 158, 0.3);
-			}
-		}
 
-		/* Timer states - show/hide content based on waiting class */
-		#timer .timer-text {
-			display: block;
-		}
-
-		#timer .spinner {
-			display: none;
-			/* Override spinner colors for better contrast on white background */
-			width: 1em;
-			height: 1em;
-			border: 2px solid #ddd;
-			border-top-color: var(--primary-purple);
-		}
-
-		#timer.waiting .timer-text {
-			display: none;
-		}
-
-		#timer.waiting .spinner {
-			display: block;
-		}
-
-		#playground #options {
-			flex: 1;
-			display: grid;
-			grid-template-columns: repeat(2, 1fr);
-			grid-template-rows: repeat(2, 1fr);
-			gap: 0.1em;
-		}
-
-		#playground #options .option {
-			display: flex;
-			align-items: center;
-			flex-direction: column;
-			padding: 0.6em;
-			overflow: hidden;
-			justify-content: center;
-			color: white;
-			cursor: pointer;
-			transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-			border-radius: 1em;
-			margin: 0.05em;
-			box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-			position: relative;
-			animation: optionSlideIn 0.6s ease-out forwards;
-			opacity: 0;
-			transform: translateY(30px);
-			gap: 0.3em;
-		}
-
-		#playground #options .option:nth-child(1) {
-			animation-delay: 0.1s;
-		}
-
-		#playground #options .option:nth-child(2) {
-			animation-delay: 0.2s;
-		}
-
-		#playground #options .option:nth-child(3) {
-			animation-delay: 0.3s;
-		}
-
-		#playground #options .option:nth-child(4) {
-			animation-delay: 0.4s;
-		}
-
-		@keyframes optionSlideIn {
-			to {
-				opacity: 1;
-				transform: translateY(0);
-			}
-		}
-
-		.option:hover:not([style*="pointer-events: none"]) {
+		/* Game-specific option interactions */
+		.quiz-option-game:hover:not([style*="pointer-events: none"]) {
 			transform: translateY(-8px) scale(1.02);
 			box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 		}
 
-		.option:active:not([style*="pointer-events: none"]) {
+		.quiz-option-game:active:not([style*="pointer-events: none"]) {
 			transform: translateY(-4px) scale(0.98);
 		}
 
-		.option::after {
+		.quiz-option-game::after {
 			content: '';
 			position: absolute;
 			top: 0;
@@ -389,12 +257,12 @@
 			transition: opacity 0.3s;
 		}
 
-		.option:hover::after {
+		.quiz-option-game:hover::after {
 			opacity: 1;
 		}
 
 		/* Voted state styles */
-		.option.voted {
+		.quiz-option-game.voted {
 			position: relative;
 			transform: translateY(-8px) scale(1.05) !important;
 			box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4), 0 0 0 4px rgba(255, 255, 255, 0.8) !important;
@@ -403,7 +271,7 @@
 			animation: voteSuccess 0.6s ease-out;
 		}
 
-		.option.voted::after {
+		.quiz-option-game.voted::after {
 			content: '✓';
 			position: absolute;
 			top: 10px;
@@ -422,7 +290,7 @@
 			animation: checkmarkAppear 0.3s ease-out 0.2s both;
 		}
 
-		.option.voted .voted-label {
+		.quiz-option-game.voted .voted-label {
 			position: absolute;
 			bottom: 8px;
 			left: 50%;
@@ -437,7 +305,7 @@
 			animation: labelSlideUp 0.4s ease-out 0.3s both;
 		}
 
-		.option.not-voted {
+		.quiz-option-game.not-voted {
 			opacity: 0.3 !important;
 			transform: scale(0.95) !important;
 			filter: grayscale(0.7) !important;
@@ -485,70 +353,16 @@
 			}
 		}
 
-		.option[style*="cursor: not-allowed"]:hover {
+		.quiz-option-game[style*="cursor: not-allowed"]:hover {
 			transform: none;
 		}
 		
 		/* Ensure options remain clickable during waiting state */
-		.option {
+		.quiz-option-game {
 			pointer-events: auto !important;
 		}
 
-		.option::before {
-			content: "X";
-			font-weight: bold;
-			font-size: 1.5em;
-			background: rgba(255, 255, 255, 0.25);
-			border-radius: 50%;
-			width: 1.5em;
-			height: 1.5em;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			margin-bottom: 0.5em;
-		}
 
-		.option p {
-			display: block;
-			font-size: 1.1em;
-			font-weight: 600;
-			line-height: 1.2;
-			text-align: center;
-			margin: 0;
-		}
-
-		/* Option color variants using CSS variables */
-		.option_a {
-			background: linear-gradient(135deg, var(--option-red), #dc3545);
-		}
-
-		.option_a::before {
-			content: "A";
-		}
-
-		.option_b {
-			background: linear-gradient(135deg, var(--option-blue), #0056b3);
-		}
-
-		.option_b::before {
-			content: "B";
-		}
-
-		.option_c {
-			background: linear-gradient(135deg, var(--option-yellow), #e0a800);
-		}
-
-		.option_c::before {
-			content: "C";
-		}
-
-		.option_d {
-			background: linear-gradient(135deg, var(--option-green), #20c997);
-		}
-
-		.option_d::before {
-			content: "D";
-		}
 
 		#scoreboard {
 			flex: 1;
@@ -717,33 +531,37 @@
 			</div>
 
 			<div class="content-wrapper visible" id="playground">
-				<p class="question" id="questionText">
+				<p class="quiz-question quiz-question-game" id="questionText">
 					Čakám na otázku...
 				</p>
 				<div class="options_container">
-					<div id="timer" class="waiting">
+					<div id="timer" class="quiz-timer waiting">
 						<span class="timer-text">-</span>
 						<div class="spinner"></div>
 					</div>
-					<div id="options">
-						<div class="option option_a">
-							<p>-</p>
+					<div id="options" class="quiz-options-grid">
+						<div class="quiz-option quiz-option-game quiz-option-a">
+							<div class="quiz-option-letter">A</div>
+							<p class="quiz-option-text">-</p>
 						</div>
-						<div class="option option_b">
-							<p>-</p>
+						<div class="quiz-option quiz-option-game quiz-option-b">
+							<div class="quiz-option-letter">B</div>
+							<p class="quiz-option-text">-</p>
 						</div>
-						<div class="option option_c">
-							<p>-</p>
+						<div class="quiz-option quiz-option-game quiz-option-c">
+							<div class="quiz-option-letter">C</div>
+							<p class="quiz-option-text">-</p>
 						</div>
-						<div class="option option_d">
-							<p>-</p>
+						<div class="quiz-option quiz-option-game quiz-option-d">
+							<div class="quiz-option-letter">D</div>
+							<p class="quiz-option-text">-</p>
 						</div>
 					</div>
 				</div>
 			</div>
 
 			<div class="content-wrapper" id="result">
-				<p class="question" id="questionText2">
+				<p class="quiz-question quiz-question-game" id="questionText2">
 					Správna odpoveď
 				</p>
 				<div>
