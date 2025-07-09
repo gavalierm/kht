@@ -294,6 +294,10 @@ class StageApp {
 
 
 	handleBackToJoin() {
+		// Clear game state and saved session to prevent auto-redirect back to game
+		this.gameState.clearGame();
+		this.gameState.clearSavedSession();
+		
 		// Navigate back to join screen
 		this.router.redirectToJoin();
 	}
