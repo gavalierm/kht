@@ -523,6 +523,42 @@ class App {
 		}
 	}
 
+	setGameEndedState() {
+		// Set game state to ended
+		this.gameState.setWaiting(true);
+		
+		// Update question text to show game ended
+		this.dom.setText(this.elements.questionText, '🏆 Hra skončila!');
+		
+		// Show spinner in timer
+		this.dom.addClass(this.elements.timer, 'waiting');
+		
+		// Fade all option buttons (like unvoted ones)
+		const optionElements = this.elements.options?.querySelectorAll('.option');
+		if (optionElements) {
+			optionElements.forEach(optionEl => {
+				// Clear voting states first
+				this.dom.removeClass(optionEl, 'voted');
+				this.dom.removeClass(optionEl, 'not-voted');
+				
+				// Remove voted label if it exists
+				const votedLabel = optionEl.querySelector('.voted-label');
+				if (votedLabel) {
+					votedLabel.remove();
+				}
+				
+				// Apply faded state (similar to not-voted)
+				this.dom.addClass(optionEl, 'not-voted');
+				
+				// Disable interactions
+				this.dom.setStyles(optionEl, {
+					pointerEvents: 'none',
+					cursor: 'not-allowed'
+				});
+			});
+		}
+	}
+
 	showQuestion(data) {
 		// Switch to playground phase
 		this.dom.removeClass(this.elements.result, 'visible');
@@ -708,12 +744,15 @@ class App {
 		// Clear game timers
 		this.gameState.clearTimers();
 		
+		// Set proper end game UI state
+		this.setGameEndedState();
+		
 		// Redirect to stage interface to show final leaderboard
 		const gamePin = this.gameState.gamePin;
 		if (gamePin) {
 			setTimeout(() => {
 				this.router.redirectToStage(gamePin);
-			}, 2000); // Wait 2 seconds to show notification
+			}, 3000); // Wait 3 seconds to show proper end state
 		} else {
 			// Fallback if no game PIN
 			this.router.redirectToJoin();
