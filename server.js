@@ -7,6 +7,7 @@ const GameDatabase = require('./database');
 const { GameInstance } = require('./lib/gameInstance');
 const { generateGamePin } = require('./lib/gameUtils');
 const SocketManager = require('./lib/socketManager');
+const MemoryManager = require('./lib/memoryManager');
 
 const app = express();
 const server = http.createServer(app);
@@ -26,6 +27,14 @@ const io = socketIo(server, {
 // Initialize database and socket manager
 const db = new GameDatabase();
 const socketManager = new SocketManager(io);
+
+// Initialize memory manager for high-concurrency support
+const memoryManager = new MemoryManager(activeGames, {
+  maxActiveGames: 100,
+  maxMemoryUsageMB: 512,
+  cleanupInterval: 5 * 60 * 1000, // 5 minutes
+  gameInactivityTimeout: 30 * 60 * 1000 // 30 minutes
+});
 
 // Helper function to validate question structure
 function validateQuestions(questions) {
@@ -740,8 +749,8 @@ io.on('connection', (socket) => {
         score: 0
       });
     
-      const player = game.players.get(playerResult.playerId);
-      player.socketId = socket.id;
+      const player = game.getPlayer(playerResult.playerId);
+      game.setPlayerSocket(playerResult.playerId, socket.id);
     
       // Store player info
       socketToPlayer.set(socket.id, {
@@ -754,12 +763,12 @@ io.on('connection', (socket) => {
         gamePin: data.gamePin,
         playerId: playerResult.playerId,
         playerName: player.name,
-        playersCount: Array.from(game.players.values()).filter(p => p.connected).length,
+        playersCount: game.getConnectedPlayerCount(),
         playerToken: playerResult.playerToken
       });
     
-      // Update dashboard with optimized broadcasting
-      const connectedPlayers = Array.from(game.players.values()).filter(p => p.connected);
+      // Update dashboard with broadcasting
+      const connectedPlayers = game.getConnectedPlayers();
       const rooms = socketManager.getGameRooms(data.gamePin);
       io.to(rooms.moderators).emit('player_joined', {
         playerId: playerResult.playerId,
@@ -767,7 +776,7 @@ io.on('connection', (socket) => {
         players: connectedPlayers.map(p => ({ id: p.id, name: p.name }))
       });
     
-      // Update panel leaderboard with optimized broadcasting
+      // Update panel leaderboard
       socketManager.broadcastLeaderboardUpdate(data.gamePin, game.getLeaderboard());
     
       console.log(`Player ${playerResult.playerId} joined game ${data.gamePin} (${connectedPlayers.length} total players)`);
@@ -824,11 +833,13 @@ io.on('connection', (socket) => {
         activeGames.set(data.gamePin, game);
       }
 
-      // Update player in memory
+      // Update player in memory with optimized socket management
       if (game.players.has(playerData.id)) {
-        const player = game.players.get(playerData.id);
-        player.socketId = socket.id;
-        player.connected = true;
+        game.setPlayerSocket(playerData.id, socket.id);
+        const player = game.getPlayer(playerData.id);
+        if (player) {
+          player.connected = true;
+        }
       }
 
       // Store player info (remove any existing connection first)
@@ -850,7 +861,7 @@ io.on('connection', (socket) => {
       socket.emit('player_reconnected', {
         gamePin: data.gamePin,
         playerId: playerData.id,
-        playerName: game.players.get(playerData.id)?.name || `Hráč ${playerData.id}`,
+        playerName: game.getPlayer(playerData.id)?.name || `Hráč ${playerData.id}`,
         score: playerData.score,
         gameStatus: game.phase
       });
@@ -879,12 +890,12 @@ io.on('connection', (socket) => {
       const isCorrect = data.answer === question.correct;
       const points = game.calculateScore(answerData.responseTime, isCorrect, question.timeLimit);
       
-      // Update player score in memory
-      const player = game.players.get(playerInfo.playerId);
+      // Update player score in memory with optimized access
+      const player = game.getPlayer(playerInfo.playerId);
       if (player) {
         player.score += points;
         
-        // Queue database operations for batching (performance optimization)
+        // Queue database operations for batching
         socketManager.queueDatabaseOperation({
           type: 'updatePlayerScore',
           execute: () => db.updatePlayerScore(playerInfo.playerId, player.score)
@@ -992,22 +1003,18 @@ io.on('connection', (socket) => {
     const playerInfo = socketToPlayer.get(socket.id);
     if (playerInfo) {
       try {
-        // Only mark as disconnected, don't remove from database
+        // Mark as disconnected with optimized player management
         const game = activeGames.get(playerInfo.gamePin);
         if (game && game.players.has(playerInfo.playerId)) {
-          const player = game.players.get(playerInfo.playerId);
-          player.connected = false;
-          player.socketId = null;
+          game.removePlayer(playerInfo.playerId, false); // Temporary disconnection
           
-          // Update dashboard and panel
-          const connectedPlayers = Array.from(game.players.values()).filter(p => p.connected);
-          if (game.moderatorSocket) {
-            io.to(game.moderatorSocket).emit('player_left', {
-              totalPlayers: connectedPlayers.length
-            });
-          }
+          // Update dashboard and panel with optimized methods
+          const rooms = socketManager.getGameRooms(playerInfo.gamePin);
+          io.to(rooms.moderators).emit('player_left', {
+            totalPlayers: game.getConnectedPlayerCount()
+          });
           
-          // Update panel leaderboard with current connected players
+          // Update panel leaderboard
           socketManager.broadcastLeaderboardUpdate(game.gamePin, game.getLeaderboard());
         }
       } catch (error) {
@@ -1046,7 +1053,7 @@ async function endQuestion(game) {
     leaderboard: leaderboard.slice(0, 10),
     answerStats: stats,
     totalAnswers: game.answers.length,
-    totalPlayers: Array.from(game.players.values()).filter(p => p.connected).length
+    totalPlayers: game.getConnectedPlayerCount()
   };
   
   // Use optimized broadcasting for question end
@@ -1106,7 +1113,7 @@ async function endGame(game) {
   
   const gameEndData = {
     leaderboard: leaderboard,
-    totalPlayers: Array.from(game.players.values()).filter(p => p.connected).length,
+    totalPlayers: game.getConnectedPlayerCount(),
     totalQuestions: game.questions.length
   };
   
@@ -1141,7 +1148,7 @@ function updateDashboardStats(game) {
   const rooms = socketManager.getGameRooms(game.gamePin);
   io.to(rooms.moderators).emit('live_stats', {
     answeredCount: game.answers.length,
-    totalPlayers: Array.from(game.players.values()).filter(p => p.connected).length,
+    totalPlayers: game.getConnectedPlayerCount(),
     answerStats: stats
   });
 }
@@ -1201,6 +1208,9 @@ const gracefulShutdown = async (signal) => {
     for (const [gamePin, game] of activeGames.entries()) {
       await game.syncToDatabase(db);
     }
+    
+    // Shutdown memory manager
+    memoryManager.shutdown();
     
     // Close database connection
     db.close();

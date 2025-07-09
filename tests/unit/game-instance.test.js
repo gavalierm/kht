@@ -38,7 +38,7 @@ describe('GameInstance', () => {
       expect(player.name).toBe('TestPlayer');
       expect(player.score).toBe(0);
       expect(player.connected).toBe(true);
-      expect(player.token).toBe('test-token-123');
+      expect(game.playerTokens.get(1)).toBe('test-token-123');
     });
 
     test('should handle player disconnection', () => {
