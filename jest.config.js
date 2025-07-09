@@ -5,11 +5,7 @@ module.exports = {
       displayName: 'node',
       testEnvironment: 'node',
       testMatch: [
-        '**/tests/unit/server-*.test.js',
-        '**/tests/unit/database*.test.js', 
-        '**/tests/unit/dashboard-functionality.test.js',
-        '**/tests/unit/game-instance.test.js',
-        '**/tests/unit/game-logic.test.js',
+        '**/tests/unit/*.test.js',
         '**/tests/integration/*.test.js',
         '**/tests/e2e/*.test.js'
       ],
@@ -20,10 +16,7 @@ module.exports = {
       displayName: 'jsdom',
       testEnvironment: 'jsdom',
       testMatch: [
-        '**/tests/unit/connection-status.test.js',
-        '**/tests/unit/dom-helper.test.js',
-        '**/tests/unit/client-*.test.js',
-        '**/tests/unit/create-page.test.js'
+        '**/tests/frontend/*.test.js'
       ],
       // Transform ES6 modules for frontend tests
       transform: {
