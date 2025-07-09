@@ -6,6 +6,7 @@ const fs = require('fs');
 const GameDatabase = require('./database');
 const { GameInstance } = require('./lib/gameInstance');
 const { generateGamePin } = require('./lib/gameUtils');
+const SocketManager = require('./lib/socketManager');
 
 const app = express();
 const server = http.createServer(app);
@@ -13,11 +14,18 @@ const io = socketIo(server, {
   cors: {
     origin: "*",
     methods: ["GET", "POST"]
-  }
+  },
+  // Optimize for high concurrency
+  transports: ['websocket', 'polling'],
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  maxHttpBufferSize: 1e6, // 1MB limit for large payloads
+  allowEIO3: false // Disable legacy Engine.IO support
 });
 
-// Initialize database
+// Initialize database and socket manager
 const db = new GameDatabase();
+const socketManager = new SocketManager(io);
 
 // Helper function to validate question structure
 function validateQuestions(questions) {
@@ -376,7 +384,7 @@ async function resetTestGame(game, moderatorSocket) {
   });
   
   // Update panel leaderboard (empty)
-  updatePanelLeaderboard(game);
+  socketManager.broadcastLeaderboardUpdate(game.gamePin, game.getLeaderboard());
   
   // Notify panels about the reset
   io.to(`game_${game.gamePin}_panel`).emit('game_state_update', {
@@ -386,20 +394,30 @@ async function resetTestGame(game, moderatorSocket) {
   console.log(`Test game ${game.gamePin} has been reset - all players removed`);
 }
 
-// Socket.io connection handling
+// Socket.io connection handling with high-concurrency optimizations
 io.on('connection', (socket) => {
-  console.log('New connection:', socket.id);
+  // Apply connection throttling and validation
+  if (!socketManager.handleConnection(socket)) {
+    return; // Connection rejected due to capacity
+  }
+  
+  console.log('New connection:', socket.id, `(${socketManager.getConnectionStats().totalConnections} total)`);
 
-  // Latency measurement
+  // Optimized latency measurement with reduced frequency for high load
   socket.on('latency_pong', (timestamp) => {
     const latency = Date.now() - timestamp;
     playerLatencies.set(socket.id, latency);
   });
 
-  // Start latency measurement loop
+  // Adaptive latency measurement based on connection count
+  const getLatencyInterval = () => {
+    const connections = socketManager.getConnectionStats().totalConnections;
+    return connections > 100 ? 30000 : connections > 50 ? 20000 : 10000; // Scale with load
+  };
+
   const latencyInterval = setInterval(() => {
     socket.emit('latency_ping', Date.now());
-  }, 10000);
+  }, getLatencyInterval());
 
   // Dashboard: Create new game
   socket.on('create_game', async (data) => {
@@ -436,7 +454,7 @@ io.on('connection', (socket) => {
         moderatorToken: dbResult.moderatorToken
       });
       
-      socket.join(`game_${gamePin}_moderator`);
+      socketManager.joinGame(socket, gamePin, 'moderator');
       socket.emit('game_created', {
         gamePin: gamePin,
         questionCount: questions.length,
@@ -513,7 +531,7 @@ io.on('connection', (socket) => {
         moderatorToken: gameData.moderator_token
       });
       
-      socket.join(`game_${data.gamePin}_moderator`);
+      socketManager.joinGame(socket, data.gamePin, 'moderator');
       
       // Send current state to moderator
       const players = await db.getGamePlayers(gameData.id);
@@ -594,17 +612,19 @@ io.on('connection', (socket) => {
       serverTime: game.questionStartTime
     };
     
-    // Send to all players
-    socket.to(`game_${data.gamePin}`).emit('question_started', questionData);
+    // Use optimized broadcasting for question start
+    socketManager.broadcastQuestionStart(data.gamePin, {
+      ...questionData,
+      correctAnswer: question.correct,
+      questionIndex: game.currentQuestionIndex,
+      totalPlayers: connectedPlayers.length
+    });
     
-    // Send to dashboard
+    // Send to dashboard (moderator who started the question)
     socket.emit('question_started_dashboard', {
       ...questionData,
       correctAnswer: question.correct
     });
-    
-    // Send to panels
-    io.to(`game_${data.gamePin}_panel`).emit('panel_question_started', questionData);
     
     // Sync to database
     await game.syncToDatabase(db);
@@ -642,10 +662,16 @@ io.on('connection', (socket) => {
   });
 
 
-  // Player: Join game
+  // Player: Join game (optimized for high concurrency)
   socket.on('join_game', async (data) => {
     try {
-      const gameData = await db.getGameByPin(data.gamePin);
+      // Validate game capacity before processing
+      if (!socketManager.canJoinGame(data.gamePin, 'player')) {
+        socket.emit('join_error', { message: 'Hra je plná. Skúste to znova neskôr.' });
+        return;
+      }
+
+      const gameData = db.getGameByPin(data.gamePin);
       if (!gameData) {
         socket.emit('join_error', { message: 'Hra s týmto PIN kódom neexistuje' });
         return;
@@ -654,7 +680,7 @@ io.on('connection', (socket) => {
       // Check if game exists in memory, if not restore it
       let game = activeGames.get(data.gamePin);
       if (!game) {
-        const players = await db.getGamePlayers(gameData.id);
+        const players = db.getGamePlayers(gameData.id);
         console.log(`Restoring game ${data.gamePin} for player join with ${gameData.questions?.length || 0} questions`);
         game = new GameInstance(data.gamePin, gameData.questions, gameData.id);
         game.phase = gameData.status.toUpperCase();
@@ -671,7 +697,6 @@ io.on('connection', (socket) => {
         
         // Set join order counter to match restored players
         game.playerJoinOrder = players.length;
-      
         activeGames.set(data.gamePin, game);
       }
 
@@ -689,21 +714,25 @@ io.on('connection', (socket) => {
         }
         
         // Sync reset state to database
-        await game.syncToDatabase(db);
+        game.syncToDatabase(db);
         
-        // Notify moderator about reset
-        if (game.moderatorSocket) {
-          io.to(game.moderatorSocket).emit('game_reset', {
-            message: 'Test hra bola resetovaná kvôli novému hráčovi'
-          });
-        }
+        // Notify moderator about reset using optimized broadcasting
+        const rooms = socketManager.getGameRooms(data.gamePin);
+        io.to(rooms.moderators).emit('game_reset', {
+          message: 'Test hra bola resetovaná kvôli novému hráčovi'
+        });
       } else if (game.phase !== 'WAITING' && game.phase !== 'RESULTS') {
         socket.emit('join_error', { message: 'Hra už prebieha, nemôžete sa pripojiť' });
         return;
       }
     
+      // Join optimized room structure
+      if (!socketManager.joinGame(socket, data.gamePin, 'player')) {
+        return; // Join failed due to capacity
+      }
+
       // Add player to database - no name needed
-      const playerResult = await db.addPlayer(gameData.id);
+      const playerResult = db.addPlayer(gameData.id);
     
       // Add to in-memory game (name will be auto-generated based on join order)
       game.addPlayer(playerResult.playerId, {
@@ -721,8 +750,6 @@ io.on('connection', (socket) => {
         playerToken: playerResult.playerToken
       });
     
-      socket.join(`game_${data.gamePin}`);
-    
       socket.emit('game_joined', {
         gamePin: data.gamePin,
         playerId: playerResult.playerId,
@@ -731,20 +758,19 @@ io.on('connection', (socket) => {
         playerToken: playerResult.playerToken
       });
     
-      // Update dashboard with new player count
-      if (game.moderatorSocket) {
-        const connectedPlayers = Array.from(game.players.values()).filter(p => p.connected);
-        io.to(game.moderatorSocket).emit('player_joined', {
-          playerId: playerResult.playerId,
-          totalPlayers: connectedPlayers.length,
-          players: connectedPlayers.map(p => ({ id: p.id, name: p.name }))
-        });
-      }
+      // Update dashboard with optimized broadcasting
+      const connectedPlayers = Array.from(game.players.values()).filter(p => p.connected);
+      const rooms = socketManager.getGameRooms(data.gamePin);
+      io.to(rooms.moderators).emit('player_joined', {
+        playerId: playerResult.playerId,
+        totalPlayers: connectedPlayers.length,
+        players: connectedPlayers.map(p => ({ id: p.id, name: p.name }))
+      });
     
-      // Update panel leaderboard
-      updatePanelLeaderboard(game);
+      // Update panel leaderboard with optimized broadcasting
+      socketManager.broadcastLeaderboardUpdate(data.gamePin, game.getLeaderboard());
     
-      console.log(`Player ${playerResult.playerId} joined game ${data.gamePin}`);
+      console.log(`Player ${playerResult.playerId} joined game ${data.gamePin} (${connectedPlayers.length} total players)`);
     
     } catch (error) {
       console.error('Join game error:', error);
@@ -819,7 +845,7 @@ io.on('connection', (socket) => {
         playerToken: data.playerToken
       });
 
-      socket.join(`game_${data.gamePin}`);
+      socketManager.joinGame(socket, data.gamePin, 'player');
 
       socket.emit('player_reconnected', {
         gamePin: data.gamePin,
@@ -858,20 +884,25 @@ io.on('connection', (socket) => {
       if (player) {
         player.score += points;
         
-        // Update score in database
-        await db.updatePlayerScore(playerInfo.playerId, player.score);
-      }
+        // Queue database operations for batching (performance optimization)
+        socketManager.queueDatabaseOperation({
+          type: 'updatePlayerScore',
+          execute: () => db.updatePlayerScore(playerInfo.playerId, player.score)
+        });
 
-      // Save answer to database
-      await db.saveAnswer(
-        game.dbId,
-        playerInfo.playerId,
-        game.currentQuestionIndex,
-        data.answer,
-        isCorrect,
-        points,
-        answerData.responseTime
-      );
+        socketManager.queueDatabaseOperation({
+          type: 'saveAnswer',
+          execute: () => db.saveAnswer(
+            game.dbId,
+            playerInfo.playerId,
+            game.currentQuestionIndex,
+            data.answer,
+            isCorrect,
+            points,
+            answerData.responseTime
+          )
+        });
+      }
       
       // Send result to player
       socket.emit('answer_result', {
@@ -882,9 +913,9 @@ io.on('connection', (socket) => {
         responseTime: answerData.responseTime
       });
       
-      // Update dashboard and panel
+      // Update dashboard and panel with optimized broadcasting
       updateDashboardStats(game);
-      updatePanelLeaderboard(game);
+      socketManager.broadcastLeaderboardUpdate(game.gamePin, game.getLeaderboard());
       
       console.log(`Answer submitted by ${player?.name} in game ${playerInfo.gamePin}: ${data.answer} (${isCorrect ? 'correct' : 'wrong'})`);
       
@@ -902,7 +933,7 @@ io.on('connection', (socket) => {
         return;
       }
       
-      socket.join(`game_${data.gamePin}_panel`);
+      socketManager.joinGame(socket, data.gamePin, 'panel');
       
       // Send current game state to panel
       socket.emit('panel_game_joined', {
@@ -977,7 +1008,7 @@ io.on('connection', (socket) => {
           }
           
           // Update panel leaderboard with current connected players
-          updatePanelLeaderboard(game);
+          socketManager.broadcastLeaderboardUpdate(game.gamePin, game.getLeaderboard());
         }
       } catch (error) {
         console.error('Error handling player disconnect:', error);
@@ -1018,19 +1049,11 @@ async function endQuestion(game) {
     totalPlayers: Array.from(game.players.values()).filter(p => p.connected).length
   };
   
-  // Send to all players
-  io.to(`game_${game.gamePin}`).emit('question_ended', resultsData);
-  
-  // Send to dashboard
-  if (game.moderatorSocket) {
-    io.to(game.moderatorSocket).emit('question_ended_dashboard', {
-      ...resultsData,
-      canContinue: game.currentQuestionIndex < game.questions.length - 1
-    });
-  }
-  
-  // Send to panels
-  io.to(`game_${game.gamePin}_panel`).emit('panel_question_ended', resultsData);
+  // Use optimized broadcasting for question end
+  socketManager.broadcastQuestionEnd(game.gamePin, {
+    ...resultsData,
+    canContinue: game.currentQuestionIndex < game.questions.length - 1
+  });
   
   // Sync to database
   await game.syncToDatabase(db);
@@ -1056,28 +1079,21 @@ async function endQuestion(game) {
       if (hasNextQuestion) {
         console.log(`Advanced to question ${game.currentQuestionIndex + 1} in game ${game.gamePin}`);
         
-        // Notify all interfaces about state change to WAITING
-        io.to(`game_${game.gamePin}`).emit('game_state_update', { 
-          status: 'waiting',
-          questionNumber: game.currentQuestionIndex + 1,
-          totalQuestions: game.questions.length
-        });
-        
-        io.to(`game_${game.gamePin}_panel`).emit('game_state_update', { 
+        // Broadcast optimized state changes to all interfaces
+        socketManager.broadcastGameState(game.gamePin, {
           status: 'waiting',
           questionNumber: game.currentQuestionIndex + 1,
           totalQuestions: game.questions.length
         });
         
         // Notify moderator that next question is ready
-        if (game.moderatorSocket) {
-          io.to(game.moderatorSocket).emit('next_question_ready', {
-            questionNumber: game.currentQuestionIndex + 1, // This is correct now since nextQuestion() already incremented
-            questionIndex: game.currentQuestionIndex, // 0-based index for internal use
-            totalQuestions: game.questions.length,
-            canContinue: true
-          });
-        }
+        const rooms = socketManager.getGameRooms(game.gamePin);
+        io.to(rooms.moderators).emit('next_question_ready', {
+          questionNumber: game.currentQuestionIndex + 1,
+          questionIndex: game.currentQuestionIndex,
+          totalQuestions: game.questions.length,
+          canContinue: true
+        });
       }
     }, 3000); // Wait 3 seconds to show results, then advance
   }
@@ -1094,49 +1110,42 @@ async function endGame(game) {
     totalQuestions: game.questions.length
   };
   
+  // Broadcast game end with optimized room structure
+  const rooms = socketManager.getGameRooms(game.gamePin);
+  
   // Send to all players
-  io.to(`game_${game.gamePin}`).emit('game_ended', gameEndData);
+  io.to(rooms.players).emit('game_ended', gameEndData);
   
-  // Send to dashboard
-  if (game.moderatorSocket) {
-    io.to(game.moderatorSocket).emit('game_ended_dashboard', gameEndData);
-  }
+  // Send to moderators
+  io.to(rooms.moderators).emit('game_ended_dashboard', gameEndData);
   
-  // Send to panels - include both events for compatibility
-  io.to(`game_${game.gamePin}_panel`).emit('panel_game_ended', gameEndData);
-  io.to(`game_${game.gamePin}_panel`).emit('game_state_update', { status: 'finished' });
-  
-  // Send GAME_ENDED event for stage interface
-  io.to(`game_${game.gamePin}_panel`).emit('game_ended', gameEndData);
+  // Send to panels - include all required events for compatibility
+  io.to(rooms.panels).emit('panel_game_ended', gameEndData);
+  io.to(rooms.panels).emit('game_state_update', { status: 'finished' });
+  io.to(rooms.panels).emit('game_ended', gameEndData);
   
   // Sync to database
   await game.syncToDatabase(db);
   
+  // Cleanup socket manager resources for finished game
+  socketManager.cleanupGame(game.gamePin);
+  
   console.log(`Game ended: ${game.gamePin}, broadcasting to all interfaces`);
 }
 
-// Helper function to update control panel stats
+// Helper function to update control panel stats (optimized)
 function updateDashboardStats(game) {
-  if (!game.moderatorSocket) return;
-  
   const question = game.getCurrentQuestion();
   const stats = calculateAnswerStats(game.answers, question.options.length);
   
-  io.to(game.moderatorSocket).emit('live_stats', {
+  const rooms = socketManager.getGameRooms(game.gamePin);
+  io.to(rooms.moderators).emit('live_stats', {
     answeredCount: game.answers.length,
     totalPlayers: Array.from(game.players.values()).filter(p => p.connected).length,
     answerStats: stats
   });
 }
 
-// Helper function to update panel leaderboard
-function updatePanelLeaderboard(game) {
-  const leaderboard = game.getLeaderboard();
-  
-  io.to(`game_${game.gamePin}_panel`).emit('panel_leaderboard_update', {
-    leaderboard: leaderboard.slice(0, 10)
-  });
-}
 
 // Helper function to calculate answer statistics
 function calculateAnswerStats(answers, optionCount) {
