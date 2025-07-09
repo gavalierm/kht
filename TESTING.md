@@ -4,11 +4,12 @@ This document explains the comprehensive testing infrastructure for the Quiz App
 
 ## Test Overview
 
-The application has **67 comprehensive tests** covering all critical functionality:
+The application has **130+ comprehensive tests** covering all critical functionality:
 
-- **Unit Tests**: 42 tests - Core game logic and components
-- **Integration Tests**: 16 tests - Socket.io real-time communication
-- **E2E Tests**: 19 tests - Complete application flow
+- **Unit Tests**: 52 tests - Core classes with real implementation
+- **Frontend Tests**: 4 files - Client-side logic with XSS protection
+- **Integration Tests**: 2 files - Socket.io real-time communication
+- **E2E Tests**: 3 files - Complete user flows with high concurrency
 
 ## Quick Start
 
@@ -138,28 +139,45 @@ The test suite includes coverage reporting with thresholds:
 
 ## Continuous Integration
 
-### GitHub Actions Pipeline
+### Comprehensive CI Pipeline
 
 The CI pipeline runs automatically on:
 - Push to `main`, `dev`, or `feature/*` branches
 - Pull requests to `main` or `dev`
 
-**Pipeline Stages**:
-1. **Test Suite** - Multi-Node.js version testing (18, 20, 22)
-2. **Build Verification** - Server startup and health checks
-3. **Security Audit** - Vulnerability scanning
-4. **Code Quality** - Coverage and error checking
+**9-Stage Pipeline Architecture**:
+1. **Unit Tests** - Core classes with real implementation (Node.js 18, 20, 22)
+2. **Frontend Tests** - Client-side logic with XSS protection (JSDOM)
+3. **Integration Tests** - Socket.io real-time communication
+4. **E2E Tests** - Complete user flows with high concurrency (50+ players)
+5. **Performance Tests** - Memory management and load testing
+6. **Security Audit** - Vulnerability scanning and dependency checks
+7. **Build Verification** - Application startup and endpoint testing
+8. **Coverage Analysis** - Test coverage reporting with Codecov
+9. **CI Summary** - Comprehensive results with GitHub step summary
+
+### Slovak Language Support
+- **UTF-8 Encoding**: `LANG=sk_SK.UTF-8` validation
+- **Special Characters**: Testing of áéíóúýčďžšťň characters
+- **Error Messages**: Slovak language error message validation
+- **UI Content**: Slovak interface text detection
 
 ### CI Configuration
 
 ```yaml
-# .github/workflows/ci.yml
-- Unit Tests: All game logic and components
-- Integration Tests: Socket.io communication
-- E2E Tests: Complete application flow
-- Security Audit: Dependency vulnerability scan
-- Build Verification: Server startup validation
+# .github/workflows/ci.yml - Comprehensive 9-stage pipeline
+- Unit Tests: Real implementation testing (no mocking)
+- Frontend Tests: JSDOM environment with XSS protection
+- Integration Tests: Socket.io real-time communication
+- E2E Tests: High-concurrency testing (50+ players)
+- Performance Tests: Memory and load testing
+- Security Audit: Vulnerability and dependency scanning
+- Build Verification: Application startup validation
+- Coverage Analysis: Codecov integration
+- CI Summary: Detailed GitHub step summary
 ```
+
+For detailed pipeline documentation, see [CI-PIPELINE.md](CI-PIPELINE.md).
 
 ## Test Utilities
 
