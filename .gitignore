@@ -1,4 +1,4 @@
-quiz.db
+db/
 # Node.js
 node_modules/
 .env

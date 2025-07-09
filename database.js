@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 
 class GameDatabase {
-  constructor(dbPath = './quiz.db', options = {}) {
+  constructor(dbPath = './db/quiz.db', options = {}) {
     this.db = new Database(dbPath);
     
     // Enable WAL mode for better concurrency
