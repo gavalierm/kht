@@ -425,7 +425,7 @@ class GameDatabase {
       VALUES (?, ?, ?, ?, ?, ?)
     `;
 
-    const result = this.db.prepare(insertSql).run(questionId, playerId, answer, isCorrect, points, responseTime);
+    const result = this.db.prepare(insertSql).run(questionId, playerId, answer, isCorrect ? 1 : 0, points, responseTime);
     return result.lastInsertRowid;
   }
 
