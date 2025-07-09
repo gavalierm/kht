@@ -22,7 +22,7 @@ Visit `http://localhost:3000` to start playing.
 
 - `/join` - Player entry point
 - `/game` - Player interface
-- `/control` - Moderator panel
+- `/moderator` - Moderator panel
 - `/panel` - Display screen
 - `/stage` - Results view
 - `/create` - Game creation

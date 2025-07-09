@@ -6,7 +6,7 @@ import { defaultGameState } from '../shared/gameState.js';
 import { defaultAPI } from '../shared/api.js';
 import { SOCKET_EVENTS, GAME_STATES, ELEMENT_IDS, CSS_CLASSES, DEFAULTS } from '../shared/constants.js';
 
-class ControlApp {
+class ModeratorApp {
 	constructor() {
 		// Initialize managers
 		this.notifications = defaultNotificationManager;
@@ -22,7 +22,7 @@ class ControlApp {
 		this.gamePin = null;
 		this.currentTemplateId = 'general';
 		
-		// Game control state
+		// Game moderator state
 		this.gameState = 'stopped'; // stopped, running, paused
 		this.playerCount = 0;
 		this.currentQuestion = 0;
@@ -67,7 +67,7 @@ class ControlApp {
 			'toggleQuestionsBtn',
 			'questionsContent',
 			'loginPage',
-			'controlInterface',
+			'moderatorInterface',
 			'loginGamePin',
 			'moderatorPassword',
 			'loginBtn',
@@ -114,7 +114,7 @@ class ControlApp {
 			this.handleLoginError(error);
 		});
 
-		// Game control events
+		// Game moderator events
 		this.socket.on('question_started_dashboard', (data) => {
 			this.handleQuestionStarted(data);
 		});
@@ -161,7 +161,7 @@ class ControlApp {
 	}
 
 	handleGameStateUpdate(data) {
-		console.log('Control: Game state update:', data);
+		console.log('Moderator: Game state update:', data);
 		
 		if (data.status === 'waiting') {
 			// Game is waiting for next question to start
@@ -176,7 +176,7 @@ class ControlApp {
 	}
 
 	handleNextQuestionReady(data) {
-		console.log('Control: Next question ready:', data);
+		console.log('Moderator: Next question ready:', data);
 		
 		// Update UI to show that next question is ready
 		this.updateGameStatusDisplay(`Otázka ${data.questionNumber}/${data.totalQuestions} je pripravená`);
@@ -214,7 +214,7 @@ class ControlApp {
 			});
 		}
 
-		// Game control buttons
+		// Game moderator buttons
 		if (this.elements.startGameBtn) {
 			this.elements.startGameBtn.addEventListener('click', () => {
 				this.handleStartGame();
@@ -276,21 +276,21 @@ class ControlApp {
 		localStorage.setItem(`moderator_token_${this.gamePin}`, this.moderatorToken);
 		
 		this.notifications.showSuccess(`Hra vytvorená s PIN: ${data.pin}`);
-		this.updateGameControlUI();
+		this.updateGameModeratorUI();
 	}
 
 
 	handleQuestionStarted(data) {
 		this.gameState = 'running';
 		this.currentQuestion = data.questionIndex !== undefined ? data.questionIndex : (data.questionNumber - 1);
-		this.updateGameControlUI();
+		this.updateGameModeratorUI();
 		this.autoCollapseQuestions();
 		this.notifications.showInfo(`Otázka ${data.questionNumber} bola spustená`);
 	}
 
 	handleQuestionEnded(data) {
 		this.gameState = 'waiting';
-		this.updateGameControlUI();
+		this.updateGameModeratorUI();
 		
 		const message = data.hasMoreQuestions ? 
 			'Otázka ukončená. Pripravená ďalšia otázka.' : 
@@ -302,7 +302,7 @@ class ControlApp {
 		// Update current question index to reflect the advancement
 		this.currentQuestion = data.questionIndex || (data.questionNumber - 1); // Use 0-based index directly or convert
 		this.gameState = 'waiting';
-		this.updateGameControlUI();
+		this.updateGameModeratorUI();
 		
 		this.notifications.showSuccess(`Otázka ${data.questionNumber} z ${data.totalQuestions} je pripravená na spustenie`);
 	}
@@ -310,7 +310,7 @@ class ControlApp {
 	handlePlayerJoined(data) {
 		// Use exact count from server if available, otherwise increment
 		this.playerCount = data.totalPlayers || (this.playerCount + 1);
-		this.updateGameControlUI();
+		this.updateGameModeratorUI();
 		
 		// Safe access to player name
 		const playerName = data.playerName || data.player?.name || data.name || 'neznámy hráč';
@@ -320,7 +320,7 @@ class ControlApp {
 	handlePlayerLeft(data) {
 		// Use exact count from server if available, otherwise decrement
 		this.playerCount = data.totalPlayers || (this.playerCount - 1);
-		this.updateGameControlUI();
+		this.updateGameModeratorUI();
 		
 		// Safe access to player name
 		const playerName = data.playerName || data.player?.name || data.name || 'neznámy hráč';
@@ -336,7 +336,7 @@ class ControlApp {
 		// Reset local state to match server
 		this.gameState = 'waiting';
 		this.currentQuestion = 0;
-		this.updateGameControlUI();
+		this.updateGameModeratorUI();
 		
 		this.notifications.showSuccess(data.message || 'Hra bola resetovaná');
 	}
@@ -455,11 +455,11 @@ class ControlApp {
 			localStorage.setItem(`moderator_token_${this.gamePin}`, this.moderatorToken);
 		}
 		
-		// Show control interface
-		this.showControlInterface();
+		// Show moderator interface
+		this.showModeratorInterface();
 		
-		// Initialize control UI and load questions
-		this.updateGameControlUI();
+		// Initialize moderator UI and load questions
+		this.updateGameModeratorUI();
 		this.loadQuestions();
 		
 		this.notifications.showSuccess('Úspešne prihlásený ako moderátor');
@@ -514,12 +514,12 @@ class ControlApp {
 
 	showLoginPage() {
 		if (this.elements.loginPage) this.elements.loginPage.style.display = 'flex';
-		if (this.elements.controlInterface) this.elements.controlInterface.style.display = 'none';
+		if (this.elements.moderatorInterface) this.elements.moderatorInterface.style.display = 'none';
 	}
 
-	showControlInterface() {
+	showModeratorInterface() {
 		if (this.elements.loginPage) this.elements.loginPage.style.display = 'none';
-		if (this.elements.controlInterface) this.elements.controlInterface.style.display = 'flex';
+		if (this.elements.moderatorInterface) this.elements.moderatorInterface.style.display = 'flex';
 	}
 
 	setLoginLoading(loading) {
@@ -553,7 +553,7 @@ class ControlApp {
 				this.questions = data.questions || [];
 				this.renderQuestionList();
 				// Update UI after questions are loaded to fix question counter
-				this.updateGameControlUI();
+				this.updateGameModeratorUI();
 			} else {
 				this.notifications.showError('Chyba pri načítavaní otázok');
 			}
@@ -825,7 +825,7 @@ class ControlApp {
 		}
 	}
 
-	// Game Control Methods
+	// Game Moderator Methods
 	handleStartGame() {
 		if (this.questions.length === 0) {
 			this.notifications.showError('Pridajte aspoň jednu otázku pred spustením hry');
@@ -859,7 +859,7 @@ class ControlApp {
 			
 			// Reset local state
 			this.gameState = 'finished';
-			this.updateGameControlUI();
+			this.updateGameModeratorUI();
 			this.notifications.showSuccess('Hra bola ukončená');
 		}
 	}
@@ -869,7 +869,7 @@ class ControlApp {
 		
 		// Update local state
 		this.gameState = 'finished';
-		this.updateGameControlUI();
+		this.updateGameModeratorUI();
 		
 		// Show final results notification
 		this.notifications.showSuccess(`Hra ukončená! Celkovo ${data.totalPlayers} hráčov dokončilo ${data.totalQuestions} otázok.`);
@@ -902,7 +902,7 @@ class ControlApp {
 		}
 	}
 
-	updateGameControlUI() {
+	updateGameModeratorUI() {
 		// Update button states
 		if (this.elements.startGameBtn) {
 			this.elements.startGameBtn.disabled = this.gameState === 'running';
@@ -946,7 +946,7 @@ class ControlApp {
 		}
 	}
 
-	// UI Control Methods
+	// UI Moderator Methods
 	toggleQuestionsSection() {
 		const questionsBox = document.querySelector('.collapsible-box');
 		const toggleIcon = this.elements.toggleQuestionsBtn?.querySelector('.toggle-icon');
@@ -967,7 +967,7 @@ class ControlApp {
 			toggleText.textContent = this.questionsCollapsed ? 'Zobraziť' : 'Skryť';
 		}
 
-		// Auto-collapse when game is running to focus on game controls
+		// Auto-collapse when game is running to focus on game moderator controls
 		if (this.gameState === 'running' && !this.questionsCollapsed) {
 			setTimeout(() => {
 				this.notifications.showInfo('Otázky boli automaticky skryté počas hry');
@@ -1018,16 +1018,16 @@ class ControlApp {
 	}
 }
 
-// Initialize the control app when DOM is loaded
+// Initialize the moderator app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-	window.controlApp = new ControlApp();
+	window.moderatorApp = new ModeratorApp();
 });
 
 // Cleanup when page unloads
 window.addEventListener('beforeunload', () => {
-	if (window.controlApp) {
-		window.controlApp.cleanup();
+	if (window.moderatorApp) {
+		window.moderatorApp.cleanup();
 	}
 });
 
-export { ControlApp };
+export { ModeratorApp };

@@ -14,7 +14,7 @@ describe('Create Game Flow E2E', () => {
 		// Static file serving
 		app.use('/join', express.static(path.join(__dirname, '../../public/join')));
 		app.use('/create', express.static(path.join(__dirname, '../../public/create')));
-		app.use('/control', express.static(path.join(__dirname, '../../public/control')));
+		app.use('/moderator', express.static(path.join(__dirname, '../../public/moderator')));
 		app.use('/shared', express.static(path.join(__dirname, '../../public/shared')));
 		
 		// Routes
@@ -30,8 +30,8 @@ describe('Create Game Flow E2E', () => {
 			res.sendFile(path.join(__dirname, '../../public/create/create.html'));
 		});
 		
-		app.get('/control/:pin', (req, res) => {
-			res.sendFile(path.join(__dirname, '../../public/control/control.html'));
+		app.get('/moderator/:pin', (req, res) => {
+			res.sendFile(path.join(__dirname, '../../public/moderator/moderator.html'));
 		});
 		
 		// API endpoint for testing
@@ -85,8 +85,8 @@ describe('Create Game Flow E2E', () => {
 			expect(html).toContain('href="/create"');
 		});
 
-		test('should serve control page with create link', async () => {
-			const response = await fetch(`http://localhost:${port}/control/123456`);
+		test('should serve moderator page with create link', async () => {
+			const response = await fetch(`http://localhost:${port}/moderator/123456`);
 			expect(response.status).toBe(200);
 			
 			const html = await response.text();

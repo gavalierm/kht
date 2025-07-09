@@ -26,7 +26,7 @@
 			overflow-x: hidden;
 		}
 
-		.control-container {
+		.moderator-container {
 			display: flex;
 			flex-direction: column;
 			min-height: 100vh;
@@ -36,31 +36,31 @@
 			padding: 20px;
 		}
 
-		.control-header {
+		.moderator-header {
 			color: white;
 			text-align: center;
 			margin-bottom: 30px;
 		}
 
-		.control-title {
+		.moderator-title {
 			font-size: 2.5rem;
 			font-weight: bold;
 			margin-bottom: 10px;
 		}
 
-		.control-subtitle {
+		.moderator-subtitle {
 			font-size: 1.1rem;
 			opacity: 0.8;
 		}
 
-		.control-content {
+		.moderator-content {
 			flex: 1;
 			display: flex;
 			flex-direction: column;
 			overflow: visible;
 		}
 
-		.control-box {
+		.moderator-box {
 			padding: 30px;
 			background: white;
 			border-radius: 8px;
@@ -497,7 +497,7 @@
 		}
 
 		.collapsible-box.collapsed {
-			flex: none !important; /* Override the flex: 1 from .control-box */
+			flex: none !important; /* Override the flex: 1 from .moderator-box */
 			min-height: auto !important;
 			flex-grow: 0 !important;
 			flex-shrink: 0 !important;
@@ -619,36 +619,36 @@
 			color: #47109e;
 		}
 
-		.control-header-content {
+		.moderator-header-content {
 			display: flex;
 			justify-content: space-between;
 			align-items: center;
 			width: 100%;
 		}
 
-		/* Game Control Styles */
-		.game-control-header {
+		/* Game Moderator Styles */
+		.game-moderator-header {
 			display: flex;
 			justify-content: space-between;
 			align-items: center;
 			margin-bottom: 25px;
 		}
 
-		.game-control-title {
+		.game-moderator-title {
 			font-size: 1.8rem;
 			font-weight: bold;
 			color: #47109e;
 		}
 
 
-		.game-control-actions {
+		.game-moderator-actions {
 			display: flex;
 			gap: 15px;
 			margin-bottom: 20px;
 			flex-wrap: wrap;
 		}
 
-		.game-control-btn {
+		.game-moderator-btn {
 			display: flex;
 			align-items: center;
 			gap: 8px;
@@ -663,13 +663,13 @@
 			justify-content: center;
 		}
 
-		.game-control-btn:disabled {
+		.game-moderator-btn:disabled {
 			background: #ccc !important;
 			cursor: not-allowed;
 			opacity: 0.6;
 		}
 
-		.control-icon {
+		.moderator-icon {
 			font-size: 1.2rem;
 		}
 
@@ -704,15 +704,15 @@
 
 		/* Responsive adjustments */
 		@media (max-width: 768px) {
-			.control-container {
+			.moderator-container {
 				padding: 15px;
 			}
 
-			.control-title {
+			.moderator-title {
 				font-size: 2rem;
 			}
 
-			.control-box {
+			.moderator-box {
 				padding: 20px;
 			}
 
@@ -735,17 +735,17 @@
 				width: 100%;
 			}
 
-			.game-control-header {
+			.game-moderator-header {
 				flex-direction: column;
 				gap: 15px;
 				text-align: center;
 			}
 
-			.game-control-actions {
+			.game-moderator-actions {
 				flex-direction: column;
 			}
 
-			.game-control-btn {
+			.game-moderator-btn {
 				min-width: auto;
 				width: 100%;
 			}
@@ -782,13 +782,12 @@
 		</div>
 	</div>
 
-	<!-- Main Control Interface (hidden initially) -->
-	<div id="controlInterface" class="control-container" style="display: none;">
-		<div class="control-header">
-			<div class="control-header-content">
+	<!-- Main Moderator Interface (hidden initially) -->
+	<div id="moderatorInterface" class="moderator-container" style="display: none;">
+		<div class="moderator-header">
+			<div class="moderator-header-content">
 				<div>
-					<h1 class="control-title">Správa otázok</h1>
-					<p class="control-subtitle">Pridávanie a upravovanie otázok pre kvíz</p>
+					<h1 class="moderator-title">Moderátor</h1>
 				</div>
 				<button id="logoutBtn" class="btn-secondary btn-sm">
 					Odhlásiť sa
@@ -796,24 +795,24 @@
 			</div>
 		</div>
 
-		<div class="control-content">
-			<!-- Game Control Block -->
-			<div class="control-box" id="gameControlBox">
-				<div class="game-control-header">
-					<h2 class="game-control-title">Ovládanie hry</h2>
+		<div class="moderator-content">
+			<!-- Game Moderator Block -->
+			<div class="moderator-box" id="gameModeratorBox">
+				<div class="game-moderator-header">
+					<h2 class="game-moderator-title">Ovládanie hry</h2>
 				</div>
 				
-				<div class="game-control-actions">
-					<button id="startGameBtn" class="btn-success game-control-btn">
-						<span class="control-icon">▶️</span>
+				<div class="game-moderator-actions">
+					<button id="startGameBtn" class="btn-success game-moderator-btn">
+						<span class="moderator-icon">▶️</span>
 						<span>Spustiť otázku</span>
 					</button>
-					<button id="pauseGameBtn" class="btn-warning game-control-btn" disabled>
-						<span class="control-icon">⏸️</span>
+					<button id="pauseGameBtn" class="btn-warning game-moderator-btn" disabled>
+						<span class="moderator-icon">⏸️</span>
 						<span>Spustiť otázku</span>
 					</button>
-					<button id="endGameBtn" class="btn-danger game-control-btn" disabled>
-						<span class="control-icon">⏹️</span>
+					<button id="endGameBtn" class="btn-danger game-moderator-btn" disabled>
+						<span class="moderator-icon">⏹️</span>
 						<span>Ukončiť hru</span>
 					</button>
 				</div>
@@ -893,7 +892,7 @@
 			</div>
 
 			<!-- Questions List -->
-			<div class="control-box collapsible-box">
+			<div class="moderator-box collapsible-box">
 				<div class="questions-header">
 					<div class="questions-title-section">
 						<h2 class="questions-title">Otázky</h2>
@@ -924,7 +923,7 @@
 
 	<script src="/socket.io/socket.io.js"></script>
 	<script type="module" src="/shared/connectionStatus.js"></script>
-	<script type="module" src="/control/control.js"></script>
+	<script type="module" src="/moderator/moderator.js"></script>
 </body>
 
 </html>

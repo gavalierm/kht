@@ -50,7 +50,7 @@ function validateQuestions(questions) {
 app.use(express.json());
 
 // Static files for each app
-app.use('/control', express.static(path.join(__dirname, 'public/control')));
+app.use('/moderator', express.static(path.join(__dirname, 'public/moderator')));
 app.use('/panel', express.static(path.join(__dirname, 'public/panel')));
 app.use('/stage', express.static(path.join(__dirname, 'public/stage')));
 app.use('/join', express.static(path.join(__dirname, 'public/join')));
@@ -115,23 +115,28 @@ app.get('/stage/:pin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/stage/stage.html'));
 });
 
-// Control page (moderator control panel)
-app.get('/control/:pin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/control/control.html'));
+// Moderator page (moderator control panel)
+app.get('/moderator/:pin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/moderator/moderator.html'));
 });
 
-// Control routes (legacy - will be phased out)
+// Control routes (legacy - will be phased out, redirecting to moderator)
 app.get('/control', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/control/control.html'));
+  res.redirect('/moderator');
 });
 
-// Dashboard routes (legacy - will be phased out)
+// Moderator page (without PIN)
+app.get('/moderator', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/moderator/moderator.html'));
+});
+
+// Dashboard routes (legacy - will be phased out, redirecting to moderator)
 app.get('/dashboard', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/control/control.html'));
+  res.redirect('/moderator');
 });
 
 app.get('/dashboard/:pin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/control/control.html'));
+  res.redirect(`/moderator/${req.params.pin}`);
 });
 
 // Panel routes (legacy - will be phased out)
@@ -381,7 +386,7 @@ async function resetTestGame(game, moderatorSocket) {
     message: 'Test hra bola resetovaná'
   });
   
-  // Update control interface with reset state (no players)
+  // Update moderator interface with reset state (no players)
   moderatorSocket.emit('moderator_reconnected', {
     gamePin: game.gamePin,
     questionCount: game.questions.length,
@@ -1161,7 +1166,7 @@ async function endGame(game) {
   console.log(`Game ended: ${game.gamePin}, broadcasting to all interfaces`);
 }
 
-// Helper function to update control panel stats (optimized)
+// Helper function to update moderator panel stats (optimized)
 function updateDashboardStats(game) {
   const question = game.getCurrentQuestion();
   const stats = calculateAnswerStats(game.answers, question.options.length);
@@ -1267,7 +1272,7 @@ if (require.main === module) {
   server.listen(PORT, () => {
     console.log(`Quiz server running on http://localhost:${PORT}`);
     console.log(`Player app: http://localhost:${PORT}/`);
-    console.log(`Control: http://localhost:${PORT}/control`);
+    console.log(`Moderator: http://localhost:${PORT}/moderator`);
     console.log(`Panel: http://localhost:${PORT}/panel`);
   });
 }

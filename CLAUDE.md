@@ -57,7 +57,7 @@ This is a real-time multiplayer quiz application built with Node.js, Express, So
 
 **Client Applications**
 - **Player Game** (`/game`): Players join games and answer questions
-- **Control** (`/control`): Moderators create and control games  
+- **Moderator** (`/moderator`): Moderators create and control games  
 - **Panel** (`/panel`): Display boards for showing leaderboards and questions
 - **Stage** (`/stage`): Post-game leaderboard displays
 - **Join** (`/join`): Main entry point for players to join games
@@ -65,7 +65,7 @@ This is a real-time multiplayer quiz application built with Node.js, Express, So
 
 ### Key Game Flow
 
-1. **Game Creation**: Moderators create games via control panel with optional custom PIN
+1. **Game Creation**: Moderators create games via moderator panel with optional custom PIN
 2. **Player Joining**: Players use 6-digit PIN to join games
 3. **Question Flow**: Questions are broadcast to all players simultaneously
 4. **Answer Submission**: Players submit answers with latency compensation
@@ -96,7 +96,7 @@ This is a real-time multiplayer quiz application built with Node.js, Express, So
 /public/
   /game/         # Player interface (SPA)
   /join/         # Main entry point for players
-  /control/      # Moderator interface  
+  /moderator/    # Moderator interface  
   /panel/        # Display panel interface
   /stage/        # Post-game leaderboard display
   /create/       # Game creation interface

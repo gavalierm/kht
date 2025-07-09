@@ -18,9 +18,9 @@ describe('Connection Banner Integration', () => {
 			expect(html).toContain('/shared/common.css');
 		});
 
-		test('control page includes connection banner script', async () => {
+		test('moderator page includes connection banner script', async () => {
 			const response = await request(app)
-				.get('/control/123456')
+				.get('/moderator/123456')
 				.expect(200);
 
 			const html = response.text;
@@ -126,9 +126,9 @@ describe('Connection Banner Integration', () => {
 			expect(js).toContain('Connection banner handles');
 		});
 
-		test('control.js does not contain duplicate connection notifications', async () => {
+		test('moderator.js does not contain duplicate connection notifications', async () => {
 			const response = await request(app)
-				.get('/control/control.js')
+				.get('/moderator/moderator.js')
 				.expect(200);
 
 			const js = response.text;

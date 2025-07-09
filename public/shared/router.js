@@ -223,8 +223,8 @@ export class Router {
 	 * @returns {string|null} Game PIN or null
 	 */
 	extractGamePin(path = this.currentPath) {
-		// Pattern: /game/123456, /panel/123456, /stage/123456, /control/123456
-		const match = path.match(/\/(game|panel|stage|control)\/(\d+)/);
+		// Pattern: /game/123456, /panel/123456, /stage/123456, /moderator/123456
+		const match = path.match(/\/(game|panel|stage|moderator)\/(\d+)/);
 		if (match) {
 			return match[2];
 		}
@@ -272,11 +272,11 @@ export class Router {
 	}
 
 	/**
-	 * Redirect to control view (full page redirect)
+	 * Redirect to moderator view (full page redirect)
 	 * @param {string} pin - Game PIN
 	 */
-	redirectToControl(pin) {
-		window.location.href = `/control/${pin}`;
+	redirectToModerator(pin) {
+		window.location.href = `/moderator/${pin}`;
 	}
 
 	/**
@@ -284,7 +284,7 @@ export class Router {
 	 * @param {string} pin - Game PIN
 	 */
 	redirectToDashboard(pin) {
-		window.location.href = `/control/${pin}`;
+		window.location.href = `/moderator/${pin}`;
 	}
 
 	/**
@@ -311,11 +311,11 @@ export class Router {
 	}
 
 	/**
-	 * Navigate to control view
+	 * Navigate to moderator view
 	 * @param {string} pin - Game PIN
 	 */
-	navigateToControl(pin) {
-		this.navigateTo(`/control/${pin}`);
+	navigateToModerator(pin) {
+		this.navigateTo(`/moderator/${pin}`);
 	}
 
 	/**
@@ -323,7 +323,7 @@ export class Router {
 	 * @param {string} pin - Game PIN
 	 */
 	navigateToDashboard(pin) {
-		this.navigateTo(`/control/${pin}`);
+		this.navigateTo(`/moderator/${pin}`);
 	}
 }
 
@@ -342,13 +342,13 @@ export const navigateToJoin = defaultRouter.navigateToJoin.bind(defaultRouter);
 export const navigateToGame = defaultRouter.navigateToGame.bind(defaultRouter);
 export const navigateToPanel = defaultRouter.navigateToPanel.bind(defaultRouter);
 export const navigateToStage = defaultRouter.navigateToStage.bind(defaultRouter);
-export const navigateToControl = defaultRouter.navigateToControl.bind(defaultRouter);
+export const navigateToModerator = defaultRouter.navigateToModerator.bind(defaultRouter);
 export const navigateToDashboard = defaultRouter.navigateToDashboard.bind(defaultRouter);
 
 // Export redirect methods (full page redirects)
 export const redirectToGame = defaultRouter.redirectToGame.bind(defaultRouter);
 export const redirectToPanel = defaultRouter.redirectToPanel.bind(defaultRouter);
 export const redirectToStage = defaultRouter.redirectToStage.bind(defaultRouter);
-export const redirectToControl = defaultRouter.redirectToControl.bind(defaultRouter);
+export const redirectToModerator = defaultRouter.redirectToModerator.bind(defaultRouter);
 export const redirectToDashboard = defaultRouter.redirectToDashboard.bind(defaultRouter);
 export const redirectToJoin = defaultRouter.redirectToJoin.bind(defaultRouter);
