@@ -392,6 +392,12 @@ class GameDatabase {
 
   // Save answer
   saveAnswer(gameId, playerId, questionIndex, answer, isCorrect, points, responseTime) {
+    // Validate input parameters
+    if (!Number.isFinite(responseTime) || responseTime < 0) {
+      console.warn(`Invalid responseTime for player ${playerId}: ${responseTime}, setting to 0`);
+      responseTime = 0;
+    }
+    
     // Get the question ID based on game and question order (questionIndex + 1)
     const questionId = this.getQuestionId(gameId, questionIndex + 1);
     
