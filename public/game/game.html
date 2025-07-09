@@ -3,7 +3,27 @@
 
 <head>
 	<meta charset="UTF-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<meta content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no, viewport-fit=cover" name="viewport" />
+	<meta content="true" name="HandheldFriendly" />
+	<meta content="ie=edge" http-equiv="X-UA-Compatible" />
+	<!-- PWA Meta Tags -->
+	<meta name="theme-color" content="#47109e" />
+	<meta name="mobile-web-app-capable" content="yes" />
+	<meta name="apple-touch-fullscreen" content="yes" />
+	<meta name="apple-mobile-web-app-title" content="Kvíz" />
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+	<link rel="manifest" href="/manifest.json">
+	<!-- Additional PWA Meta Tags -->
+	<meta name="application-name" content="Kvíz" />
+	<meta name="msapplication-TileColor" content="#47109e" />
+	<meta name="msapplication-config" content="/browserconfig.xml" />
+	<!-- iOS Icon Support -->
+	<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+	<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
+	<link rel="mask-icon" href="/icons/safari-pinned-tab.svg" color="#47109e">
+
 	<title>Zahraj si s nami kvízovú hru!</title>
 	<link rel="stylesheet" href="/shared/common.css">
 	<style>
@@ -16,14 +36,13 @@
 
 		html,
 		body {
-			height: 100vh;
-			width: 100%;
 			display: flex;
 			justify-content: center;
-			background: linear-gradient(135deg, #47109e 0%, #5a1ba8 50%, #3e0d85 100%);
 			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-			overflow: hidden;
 			position: relative;
+			width: 100%;
+			height: 100%;
+			background: #47109e;
 		}
 
 		/* Animated background effect */
@@ -41,28 +60,13 @@
 		}
 
 		@keyframes rotate {
-			from { transform: rotate(0deg); }
-			to { transform: rotate(360deg); }
-		}
+			from {
+				transform: rotate(0deg);
+			}
 
-		.badge {
-			border-radius: 1.5em;
-			padding: 0.5em 1em;
-			color: white;
-			background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
-			backdrop-filter: blur(10px);
-			border: 1px solid rgba(255, 255, 255, 0.3);
-			font-weight: bold;
-			white-space: nowrap;
-			flex-shrink: 0;
-			box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-			animation: badgeFloat 3s ease-in-out infinite;
-			font-size: 0.9em;
-		}
-
-		@keyframes badgeFloat {
-			0%, 100% { transform: translateY(0px); }
-			50% { transform: translateY(-1px); }
+			to {
+				transform: rotate(360deg);
+			}
 		}
 
 		.page,
@@ -82,9 +86,8 @@
 			display: flex;
 			flex-direction: column;
 			justify-content: center;
-			height: 100vh;
+			height: 100%;
 			width: 100%;
-			max-height: 100vh;
 		}
 
 		.vertical_space {
@@ -121,28 +124,36 @@
 		}
 
 		button {
-			font-size: 1.2rem;
-			padding: 10px;
-			width: 100%;
+			font-size: 1rem;
+			padding: 0.6em 1.2em;
 			border: none;
-			background-color: #007BFF;
+			background-color: #1d4ed8;
+			/* modern blue */
 			color: white;
-			border-radius: 4px;
+			border-radius: 6px;
 			cursor: pointer;
-			transition: background-color 0.2s;
+			transition: background-color 0.2s, transform 0.1s;
+			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+			flex-shrink: 0;
 		}
 
 		button:hover:not(:disabled) {
-			background-color: #0056b3;
+			background-color: #1e40af;
+		}
+
+		button:active:not(:disabled) {
+			transform: scale(0.98);
 		}
 
 		button:disabled {
-			background-color: #ccc;
+			background-color: #d1d5db;
 			cursor: not-allowed;
+			color: #6b7280;
 		}
 
 		#header {
 			padding: 1em 1.5em;
+			padding-top: max(1em, env(safe-area-inset-top));
 			color: white;
 			display: flex;
 			justify-content: space-between;
@@ -150,7 +161,10 @@
 			position: relative;
 			z-index: 2;
 			animation: headerSlideDown 0.8s ease-out;
-			flex-shrink: 0;
+		}
+
+		h1 {
+			font-size: 1.5em
 		}
 
 		@keyframes headerSlideDown {
@@ -158,16 +172,11 @@
 				transform: translateY(-50px);
 				opacity: 0;
 			}
+
 			to {
 				transform: translateY(0);
 				opacity: 1;
 			}
-		}
-
-		.header-right {
-			display: flex;
-			align-items: center;
-			gap: 0.75rem;
 		}
 
 		.leave-btn {
@@ -190,7 +199,6 @@
 			flex: 1;
 			font-size: 1.5em;
 			background: rgba(255, 255, 255, 0.95);
-			backdrop-filter: blur(10px);
 			border-radius: 1.5em 1.5em 0 0;
 			color: black;
 			flex-direction: column;
@@ -200,7 +208,7 @@
 			z-index: 1;
 			animation: slideUpContent 0.6s ease-out;
 			min-height: 0;
-			overflow: hidden;
+			padding: 0.4em;
 		}
 
 		@keyframes slideUpContent {
@@ -208,6 +216,7 @@
 				transform: translateY(50px);
 				opacity: 0;
 			}
+
 			to {
 				transform: translateY(0);
 				opacity: 1;
@@ -231,12 +240,12 @@
 			text-align: center;
 		}
 
-
 		@keyframes questionAppear {
 			from {
 				transform: translateY(-20px) scale(0.95);
 				opacity: 0;
 			}
+
 			to {
 				transform: translateY(0) scale(1);
 				opacity: 1;
@@ -266,20 +275,23 @@
 			width: 3em;
 			overflow: hidden;
 			border-radius: 100%;
-			box-shadow: 0 8px 25px rgba(0,0,0,0.3), 0 0 40px rgba(71, 16, 158, 0.2);
+			box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 40px rgba(71, 16, 158, 0.2);
 			font-size: 1.3em;
 			border: 3px solid rgba(71, 16, 158, 0.2);
 			animation: timerPulse 2s ease-in-out infinite;
 		}
 
 		@keyframes timerPulse {
-			0%, 100% {
+
+			0%,
+			100% {
 				transform: translate(-50%, -50%) scale(1);
-				box-shadow: 0 8px 25px rgba(0,0,0,0.3), 0 0 40px rgba(71, 16, 158, 0.2);
+				box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 40px rgba(71, 16, 158, 0.2);
 			}
+
 			50% {
 				transform: translate(-50%, -50%) scale(1.02);
-				box-shadow: 0 10px 30px rgba(0,0,0,0.35), 0 0 45px rgba(71, 16, 158, 0.3);
+				box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), 0 0 45px rgba(71, 16, 158, 0.3);
 			}
 		}
 
@@ -333,10 +345,21 @@
 			gap: 0.3em;
 		}
 
-		#playground #options .option:nth-child(1) { animation-delay: 0.1s; }
-		#playground #options .option:nth-child(2) { animation-delay: 0.2s; }
-		#playground #options .option:nth-child(3) { animation-delay: 0.3s; }
-		#playground #options .option:nth-child(4) { animation-delay: 0.4s; }
+		#playground #options .option:nth-child(1) {
+			animation-delay: 0.1s;
+		}
+
+		#playground #options .option:nth-child(2) {
+			animation-delay: 0.2s;
+		}
+
+		#playground #options .option:nth-child(3) {
+			animation-delay: 0.3s;
+		}
+
+		#playground #options .option:nth-child(4) {
+			animation-delay: 0.4s;
+		}
 
 		@keyframes optionSlideIn {
 			to {
@@ -424,9 +447,11 @@
 			0% {
 				transform: translateY(-8px) scale(1.05);
 			}
+
 			50% {
 				transform: translateY(-12px) scale(1.08);
 			}
+
 			100% {
 				transform: translateY(-8px) scale(1.05);
 			}
@@ -437,9 +462,11 @@
 				opacity: 0;
 				transform: scale(0);
 			}
+
 			50% {
 				transform: scale(1.2);
 			}
+
 			100% {
 				opacity: 1;
 				transform: scale(1);
@@ -451,6 +478,7 @@
 				opacity: 0;
 				transform: translateX(-50%) translateY(10px);
 			}
+
 			100% {
 				opacity: 1;
 				transform: translateX(-50%) translateY(0);
@@ -460,11 +488,24 @@
 		.option[style*="cursor: not-allowed"]:hover {
 			transform: none;
 		}
+		
+		/* Ensure options remain clickable during waiting state */
+		.option {
+			pointer-events: auto !important;
+		}
 
 		.option::before {
 			content: "X";
 			font-weight: bold;
 			font-size: 1.5em;
+			background: rgba(255, 255, 255, 0.25);
+			border-radius: 50%;
+			width: 1.5em;
+			height: 1.5em;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			margin-bottom: 0.5em;
 		}
 
 		.option p {
@@ -476,76 +517,56 @@
 			margin: 0;
 		}
 
+		/* Option color variants using CSS variables */
 		.option_a {
-			background: linear-gradient(135deg, #e63946, #dc3545);
+			background: linear-gradient(135deg, var(--option-red), #dc3545);
 		}
 
 		.option_a::before {
 			content: "A";
-			background: rgba(255, 255, 255, 0.25);
-			border-radius: 50%;
-			width: 1.5em;
-			height: 1.5em;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			margin-bottom: 0.5em;
-			font-weight: bold;
 		}
 
 		.option_b {
-			background: linear-gradient(135deg, #007bff, #0056b3);
+			background: linear-gradient(135deg, var(--option-blue), #0056b3);
 		}
 
 		.option_b::before {
 			content: "B";
-			background: rgba(255, 255, 255, 0.25);
-			border-radius: 50%;
-			width: 1.5em;
-			height: 1.5em;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			margin-bottom: 0.5em;
-			font-weight: bold;
 		}
 
 		.option_c {
-			background: linear-gradient(135deg, #ffc107, #e0a800);
+			background: linear-gradient(135deg, var(--option-yellow), #e0a800);
 		}
 
 		.option_c::before {
 			content: "C";
-			background: rgba(255, 255, 255, 0.25);
-			border-radius: 50%;
-			width: 1.5em;
-			height: 1.5em;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			margin-bottom: 0.5em;
-			font-weight: bold;
 		}
 
 		.option_d {
-			background: linear-gradient(135deg, #28a745, #20c997);
+			background: linear-gradient(135deg, var(--option-green), #20c997);
 		}
 
 		.option_d::before {
 			content: "D";
-			background: rgba(255, 255, 255, 0.25);
-			border-radius: 50%;
-			width: 1.5em;
-			height: 1.5em;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			margin-bottom: 0.5em;
-			font-weight: bold;
 		}
 
 		#scoreboard {
 			flex: 1;
+		}
+
+		.status {
+			border-radius: 1.5em;
+			padding: 0.5em 1em;
+			color: white;
+			background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+			backdrop-filter: blur(10px);
+			border: 1px solid rgba(255, 255, 255, 0.3);
+			font-weight: bold;
+			white-space: nowrap;
+			flex-shrink: 0;
+			box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+			animation: badgeFloat 3s ease-in-out infinite;
+			font-size: 0.9em;
 		}
 
 		.status_icon {
@@ -576,8 +597,13 @@
 		}
 
 		@keyframes shimmer {
-			from { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-			to { transform: translateX(100%) translateY(100%) rotate(45deg); }
+			from {
+				transform: translateX(-100%) translateY(-100%) rotate(45deg);
+			}
+
+			to {
+				transform: translateX(100%) translateY(100%) rotate(45deg);
+			}
 		}
 
 		@keyframes statusAppear {
@@ -585,6 +611,7 @@
 				transform: scale(0.8);
 				opacity: 0;
 			}
+
 			to {
 				transform: scale(1);
 				opacity: 1;
@@ -608,15 +635,9 @@
 
 		.debug {
 			padding: 0.5em;
-			display: flex;
-			gap: 1em;
-			background: black;
-			color: white;
-			overflow-x: scroll;
-			font-size: 0.8em;
-			align-items: center;
-			flex-shrink: 0;
-			min-height: 40px;
+			background: rgba(255, 255, 255, 0.95);
+			color: black;
+			text-align: left;
 		}
 
 		#messageBox {
@@ -650,6 +671,7 @@
 				transform: translateY(-20px);
 				opacity: 0;
 			}
+
 			to {
 				transform: translateY(0);
 				opacity: 1;
@@ -675,7 +697,6 @@
 			background: orange;
 			color: white;
 		}
-
 	</style>
 </head>
 
@@ -686,17 +707,15 @@
 			<div class="spinner" style="margin: 0 auto;"></div>
 		</div>
 	</div>
-	
+
 	<div class="page" id="game">
 		<div class="vertical_space">
 			<div id="header">
 				<h1 id="gameCode">#kod</h1>
-				<div class="header-right">
-					<span class="badge status" id="gameStatus">Hráč</span>
-					<button id="leaveGameBtn" class="leave-btn">Opustiť hru</button>
-				</div>
+				<span class="status" id="gameStatus">Hráč</span>
+				<button id="leaveGameBtn" class="leave-btn">Opustiť hru</button>
 			</div>
-			
+
 			<div class="content-wrapper visible" id="playground">
 				<p class="question" id="questionText">
 					Čakám na otázku...
@@ -722,7 +741,7 @@
 					</div>
 				</div>
 			</div>
-			
+
 			<div class="content-wrapper" id="result">
 				<p class="question" id="questionText2">
 					Správna odpoveď
@@ -745,15 +764,15 @@
 					-
 				</p>
 			</div>
-			
+
 			<div class="debug" id="debug">
 				<div class="dbox">
-					<span>Latency: </span><span id="latencyDisplay">0ms</span>
+					<span>Latency: </span><span id="latencyDisplay">--</span>
 				</div>
 			</div>
 		</div>
 	</div>
-	
+
 	<div id="messageBox"></div>
 </body>
 <script src="/socket.io/socket.io.js"></script>

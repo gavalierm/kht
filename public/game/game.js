@@ -61,6 +61,25 @@ class App {
 		// Handle option clicks
 		this.dom.addEventListener(this.elements.options, 'click', (e) => {
 			const option = e.target.closest('.option');
+			
+			// Skip if no option found or option is disabled
+			if (!option || option.style.pointerEvents === 'none') {
+				return;
+			}
+			
+			// Prevent default action to avoid any interference
+			e.preventDefault();
+			e.stopPropagation();
+			
+			// Debug logging to help diagnose the issue
+			console.log('Option click detected:', {
+				hasOption: !!option,
+				hasAnswered: this.gameState.hasAnswered,
+				isWaiting: this.gameState.isWaiting,
+				optionClasses: option ? Array.from(option.classList) : null,
+				gameStatus: this.gameState.gameStatus
+			});
+			
 			if (option && !this.gameState.hasAnswered && !this.gameState.isWaiting) {
 				const answer = ANSWER_OPTION_CLASSES.indexOf(option.classList[1]);
 				if (answer !== -1) {
@@ -78,7 +97,11 @@ class App {
 					'Chcem vyhrať! 🎯'
 				];
 				const randomMessage = excitedMessages[Math.floor(Math.random() * excitedMessages.length)];
-				this.notifications.showInfo(randomMessage);
+				
+				// Add a small delay to ensure notification system is ready
+				setTimeout(() => {
+					this.notifications.showInfo(randomMessage);
+				}, 50);
 			}
 		});
 
