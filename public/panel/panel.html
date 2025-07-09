@@ -93,19 +93,11 @@
 			font-size: 1.5em;
 		}
 
-		.panel-options-container {
-			flex: 1;
-			display: flex;
-			position: relative;
-		}
-
-
-
 		.panel-content {
 			flex: 1;
 			display: flex;
 			flex-direction: column;
-			font-size: 1.5em;
+			font-size: 2em;
 		}
 
 		.panel-question-section {
@@ -114,21 +106,11 @@
 			flex: 1;
 		}
 
-
-
-
-
-
-
 		.panel-bottom-section {
-			padding: 0.5em 1em;
-			margin-top: 0.5em;
-			flex-shrink: 0;
-			height: 20em;
+			margin-top: 1em;
 		}
 
 		.panel-top3-title {
-			font-size: 2em;
 			margin: 0 0 1em 0;
 			color: white;
 			text-align: center;
@@ -146,17 +128,15 @@
 			display: flex;
 			align-items: center;
 			justify-content: space-between;
-			padding: 1em 2em;
+			padding: 0.5em 1em;
 			background: white;
 			border-radius: 1em;
-			font-size: 1.5em;
 			white-space: nowrap;
-			min-width: 15em;
+			font-size: 1em;
 		}
 
 		.panel-player-name {
 			font-weight: bold;
-			font-size: 1.3em;
 			color: var(--primary-purple);
 			flex: 1;
 		}
@@ -164,8 +144,13 @@
 		.panel-player-score {
 			font-weight: bold;
 			color: var(--primary-purple);
-			font-size: 1.5em;
 			margin-left: 1em;
+			min-width: 2.5em;
+			text-align: right;
+		}
+
+		.quiz-option-panel {
+			padding: 1em;
 		}
 
 		/* Panel-specific animations */
@@ -186,13 +171,6 @@
 			border-color: #ffff00;
 			background-color: rgba(255, 255, 0, 0.3);
 		}
-
-		/* Waiting state */
-		.panel-waiting .quiz-question-panel {
-			color: rgba(255, 255, 255, 0.7);
-			font-style: italic;
-		}
-
 	</style>
 </head>
 
@@ -221,7 +199,7 @@
 		<div class="panel-content">
 			<div class="panel-question-section" id="panelQuestionSection">
 				<h2 class="quiz-question quiz-question-panel" id="panelQuestionText">Pripravte sa na kvíz!</h2>
-				<div class="panel-options-container">
+				<div class="quiz-options-container quiz-options-container-panel">
 					<div class="quiz-timer" id="panelCountdown" style="display: none;">
 						<span class="timer-text">30</span>
 						<div class="spinner"></div>
@@ -246,14 +224,13 @@
 					</div>
 				</div>
 			</div>
-		</div>
-
-		<div class="panel-bottom-section">
-			<h3 class="panel-top3-title">🏆 TOP 3</h3>
-			<div class="panel-leaderboard-list" id="panelLeaderboardList">
-				<div class="panel-leaderboard-item">
-					<span class="panel-player-name">Čakáme na hráčov...</span>
-					<span class="panel-player-score">-</span>
+			<div class="panel-bottom-section">
+				<h3 class="panel-top3-title">🏆 TOP 3</h3>
+				<div class="panel-leaderboard-list" id="panelLeaderboardList">
+					<div class="panel-leaderboard-item">
+						<span class="panel-player-name">Čakáme na hráčov...</span>
+						<span class="panel-player-score">-</span>
+					</div>
 				</div>
 			</div>
 		</div>
