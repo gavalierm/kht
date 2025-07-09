@@ -195,7 +195,6 @@ app.get('/api/games/:pin/leaderboard', async (req, res) => {
         if (gameData) {
           const players = await db.getGamePlayers(gameData.id);
           const dbLeaderboard = players
-            .filter(player => player.score > 0) // Only include players with scores
             .map((player, index) => ({
               position: index + 1,
               name: `Hráč ${index + 1}`,
@@ -212,7 +211,7 @@ app.get('/api/games/:pin/leaderboard', async (req, res) => {
           
           return res.json({
             leaderboard: dbLeaderboard,
-            totalPlayers: players.filter(p => p.score > 0).length,
+            totalPlayers: players.length,
             totalQuestions: activeGame.questions.length,
             status: activeGame.phase.toLowerCase()
           });
@@ -235,7 +234,6 @@ app.get('/api/games/:pin/leaderboard', async (req, res) => {
     
     const players = await db.getGamePlayers(gameData.id);
     const leaderboard = players
-      .filter(player => player.score > 0) // Only include players with scores
       .map((player, index) => ({
         position: index + 1,
         name: `Hráč ${index + 1}`,
@@ -250,7 +248,7 @@ app.get('/api/games/:pin/leaderboard', async (req, res) => {
     
     res.json({
       leaderboard: leaderboard,
-      totalPlayers: players.filter(p => p.score > 0).length,
+      totalPlayers: players.length,
       totalQuestions: gameData.questions.length,
       status: gameData.status
     });
@@ -706,17 +704,18 @@ io.on('connection', (socket) => {
     const game = activeGames.get(data.gamePin);
     if (!game || game.moderatorSocket !== socket.id) return;
     
+    // Mark as manual end game so endQuestion knows to end the game
+    game.manualEndGame = true;
+    
     // If there's an active question, process it first to ensure all submitted answers are counted
     if (game.phase === 'QUESTION_ACTIVE') {
-      console.log(`Processing active question before ending game ${data.gamePin}`);
+      console.log(`Processing active question before manually ending game ${data.gamePin}`);
       await endQuestion(game);
-      
-      // Give a moment for the question end to be processed
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // endQuestion will handle the transition to endGame with proper timing
+    } else {
+      // No active question, end the game directly
+      await endGame(game);
     }
-    
-    // End the game normally
-    await endGame(game);
     
     // Game has been ended - moderator can now manually reset if needed
   });
@@ -1159,11 +1158,16 @@ async function endQuestion(game) {
   
   console.log(`Question ended in game ${game.gamePin}`);
   
-  // Check if this was the last question and end the game
-  if (game.currentQuestionIndex >= game.questions.length - 1) {
-    console.log(`Last question completed in game ${game.gamePin}, ending game`);
+  // Check if this was the last question, or if manually ending game
+  if (game.currentQuestionIndex >= game.questions.length - 1 || game.manualEndGame) {
+    const reason = game.manualEndGame ? 'manually ended' : 'last question completed';
+    console.log(`Game ${game.gamePin} ending: ${reason}`);
+    
+    // Clear manual end flag
+    game.manualEndGame = false;
+    
     setTimeout(async () => {
-      // End the game normally - test game should behave like any other game
+      // End the game normally - same logic for both manual and automatic end
       await endGame(game);
     }, 5000); // Wait 5 seconds before ending the game to show results
   } else {
@@ -1208,7 +1212,6 @@ async function endGame(game) {
       if (gameData) {
         const players = await db.getGamePlayers(gameData.id);
         leaderboard = players
-          .filter(player => player.score > 0) // Only include players with scores
           .map((player, index) => ({
             position: index + 1,
             name: `Hráč ${index + 1}`,

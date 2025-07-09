@@ -210,22 +210,29 @@ describe('GameInstance', () => {
       expect(leaderboard[2].name).toBe('Player1'); // Lowest score
     });
 
-    test('should exclude disconnected players', () => {
+    test('should include all players with scores regardless of connection status', () => {
       game.removePlayer(2); // Disconnect Player2
       
       const leaderboard = game.getLeaderboard();
       
-      expect(leaderboard).toHaveLength(2);
-      expect(leaderboard.find(p => p.name === 'Player2')).toBeUndefined();
+      // All players should still be included as they have scores > 0
+      expect(leaderboard).toHaveLength(3);
+      expect(leaderboard.find(p => p.name === 'Player2')).toBeDefined();
     });
 
-    test('should handle empty leaderboard', () => {
-      game.removePlayer(1);
-      game.removePlayer(2);
-      game.removePlayer(3);
+    test('should include players with zero scores in leaderboard', () => {
+      // Create a new game with players who have no scores
+      const emptyGame = new GameInstance('TEST001', [], 30, 30);
+      emptyGame.addPlayer(1, 'Player1', 'socket1');
+      emptyGame.addPlayer(2, 'Player2', 'socket2');
+      emptyGame.addPlayer(3, 'Player3', 'socket3');
       
-      const leaderboard = game.getLeaderboard();
-      expect(leaderboard).toHaveLength(0);
+      // Players have no scores (default is 0)
+      const leaderboard = emptyGame.getLeaderboard();
+      expect(leaderboard).toHaveLength(3);
+      expect(leaderboard[0].score).toBe(0);
+      expect(leaderboard[1].score).toBe(0);
+      expect(leaderboard[2].score).toBe(0);
     });
   });
 
