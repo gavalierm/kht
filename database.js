@@ -173,6 +173,17 @@ class GameDatabase {
   // Create new game
   async createGame(pin, questions, moderatorPassword = null) {
     return new Promise((resolve, reject) => {
+      // Validate inputs
+      if (!pin) {
+        reject(new Error('PIN is required'));
+        return;
+      }
+      
+      if (!questions || !Array.isArray(questions)) {
+        reject(new Error('Questions must be an array'));
+        return;
+      }
+      
       const passwordHash = moderatorPassword ? bcrypt.hashSync(String(moderatorPassword), 10) : null;
       const moderatorToken = this.generateToken();
       const db = this.db;

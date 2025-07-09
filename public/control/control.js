@@ -164,6 +164,7 @@ class ControlApp {
 
 	setupSocketListeners() {
 		// Ensure socket is connected before setting up listeners
+		// Connection banner handles connection status notifications
 		this.socket.connect();
 		
 		// Game connection events

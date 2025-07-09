@@ -62,9 +62,8 @@ describe('Create Game Flow E2E', () => {
 			
 			const html = await response.text();
 			expect(html).toContain('Vytvoriť novú hru');
-			expect(html).toContain('gameCategory');
-			expect(html).toContain('customPin');
 			expect(html).toContain('moderatorPassword');
+			expect(html).toContain('createGameBtn');
 		});
 
 		test('should redirect from /create to /create/', async () => {
@@ -125,25 +124,17 @@ describe('Create Game Flow E2E', () => {
 			const html = await response.text();
 			
 			// Check for form elements
-			expect(html).toContain('id="gameCategory"');
-			expect(html).toContain('id="customPin"');
 			expect(html).toContain('id="moderatorPassword"');
 			expect(html).toContain('id="createGameBtn"');
 			expect(html).toContain('id="cancelBtn"');
 			
-			// Check for options in category select
-			expect(html).toContain('value="general"');
-			expect(html).toContain('value="history"');
-			expect(html).toContain('value="science"');
-			
 			// Check for labels
-			expect(html).toContain('Kategória otázok');
-			expect(html).toContain('Vlastný PIN kód');
 			expect(html).toContain('Heslo moderátora');
 			
 			// Check for helpful text
-			expect(html).toContain('Nechajte prázdne pre automatický PIN');
-			expect(html).toContain('Pre opätovné pripojenie k hre');
+			expect(html).toContain('Povinné pre opätovné pripojenie k hre');
+			expect(html).toContain('Vytvoriť hru');
+			expect(html).toContain('Zrušiť');
 		});
 	});
 });

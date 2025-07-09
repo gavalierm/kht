@@ -334,6 +334,12 @@ async function resetTestGame(game, moderatorSocket) {
   // Reset all player scores but keep them connected
   for (const player of game.players.values()) {
     player.score = 0;
+    // Also update score in database
+    try {
+      await db.updatePlayerScore(player.id, 0);
+    } catch (error) {
+      console.error(`Error resetting score for player ${player.id}:`, error);
+    }
   }
   
   // Sync to database
@@ -358,6 +364,17 @@ async function resetTestGame(game, moderatorSocket) {
   
   // Update panel leaderboard
   updatePanelLeaderboard(game);
+  
+  // Notify all players about the reset
+  io.to(`game_${game.gamePin}`).emit('game_state_update', {
+    status: 'waiting',
+    message: 'Hra bola resetovaná'
+  });
+  
+  // Notify panels about the reset
+  io.to(`game_${game.gamePin}_panel`).emit('game_state_update', {
+    status: 'waiting'
+  });
   
   console.log(`Test game ${game.gamePin} has been reset`);
 }
@@ -994,7 +1011,13 @@ async function endQuestion(game) {
   if (game.currentQuestionIndex >= game.questions.length - 1) {
     console.log(`Last question completed in game ${game.gamePin}, ending game`);
     setTimeout(async () => {
-      await endGame(game);
+      // Auto-reset test game instead of ending it
+      if (game.gamePin === '123456') {
+        console.log('Auto-resetting test game after all questions completed');
+        await resetTestGame(game, io.sockets.sockets.get(game.moderatorSocket));
+      } else {
+        await endGame(game);
+      }
     }, 5000); // Wait 5 seconds before ending the game to show results
   } else {
     // Advance to next question after showing results for a few seconds
