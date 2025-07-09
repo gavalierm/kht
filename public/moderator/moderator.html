@@ -669,6 +669,40 @@
 			opacity: 0.6;
 		}
 
+		.game-moderator-btn.btn-active {
+			box-shadow: 0 0 0 2px rgba(71, 16, 158, 0.3);
+			border: 2px solid #47109e;
+		}
+
+		.game-moderator-btn.btn-inactive {
+			opacity: 0.5;
+			pointer-events: none;
+		}
+
+		.game-state {
+			font-weight: bold;
+		}
+
+		.game-state.state-waiting {
+			color: #6c757d;
+		}
+
+		.game-state.state-running {
+			color: #28a745;
+		}
+
+		.game-state.state-question-active {
+			color: #007bff;
+		}
+
+		.game-state.state-results {
+			color: #ffc107;
+		}
+
+		.game-state.state-finished {
+			color: #dc3545;
+		}
+
 		.moderator-icon {
 			font-size: 1.2rem;
 		}
@@ -821,6 +855,10 @@
 					<div class="info-item">
 						<span class="info-label">PIN hry:</span>
 						<span class="info-value" id="gamePinDisplay">-</span>
+					</div>
+					<div class="info-item">
+						<span class="info-label">Stav hry:</span>
+						<span class="info-value game-state" id="gameStateDisplay">Čaká sa na hráčov</span>
 					</div>
 					<div class="info-item">
 						<span class="info-label">Počet hráčov:</span>

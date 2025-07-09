@@ -726,10 +726,33 @@ io.on('connection', (socket) => {
     const game = activeGames.get(data.gamePin);
     if (!game || game.moderatorSocket !== socket.id) return;
     
-    console.log(`Manual reset requested for game ${data.gamePin}`);
+    console.log(`Manual reset requested for game ${data.gamePin}, current phase: ${game.phase}`);
     
-    // Reset the game regardless of current state
-    await resetGame(game, socket, true);
+    // Only allow reset if game is finished, or force game to end first
+    if (game.phase === 'FINISHED') {
+      console.log(`Game ${data.gamePin} is finished - allowing reset`);
+      await resetGame(game, socket, true);
+    } else {
+      console.log(`Game ${data.gamePin} is not finished (phase: ${game.phase}) - forcing game to end before reset`);
+      
+      // Force game to end first
+      game.phase = 'FINISHED';
+      
+      // Sync the ended state to database
+      await game.syncToDatabase(db);
+      
+      // Notify all clients that game has ended
+      socketManager.broadcastGameEnd(game.gamePin, game.getLeaderboard());
+      
+      // Send moderator the end game notification
+      socket.emit('game_ended', {
+        finalLeaderboard: game.getLeaderboard(),
+        message: 'Hra bola ukončená pred resetom'
+      });
+      
+      // Now reset the game
+      await resetGame(game, socket, true);
+    }
   });
 
 

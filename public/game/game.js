@@ -60,7 +60,7 @@ class App {
 
 		// Handle option clicks
 		this.dom.addEventListener(this.elements.options, 'click', (e) => {
-			const option = e.target.closest('.option');
+			const option = e.target.closest('.quiz-option');
 			
 			// Skip if no option found or option is disabled
 			if (!option || option.style.pointerEvents === 'none') {
@@ -81,7 +81,13 @@ class App {
 			});
 			
 			if (option && !this.gameState.hasAnswered && !this.gameState.isWaiting) {
-				const answer = ANSWER_OPTION_CLASSES.indexOf(option.classList[1]);
+				// Find which option was clicked by checking for quiz-option-a, quiz-option-b, etc.
+				let answer = -1;
+				if (option.classList.contains('quiz-option-a')) answer = 0;
+				else if (option.classList.contains('quiz-option-b')) answer = 1;
+				else if (option.classList.contains('quiz-option-c')) answer = 2;
+				else if (option.classList.contains('quiz-option-d')) answer = 3;
+				
 				if (answer !== -1) {
 					this.submitAnswer(answer);
 				}
@@ -494,11 +500,11 @@ class App {
 		
 		
 		// Reset option texts and clear selection highlighting
-		const optionElements = this.elements.options?.querySelectorAll('.option');
+		const optionElements = this.elements.options?.querySelectorAll('.quiz-option');
 		if (optionElements) {
 			optionElements.forEach(optionEl => {
 				// Reset text
-				const textEl = optionEl.querySelector('p');
+				const textEl = optionEl.querySelector('.quiz-option-text');
 				if (textEl) {
 					this.dom.setText(textEl, '-');
 				}
@@ -534,7 +540,7 @@ class App {
 		this.dom.addClass(this.elements.timer, 'waiting');
 		
 		// Fade all option buttons (like unvoted ones)
-		const optionElements = this.elements.options?.querySelectorAll('.option');
+		const optionElements = this.elements.options?.querySelectorAll('.quiz-option');
 		if (optionElements) {
 			optionElements.forEach(optionEl => {
 				// Clear voting states first
@@ -571,7 +577,7 @@ class App {
 		this.dom.setText(this.elements.questionText, data.question);
 
 		// Update options
-		const optionElements = this.elements.options?.querySelectorAll('.option p');
+		const optionElements = this.elements.options?.querySelectorAll('.quiz-option-text');
 		if (optionElements) {
 			data.options.forEach((option, index) => {
 				if (optionElements[index]) {
@@ -581,7 +587,7 @@ class App {
 		}
 
 		// Enable all options and clear voted states
-		this.elements.options?.querySelectorAll('.option').forEach(el => {
+		this.elements.options?.querySelectorAll('.quiz-option').forEach(el => {
 			// Clear voting states
 			this.dom.removeClass(el, 'voted');
 			this.dom.removeClass(el, 'not-voted');
@@ -644,7 +650,7 @@ class App {
 		const answerTime = Date.now();
 
 		// Get all options
-		const optionElements = this.elements.options?.querySelectorAll('.option');
+		const optionElements = this.elements.options?.querySelectorAll('.quiz-option');
 		if (!optionElements) return;
 
 		// Disable all options
@@ -788,11 +794,11 @@ class App {
 				this.dom.removeClass(this.elements.options, 'hidden');
 				
 				// Reset option texts and clear selection highlighting
-				const optionElements = this.elements.options.querySelectorAll('.option');
+				const optionElements = this.elements.options.querySelectorAll('.quiz-option');
 				if (optionElements) {
 					optionElements.forEach(optionEl => {
 						// Reset text
-						const textEl = optionEl.querySelector('p');
+						const textEl = optionEl.querySelector('.quiz-option-text');
 						if (textEl) {
 							this.dom.setText(textEl, '-');
 						}

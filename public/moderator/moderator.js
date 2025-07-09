@@ -24,6 +24,7 @@ class ModeratorApp {
 		
 		// Game moderator state
 		this.gameState = 'stopped'; // stopped, running
+		this.gamePhase = 'WAITING'; // WAITING, QUESTION_ACTIVE, RESULTS, FINISHED
 		this.playerCount = 0;
 		this.currentQuestion = 0;
 		this.moderatorToken = null;
@@ -61,6 +62,7 @@ class ModeratorApp {
 			'endGameBtn',
 			'resetGameBtn',
 			'gamePinDisplay',
+			'gameStateDisplay',
 			'playerCountDisplay',
 			'currentQuestionDisplay',
 			'gameInfo',
@@ -166,12 +168,10 @@ class ModeratorApp {
 		if (data.status === 'waiting') {
 			// Game is waiting for next question to start
 			this.gameState = 'waiting';
-			
-			// Update UI to show waiting state
-			this.updateGameStatusDisplay('Čakáme na ďalšiu otázku...');
+			this.updateGameStateDisplay('WAITING', 'Čakáme na ďalšiu otázku...');
 		} else if (data.status === 'finished') {
 			this.gameState = 'finished';
-			this.updateGameStatusDisplay('Hra skončila');
+			this.updateGameStateDisplay('FINISHED');
 		}
 	}
 
@@ -191,6 +191,89 @@ class ModeratorApp {
 		// Update any status display elements
 		if (this.elements.gameStatusDisplay) {
 			this.dom.setText(this.elements.gameStatusDisplay, message);
+		}
+	}
+
+	updateGameStateDisplay(phase, customMessage = null) {
+		this.gamePhase = phase;
+		
+		let message = customMessage;
+		let cssClass = 'game-state';
+		
+		if (!message) {
+			switch (phase) {
+				case 'WAITING':
+					message = 'Čaká sa na hráčov';
+					cssClass += ' state-waiting';
+					break;
+				case 'QUESTION_ACTIVE':
+					message = 'Otázka je aktívna';
+					cssClass += ' state-question-active';
+					break;
+				case 'RESULTS':
+					message = 'Zobrazujú sa výsledky';
+					cssClass += ' state-results';
+					break;
+				case 'FINISHED':
+					message = 'Hra skončila';
+					cssClass += ' state-finished';
+					break;
+				default:
+					message = 'Neznámy stav';
+					cssClass += ' state-waiting';
+			}
+		}
+		
+		if (this.elements.gameStateDisplay) {
+			this.elements.gameStateDisplay.textContent = message;
+			this.elements.gameStateDisplay.className = cssClass;
+		}
+		
+		// Update button states based on phase
+		this.updateButtonStates();
+	}
+
+	updateButtonStates() {
+		// Start Game Button
+		if (this.elements.startGameBtn) {
+			const canStart = this.gamePhase === 'WAITING' || this.gamePhase === 'RESULTS';
+			this.elements.startGameBtn.disabled = !canStart || this.gameState === 'running';
+			
+			// Visual feedback
+			this.elements.startGameBtn.classList.remove('btn-active', 'btn-inactive');
+			if (canStart && this.gameState !== 'running') {
+				this.elements.startGameBtn.classList.add('btn-active');
+			} else {
+				this.elements.startGameBtn.classList.add('btn-inactive');
+			}
+		}
+
+		// End Game Button
+		if (this.elements.endGameBtn) {
+			const canEnd = this.gamePhase !== 'FINISHED' && this.gameState !== 'stopped';
+			this.elements.endGameBtn.disabled = !canEnd;
+			
+			// Visual feedback
+			this.elements.endGameBtn.classList.remove('btn-active', 'btn-inactive');
+			if (canEnd) {
+				this.elements.endGameBtn.classList.add('btn-active');
+			} else {
+				this.elements.endGameBtn.classList.add('btn-inactive');
+			}
+		}
+
+		// Reset Game Button
+		if (this.elements.resetGameBtn) {
+			const canReset = this.gamePhase === 'FINISHED' || this.gameState === 'finished';
+			this.elements.resetGameBtn.disabled = !canReset;
+			
+			// Visual feedback
+			this.elements.resetGameBtn.classList.remove('btn-active', 'btn-inactive');
+			if (canReset) {
+				this.elements.resetGameBtn.classList.add('btn-active');
+			} else {
+				this.elements.resetGameBtn.classList.add('btn-inactive');
+			}
 		}
 	}
 
@@ -283,6 +366,7 @@ class ModeratorApp {
 	handleQuestionStarted(data) {
 		this.gameState = 'running';
 		this.currentQuestion = data.questionIndex !== undefined ? data.questionIndex : (data.questionNumber - 1);
+		this.updateGameStateDisplay('QUESTION_ACTIVE', `Otázka ${data.questionNumber}/${data.totalQuestions} prebieha`);
 		this.updateGameModeratorUI();
 		this.autoCollapseQuestions();
 		this.notifications.showInfo(`Otázka ${data.questionNumber} bola spustená`);
@@ -290,6 +374,7 @@ class ModeratorApp {
 
 	handleQuestionEnded(data) {
 		this.gameState = 'waiting';
+		this.updateGameStateDisplay('RESULTS', 'Zobrazujú sa výsledky otázky');
 		this.updateGameModeratorUI();
 		
 		const message = data.hasMoreQuestions ? 
@@ -302,6 +387,7 @@ class ModeratorApp {
 		// Update current question index to reflect the advancement
 		this.currentQuestion = data.questionIndex || (data.questionNumber - 1); // Use 0-based index directly or convert
 		this.gameState = 'waiting';
+		this.updateGameStateDisplay('WAITING', `Otázka ${data.questionNumber}/${data.totalQuestions} pripravená`);
 		this.updateGameModeratorUI();
 		
 		this.notifications.showSuccess(`Otázka ${data.questionNumber} z ${data.totalQuestions} je pripravená na spustenie`);
@@ -336,6 +422,7 @@ class ModeratorApp {
 		// Reset local state to match server
 		this.gameState = 'waiting';
 		this.currentQuestion = 0;
+		this.updateGameStateDisplay('WAITING', 'Hra bola resetovaná');
 		this.updateGameModeratorUI();
 		
 		this.notifications.showSuccess(data.message || 'Hra bola resetovaná');
@@ -450,6 +537,14 @@ class ModeratorApp {
 		this.playerCount = data.totalPlayers || 0;
 		this.currentQuestion = data.currentQuestionIndex || 0;
 		
+		// Initialize game state display
+		const serverStatus = data.status || 'waiting';
+		let gamePhase = 'WAITING';
+		if (serverStatus === 'finished') {
+			gamePhase = 'FINISHED';
+		}
+		this.updateGameStateDisplay(gamePhase);
+		
 		// Store token for future use
 		if (this.moderatorToken) {
 			localStorage.setItem(`moderator_token_${this.gamePin}`, this.moderatorToken);
@@ -497,6 +592,7 @@ class ModeratorApp {
 		this.isLoggedIn = false;
 		this.moderatorToken = null;
 		this.gameState = 'stopped';
+		this.gamePhase = 'WAITING';
 		this.playerCount = 0;
 		this.currentQuestion = 0;
 		
@@ -865,6 +961,7 @@ class ModeratorApp {
 		
 		// Update local state
 		this.gameState = 'finished';
+		this.updateGameStateDisplay('FINISHED');
 		this.updateGameModeratorUI();
 		
 		// Show final results notification
@@ -899,14 +996,8 @@ class ModeratorApp {
 	}
 
 	updateGameModeratorUI() {
-		// Update button states
-		if (this.elements.startGameBtn) {
-			this.elements.startGameBtn.disabled = this.gameState === 'running';
-		}
-
-		if (this.elements.endGameBtn) {
-			this.elements.endGameBtn.disabled = false;
-		}
+		// Update button states using new method
+		this.updateButtonStates();
 
 		// Update game info
 		if (this.elements.gameInfo) {
