@@ -370,6 +370,93 @@
 			opacity: 1;
 		}
 
+		/* Voted state styles */
+		.option.voted {
+			position: relative;
+			transform: translateY(-8px) scale(1.05) !important;
+			box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4), 0 0 0 4px rgba(255, 255, 255, 0.8) !important;
+			border: 3px solid #fff !important;
+			opacity: 1 !important;
+			animation: voteSuccess 0.6s ease-out;
+		}
+
+		.option.voted::after {
+			content: '✓';
+			position: absolute;
+			top: 10px;
+			right: 10px;
+			background: rgba(255, 255, 255, 0.9);
+			color: #28a745;
+			width: 30px;
+			height: 30px;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-weight: bold;
+			font-size: 16px;
+			box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+			animation: checkmarkAppear 0.3s ease-out 0.2s both;
+		}
+
+		.option.voted .voted-label {
+			position: absolute;
+			bottom: 8px;
+			left: 50%;
+			transform: translateX(-50%);
+			background: rgba(255, 255, 255, 0.95);
+			color: #28a745;
+			padding: 4px 12px;
+			border-radius: 12px;
+			font-size: 0.8em;
+			font-weight: bold;
+			box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+			animation: labelSlideUp 0.4s ease-out 0.3s both;
+		}
+
+		.option.not-voted {
+			opacity: 0.3 !important;
+			transform: scale(0.95) !important;
+			filter: grayscale(0.7) !important;
+		}
+
+		@keyframes voteSuccess {
+			0% {
+				transform: translateY(-8px) scale(1.05);
+			}
+			50% {
+				transform: translateY(-12px) scale(1.08);
+			}
+			100% {
+				transform: translateY(-8px) scale(1.05);
+			}
+		}
+
+		@keyframes checkmarkAppear {
+			0% {
+				opacity: 0;
+				transform: scale(0);
+			}
+			50% {
+				transform: scale(1.2);
+			}
+			100% {
+				opacity: 1;
+				transform: scale(1);
+			}
+		}
+
+		@keyframes labelSlideUp {
+			0% {
+				opacity: 0;
+				transform: translateX(-50%) translateY(10px);
+			}
+			100% {
+				opacity: 1;
+				transform: translateX(-50%) translateY(0);
+			}
+		}
+
 		.option[style*="cursor: not-allowed"]:hover {
 			transform: none;
 		}

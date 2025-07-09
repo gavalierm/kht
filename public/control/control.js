@@ -91,6 +91,55 @@ class ControlApp {
 		this.checkExistingLogin();
 	}
 
+	setupSocketListeners() {
+		// Get socket instance
+		const socket = this.socket.connect();
+		
+		// Listen for game state updates
+		socket.on(SOCKET_EVENTS.GAME_STATE_UPDATE, (data) => {
+			this.handleGameStateUpdate(data);
+		});
+		
+		// Listen for next question ready events
+		socket.on('next_question_ready', (data) => {
+			this.handleNextQuestionReady(data);
+		});
+	}
+
+	handleGameStateUpdate(data) {
+		console.log('Control: Game state update:', data);
+		
+		if (data.status === 'waiting') {
+			// Game is waiting for next question to start
+			this.gameState = 'waiting';
+			
+			// Update UI to show waiting state
+			this.updateGameStatusDisplay('Čakáme na ďalšiu otázku...');
+		} else if (data.status === 'finished') {
+			this.gameState = 'finished';
+			this.updateGameStatusDisplay('Hra skončila');
+		}
+	}
+
+	handleNextQuestionReady(data) {
+		console.log('Control: Next question ready:', data);
+		
+		// Update UI to show that next question is ready
+		this.updateGameStatusDisplay(`Otázka ${data.questionNumber}/${data.totalQuestions} je pripravená`);
+		
+		// Enable start question button if it exists
+		if (this.elements.startQuestionBtn) {
+			this.elements.startQuestionBtn.disabled = false;
+		}
+	}
+
+	updateGameStatusDisplay(message) {
+		// Update any status display elements
+		if (this.elements.gameStatusDisplay) {
+			this.dom.setText(this.elements.gameStatusDisplay, message);
+		}
+	}
+
 	setupEventListeners() {
 		// Question management buttons
 		if (this.elements.addQuestionBtn) {

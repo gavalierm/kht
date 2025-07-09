@@ -470,6 +470,13 @@ io.on('connection', (socket) => {
         moderatorToken: dbResult.moderatorToken
       });
       
+      // Broadcast initial waiting state to any connected panels
+      socketManager.broadcastGameState(gamePin, {
+        status: 'waiting',
+        questionNumber: 1,
+        totalQuestions: questions.length
+      });
+      
       console.log(`Game created: ${gamePin} (DB ID: ${dbResult.gameId})`);
       
     } catch (error) {
@@ -953,6 +960,16 @@ io.on('connection', (socket) => {
         questionCount: gameData.questions.length,
         currentState: gameData.status
       });
+      
+      // If game is in memory and waiting, send current waiting state
+      const game = activeGames.get(data.gamePin);
+      if (game && game.phase === 'WAITING') {
+        socket.emit('game_state_update', {
+          status: 'waiting',
+          questionNumber: game.currentQuestionIndex + 1,
+          totalQuestions: game.questions.length
+        });
+      }
       
       // If question is active, send current question
       if (gameData.status === 'question_active' && gameData.current_question_index < gameData.questions.length) {

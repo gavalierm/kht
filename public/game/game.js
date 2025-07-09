@@ -450,10 +450,21 @@ class App {
 					this.dom.setText(textEl, '-');
 				}
 				
-				// Clear selection highlighting
+				// Clear voting states
+				this.dom.removeClass(optionEl, 'voted');
+				this.dom.removeClass(optionEl, 'not-voted');
+				
+				// Remove voted label if it exists
+				const votedLabel = optionEl.querySelector('.voted-label');
+				if (votedLabel) {
+					votedLabel.remove();
+				}
+				
+				// Clear any inline styles
 				this.dom.setStyles(optionEl, {
 					opacity: '',
-					border: ''
+					border: '',
+					pointerEvents: ''
 				});
 			});
 		}
@@ -480,8 +491,19 @@ class App {
 			});
 		}
 
-		// Enable all options
+		// Enable all options and clear voted states
 		this.elements.options?.querySelectorAll('.option').forEach(el => {
+			// Clear voting states
+			this.dom.removeClass(el, 'voted');
+			this.dom.removeClass(el, 'not-voted');
+			
+			// Remove voted label if it exists
+			const votedLabel = el.querySelector('.voted-label');
+			if (votedLabel) {
+				votedLabel.remove();
+			}
+			
+			// Enable and reset styles
 			this.dom.setStyles(el, {
 				opacity: '1',
 				pointerEvents: 'auto',
@@ -525,22 +547,38 @@ class App {
 
 		const answerTime = Date.now();
 
+		// Get all options
+		const optionElements = this.elements.options?.querySelectorAll('.option');
+		if (!optionElements) return;
+
 		// Disable all options
-		this.elements.options?.querySelectorAll('.option').forEach(el => {
+		optionElements.forEach(el => {
 			this.dom.setStyles(el, {
-				opacity: '0.5',
 				pointerEvents: 'none'
 			});
 		});
 
-		// Highlight selected answer
-		const selectedOption = this.elements.options?.querySelectorAll('.option')[answerIndex];
+		// Mark selected option as voted
+		const selectedOption = optionElements[answerIndex];
 		if (selectedOption) {
-			this.dom.setStyles(selectedOption, {
-				opacity: '1',
-				border: '3px solid white'
-			});
+			this.dom.addClass(selectedOption, 'voted');
+			
+			// Add voted label
+			const votedLabel = document.createElement('span');
+			votedLabel.className = 'voted-label';
+			votedLabel.textContent = 'ODOSLANÉ';
+			selectedOption.appendChild(votedLabel);
 		}
+
+		// Mark other options as not voted
+		optionElements.forEach((el, index) => {
+			if (index !== answerIndex) {
+				this.dom.addClass(el, 'not-voted');
+			}
+		});
+
+		// Show success notification
+		this.notifications.showSuccess('Odpoveď odoslaná!');
 
 		this.socket.emit(SOCKET_EVENTS.SUBMIT_ANSWER, {
 			answer: answerIndex,
@@ -640,14 +678,44 @@ class App {
 					`Čakáme na otázku ${data.questionNumber}/${data.totalQuestions}...`);
 			}
 			
-			// Hide options during waiting
-			if (this.elements.optionsGrid) {
-				this.dom.addClass(this.elements.optionsGrid, 'hidden');
+			// Show timer with waiting spinner
+			if (this.elements.timer) {
+				this.dom.addClass(this.elements.timer, 'waiting');
+				this.dom.removeClass(this.elements.timer, 'hidden');
 			}
 			
-			// Hide timer
-			if (this.elements.timer) {
-				this.dom.addClass(this.elements.timer, 'hidden');
+			// Show options but reset them to waiting state
+			if (this.elements.options) {
+				this.dom.removeClass(this.elements.options, 'hidden');
+				
+				// Reset option texts and clear selection highlighting
+				const optionElements = this.elements.options.querySelectorAll('.option');
+				if (optionElements) {
+					optionElements.forEach(optionEl => {
+						// Reset text
+						const textEl = optionEl.querySelector('p');
+						if (textEl) {
+							this.dom.setText(textEl, '-');
+						}
+						
+						// Clear voting states
+						this.dom.removeClass(optionEl, 'voted');
+						this.dom.removeClass(optionEl, 'not-voted');
+						
+						// Remove voted label if it exists
+						const votedLabel = optionEl.querySelector('.voted-label');
+						if (votedLabel) {
+							votedLabel.remove();
+						}
+						
+						// Clear any inline styles
+						this.dom.setStyles(optionEl, {
+							opacity: '',
+							border: '',
+							pointerEvents: ''
+						});
+					});
+				}
 			}
 			
 			// Clear any running timers
