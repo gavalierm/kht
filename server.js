@@ -186,6 +186,39 @@ app.get('/api/games/:pin/leaderboard', async (req, res) => {
     const activeGame = activeGames.get(gamePin);
     if (activeGame) {
       const leaderboard = activeGame.getLeaderboard();
+      
+      // If active game has no leaderboard data, try database fallback
+      if (!leaderboard || leaderboard.length === 0) {
+        console.log(`API: No leaderboard in memory for game ${gamePin}, trying database fallback`);
+        
+        const gameData = await db.getGameByPin(gamePin);
+        if (gameData) {
+          const players = await db.getGamePlayers(gameData.id);
+          const dbLeaderboard = players
+            .filter(player => player.score > 0) // Only include players with scores
+            .map((player, index) => ({
+              position: index + 1,
+              name: `Hráč ${index + 1}`,
+              score: player.score || 0,
+              playerId: player.id
+            }))
+            .sort((a, b) => b.score - a.score)
+            .map((player, index) => ({
+              ...player,
+              position: index + 1
+            }));
+          
+          console.log(`API: Fallback leaderboard from database: ${dbLeaderboard.length} players`);
+          
+          return res.json({
+            leaderboard: dbLeaderboard,
+            totalPlayers: players.filter(p => p.score > 0).length,
+            totalQuestions: activeGame.questions.length,
+            status: activeGame.phase.toLowerCase()
+          });
+        }
+      }
+      
       return res.json({
         leaderboard: leaderboard,
         totalPlayers: Array.from(activeGame.players.values()).filter(p => p.connected).length,
@@ -202,16 +235,22 @@ app.get('/api/games/:pin/leaderboard', async (req, res) => {
     
     const players = await db.getGamePlayers(gameData.id);
     const leaderboard = players
+      .filter(player => player.score > 0) // Only include players with scores
       .map((player, index) => ({
-        id: player.id,
+        position: index + 1,
         name: `Hráč ${index + 1}`,
-        score: player.score || 0
+        score: player.score || 0,
+        playerId: player.id
       }))
-      .sort((a, b) => b.score - a.score);
+      .sort((a, b) => b.score - a.score)
+      .map((player, index) => ({
+        ...player,
+        position: index + 1
+      }));
     
     res.json({
       leaderboard: leaderboard,
-      totalPlayers: players.length,
+      totalPlayers: players.filter(p => p.score > 0).length,
       totalQuestions: gameData.questions.length,
       status: gameData.status
     });
@@ -662,7 +701,16 @@ io.on('connection', (socket) => {
     const game = activeGames.get(data.gamePin);
     if (!game || game.moderatorSocket !== socket.id) return;
     
-    // End the game normally first
+    // If there's an active question, process it first to ensure all submitted answers are counted
+    if (game.phase === 'QUESTION_ACTIVE') {
+      console.log(`Processing active question before ending game ${data.gamePin}`);
+      await endQuestion(game);
+      
+      // Give a moment for the question end to be processed
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    
+    // End the game normally
     await endGame(game);
     
     // After game is properly ended, check if it's test game and reset it
@@ -1133,10 +1181,40 @@ async function endQuestion(game) {
 // Helper function to end game
 async function endGame(game) {
   game.phase = 'FINISHED';
-  const leaderboard = game.getLeaderboard();
+  
+  // Get leaderboard from memory first
+  let leaderboard = game.getLeaderboard();
+  
+  // Fallback: If no leaderboard data in memory, try to get from database
+  if (!leaderboard || leaderboard.length === 0) {
+    console.log(`No leaderboard in memory for game ${game.gamePin}, trying database fallback`);
+    try {
+      const gameData = await db.getGameByPin(game.gamePin);
+      if (gameData) {
+        const players = await db.getGamePlayers(gameData.id);
+        leaderboard = players
+          .filter(player => player.score > 0) // Only include players with scores
+          .map((player, index) => ({
+            position: index + 1,
+            name: `Hráč ${index + 1}`,
+            score: player.score || 0,
+            playerId: player.id
+          }))
+          .sort((a, b) => b.score - a.score)
+          .map((player, index) => ({
+            ...player,
+            position: index + 1
+          }));
+        
+        console.log(`Fallback leaderboard from database: ${leaderboard.length} players`);
+      }
+    } catch (error) {
+      console.error('Error getting fallback leaderboard from database:', error);
+    }
+  }
   
   const gameEndData = {
-    leaderboard: leaderboard,
+    leaderboard: leaderboard || [],
     totalPlayers: game.getConnectedPlayerCount(),
     totalQuestions: game.questions.length
   };
@@ -1161,7 +1239,7 @@ async function endGame(game) {
   // Cleanup socket manager resources for finished game
   socketManager.cleanupGame(game.gamePin);
   
-  console.log(`Game ended: ${game.gamePin}, broadcasting to all interfaces`);
+  console.log(`Game ended: ${game.gamePin}, broadcasting to all interfaces with ${leaderboard.length} players`);
   
   // If this is the test game ending naturally (after all questions), reset it after delay
   if (game.gamePin === '123456') {
