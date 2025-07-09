@@ -56,6 +56,14 @@ app.use('/stage', express.static(path.join(__dirname, 'public/stage')));
 app.use('/join', express.static(path.join(__dirname, 'public/join')));
 app.use('/create', express.static(path.join(__dirname, 'public/create')));
 app.use('/shared', express.static(path.join(__dirname, 'public/shared')));
+
+// PWA support - serve manifest and icons
+app.get('/manifest.json', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/manifest.json'));
+});
+app.use('/icons', express.static(path.join(__dirname, 'public/icons')));
+
+// Serve game app as default
 app.use(express.static(path.join(__dirname, 'public/game')));
 
 // Global variables
@@ -888,6 +896,19 @@ io.on('connection', (socket) => {
         score: playerData.score,
         gameStatus: game.phase
       });
+
+      // Update moderator dashboard with reconnected player count
+      const connectedPlayers = game.getConnectedPlayers();
+      const rooms = socketManager.getGameRooms(data.gamePin);
+      io.to(rooms.moderators).emit('player_joined', {
+        playerId: playerData.id,
+        playerName: game.getPlayer(playerData.id)?.name || `Hráč ${playerData.id}`,
+        totalPlayers: connectedPlayers.length,
+        players: connectedPlayers.map(p => ({ id: p.id, name: p.name }))
+      });
+
+      // Update panel leaderboard
+      socketManager.broadcastLeaderboardUpdate(data.gamePin, game.getLeaderboard());
 
       console.log(`Player ${playerData.name} reconnected to game ${data.gamePin}`);
 

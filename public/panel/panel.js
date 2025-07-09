@@ -499,7 +499,8 @@ class PanelApp {
 		setTimeout(() => {
 			if (this.gamePin) {
 				console.log(`Redirecting panel to stage interface for game ${this.gamePin}`);
-				window.location.href = `/stage/${this.gamePin}`;
+				// Add context parameter to differentiate panel from player view
+				window.location.href = `/stage/${this.gamePin}?context=panel`;
 			}
 		}, 5000);
 	}
