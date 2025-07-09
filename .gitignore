@@ -17,3 +17,6 @@ coverage/
 # macOS metadata
 .Spotlight-V100
 .Trashes
+
+# Claude AI
+.claude*
