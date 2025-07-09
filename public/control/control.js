@@ -317,9 +317,8 @@ class ControlApp {
 			// Auto-login with stored token (automatic, no user interaction needed)
 			this.autoLoginWithToken(moderatorToken);
 		} else {
-			// Show login page with pre-filled password for test game
+			// Show login page
 			this.showLoginPage();
-			this.prefillTestGamePassword();
 		}
 	}
 
@@ -396,12 +395,6 @@ class ControlApp {
 		this.socket.emit(SOCKET_EVENTS.RECONNECT_MODERATOR, loginData);
 	}
 
-	prefillTestGamePassword() {
-		// Pre-fill password for test game 123456
-		if (this.gamePin === '123456' && this.elements.moderatorPassword) {
-			this.elements.moderatorPassword.value = '123456';
-		}
-	}
 
 	handleLoginSuccess(data) {
 		// Clear login timeout
@@ -473,9 +466,8 @@ class ControlApp {
 		// Clear form
 		if (this.elements.moderatorPassword) this.elements.moderatorPassword.value = '';
 		
-		// Show login page and pre-fill test game password
+		// Show login page
 		this.showLoginPage();
-		this.prefillTestGamePassword();
 		
 		this.notifications.showInfo('Odhlásený');
 	}
