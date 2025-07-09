@@ -92,7 +92,7 @@ class Top3Leaderboard {
 
 		if (position.isTop3) {
 			const positions = ['1. miesto! 🏆', '2. miesto! 🥈', '3. miesto! 🥉'];
-			return `Gratulujeme! Skončili ste na ${positions[position.rank - 1]}`;
+			return `Gratulujeme! Máte ${positions[position.rank - 1]}`;
 		} else {
 			return `Skončili ste na ${position.rank}. mieste so ${position.player.score} bodmi`;
 		}
