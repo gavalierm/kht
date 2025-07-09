@@ -33,6 +33,7 @@ npm test                    # Run all tests (67 tests)
 npm run test:unit          # Run unit tests (42 tests)
 npm run test:integration   # Run integration tests (16 tests) 
 npm run test:e2e          # Run E2E tests (19 tests)
+npm run test:frontend      # Run frontend tests (JSDOM environment)
 npm run test:watch        # Watch mode for development
 npm run test:coverage     # Generate coverage report
 ```
@@ -50,8 +51,9 @@ This is a real-time multiplayer quiz application built with Node.js, Express, So
 - Three main user interfaces served from `/public/` directories
 
 **Database Layer (database.js)**
-- SQLite database with GameDatabase class
-- Handles games, players, and answers storage
+- SQLite database with better-sqlite3 and WAL mode enabled
+- GameDatabase class with prepared statement caching for performance
+- Database files: `db/quiz.db` (main), `db/quiz.db-wal` (WAL), `db/quiz.db-shm` (shared memory)
 - Automatic test game creation with PIN `123456`
 - Cleanup routines for old games
 
@@ -74,21 +76,31 @@ This is a real-time multiplayer quiz application built with Node.js, Express, So
 ### Data Flow
 
 - **In-Memory State**: Active games stored in `activeGames` Map for performance
-- **Database Persistence**: Game state synced to SQLite every 30 seconds
+- **Database Persistence**: Game state synced to SQLite with WAL mode every 30 seconds
 - **Real-time Updates**: Socket.io events for live game interactions
 - **Reconnection Support**: Players and moderators can rejoin games using tokens
 
 ### Important Classes
 
-**GameInstance Class**
+**GameInstance Class** (`/lib/gameInstance.js`)
 - Manages individual game state in memory
 - Handles player management, scoring, and question progression
 - Provides database synchronization methods
 
-**GameDatabase Class**
-- SQLite database operations
-- Player and game management
+**GameDatabase Class** (`database.js`)
+- SQLite database operations with better-sqlite3 and WAL mode
+- Prepared statement caching for performance optimization
+- Player and game management with concurrent read/write support
 - Token-based authentication for reconnection
+
+**SocketManager Class** (`/lib/socketManager.js`)
+- Manages Socket.io connections and events
+- Handles client communication and event routing
+
+**MemoryManager Class** (`/lib/memoryManager.js`)
+- High-concurrency memory management
+- Game cleanup and resource optimization
+- Performance monitoring and limits
 
 ## Project Structure
 
@@ -101,17 +113,35 @@ This is a real-time multiplayer quiz application built with Node.js, Express, So
   /stage/        # Post-game leaderboard display
   /create/       # Game creation interface
   /shared/       # Shared frontend utilities
-    ├── router.js       # Client-side routing
-    ├── socket.js       # Socket.io client wrapper
-    ├── constants.js    # Event constants and UI constants
-    ├── api.js          # API utilities
-    ├── dom.js          # DOM manipulation helpers
-    ├── gameState.js    # Client state management
-    ├── notifications.js # UI notification system
-    └── common.css      # Shared styles
+    ├── router.js           # Client-side routing
+    ├── socket.js           # Socket.io client wrapper
+    ├── constants.js        # Event constants and UI constants
+    ├── api.js              # API utilities
+    ├── dom.js              # DOM manipulation helpers
+    ├── gameState.js        # Client state management
+    ├── notifications.js    # UI notification system
+    ├── connectionStatus.js # Connection status management
+    ├── sessionChecker.js   # Session validation utilities
+    ├── common.css          # Shared styles
+    └── components/         # Reusable UI components
+        └── top3Leaderboard.js # Top 3 leaderboard component
+  manifest.json  # PWA manifest file
+  /icons/        # PWA icons
+/lib/            # Backend utility classes
+  ├── gameInstance.js      # Game state management
+  ├── gameUtils.js         # Game utility functions
+  ├── socketManager.js     # Socket.io management
+  └── memoryManager.js     # Memory and performance management
+/questions/      # Sample question sets
+  ├── general.json         # General knowledge questions
+  ├── history.json         # History questions
+  └── science.json         # Science questions
 server.js        # Main server and Socket.io handling
 database.js      # Database abstraction layer
-quiz.db          # SQLite database file
+/db/             # Database files (WAL mode enabled)
+  ├── quiz.db    # Main SQLite database file
+  ├── quiz.db-wal # Write-Ahead Log file (WAL mode)
+  └── quiz.db-shm # Shared memory file (WAL mode)
 /tests/          # Comprehensive test suite (67 tests)
   ├── unit/      # Unit tests (42 tests)
   ├── integration/ # Integration tests (16 tests)
@@ -144,7 +174,10 @@ quiz.db          # SQLite database file
 - **Real-time Updates**: Live leaderboards and statistics
 - **Multiple Interfaces**: Separate apps for different user types
 - **Smart Routing**: URL-based game joining with context-aware redirects
-- **Performance Optimization**: In-memory state with periodic database sync
+- **Performance Optimization**: In-memory state with periodic SQLite WAL sync
+- **PWA Support**: Progressive Web App with manifest and offline capabilities
+- **High Concurrency**: Memory management for 100+ concurrent games
+- **Modular Architecture**: Refactored classes in `/lib` directory
 
 ## Development Workflow
 
@@ -156,14 +189,19 @@ quiz.db          # SQLite database file
 
 ### Backend Architecture
 - **Event-Driven**: Socket.io event handlers in `server.js`
-- **Database Layer**: SQLite with GameDatabase class abstraction
+- **Database Layer**: SQLite with better-sqlite3, WAL mode, and GameDatabase class abstraction
 - **In-Memory Performance**: Active games stored in `activeGames` Map
 - **Periodic Sync**: Database state synchronized every 30 seconds
+- **Modular Design**: Core classes extracted to `/lib` directory
+- **Memory Management**: MemoryManager handles high-concurrency scenarios
+- **Socket Management**: SocketManager centralizes connection handling
 
 ### Testing Strategy
 - **Unit Tests**: Game logic, PIN generation, scoring algorithms
 - **Integration Tests**: Socket.io real-time communication
 - **E2E Tests**: Complete application flow validation
+- **Frontend Tests**: JSDOM environment for client-side testing
+- **Multi-Environment**: Node.js and browser testing with Jest
 - **CI/CD**: GitHub Actions with multi-Node.js version testing
 
 ## Language & Localization
@@ -172,6 +210,25 @@ quiz.db          # SQLite database file
 - **UI Text**: All user-facing text in Slovak
 - **Test Data**: Includes Slovak language content
 - **Error Messages**: Localized error handling
+
+## Database Configuration
+
+The application uses SQLite with Write-Ahead Logging (WAL) mode for better concurrency:
+
+- **better-sqlite3**: Synchronous SQLite driver with 3-5x performance improvement over sqlite3
+- **WAL Mode**: Enables concurrent readers while maintaining data integrity
+- **Prepared Statements**: Cached for performance optimization
+- **Database Files**: 
+  - `db/quiz.db` - Main database file
+  - `db/quiz.db-wal` - Write-Ahead Log (created automatically)
+  - `db/quiz.db-shm` - Shared memory index (created automatically)
+
+### SQLite Optimizations Applied
+- `journal_mode = WAL` - Write-Ahead Logging for concurrency
+- `synchronous = NORMAL` - Balanced durability vs performance
+- `cache_size = 10000` - 10MB cache for frequently accessed data
+- `temp_store = MEMORY` - Store temporary tables in memory
+- `mmap_size = 128MB` - Memory-mapped I/O for large files
 
 ## Test Setup
 
