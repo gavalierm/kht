@@ -857,10 +857,9 @@ class ModeratorApp {
 			// End the game using the new END_GAME event
 			this.socket.emit(SOCKET_EVENTS.END_GAME, { gamePin: this.gamePin });
 			
-			// Reset local state
-			this.gameState = 'finished';
-			this.updateGameModeratorUI();
-			this.notifications.showSuccess('Hra bola ukončená');
+			// Don't change local state immediately - let server events handle it
+			// The server will either end the game or reset it (for test game)
+			this.notifications.showInfo('Ukončujem hru...');
 		}
 	}
 

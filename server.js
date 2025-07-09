@@ -347,7 +347,26 @@ app.put('/api/games/:pin/questions', async (req, res) => {
 async function resetTestGame(game, moderatorSocket) {
   console.log(`Resetting test game ${game.gamePin}, preserving ${game.questions?.length || 0} questions`);
   
-  // Reset game state
+  // First, end the game properly to trigger redirections to stage interface
+  const leaderboard = game.getLeaderboard();
+  const gameEndData = {
+    leaderboard: leaderboard,
+    totalPlayers: game.getConnectedPlayerCount(),
+    totalQuestions: game.questions.length
+  };
+  
+  // Broadcast game end events to all interfaces for proper redirection
+  const rooms = socketManager.getGameRooms(game.gamePin);
+  
+  // Send to all players - they will redirect to stage
+  io.to(rooms.players).emit('game_ended', gameEndData);
+  
+  // Send to panels - they will redirect to stage
+  io.to(rooms.panels).emit('panel_game_ended', gameEndData);
+  io.to(rooms.panels).emit('game_state_update', { status: 'finished' });
+  io.to(rooms.panels).emit('game_ended', gameEndData);
+  
+  // Now reset the game state server-side for next session
   game.phase = 'WAITING';
   game.currentQuestionIndex = 0;
   game.questionStartTime = null;
@@ -359,10 +378,6 @@ async function resetTestGame(game, moderatorSocket) {
       const playerSocket = io.sockets.sockets.get(player.socketId);
       if (playerSocket) {
         playerSocket.leave(`game_${game.gamePin}`);
-        playerSocket.emit('game_state_update', {
-          status: 'reset',
-          message: 'Hra bola resetovaná. Pripojte sa znovu.'
-        });
       }
     }
   }
@@ -397,15 +412,10 @@ async function resetTestGame(game, moderatorSocket) {
     moderatorToken: socketToModerator.get(moderatorSocket.id)?.moderatorToken
   });
   
-  // Update panel leaderboard (empty)
+  // Update panel leaderboard (empty) - this will be shown after they return from stage
   socketManager.broadcastLeaderboardUpdate(game.gamePin, game.getLeaderboard());
   
-  // Notify panels about the reset
-  io.to(`game_${game.gamePin}_panel`).emit('game_state_update', {
-    status: 'waiting'
-  });
-  
-  console.log(`Test game ${game.gamePin} has been reset - all players removed`);
+  console.log(`Test game ${game.gamePin} has been reset - all interfaces redirected to stage, game ready for next session`);
 }
 
 // Socket.io connection handling with high-concurrency optimizations

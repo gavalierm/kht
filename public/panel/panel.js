@@ -157,11 +157,16 @@ class PanelApp {
 		// Connection events
 		this.socket.on(SOCKET_EVENTS.DISCONNECT, () => {
 			console.log('Panel disconnected from server');
+			// Stop countdown when disconnected
+			this.stopCountdown();
+			this.updateStatus('disconnected');
 			// Connection banner handles disconnect notifications
 		});
 
 		this.socket.on(SOCKET_EVENTS.RECONNECT, () => {
 			console.log('Panel reconnected to server');
+			// Reset to waiting state on reconnection
+			this.updateStatus(GAME_STATES.WAITING);
 			// Connection banner handles reconnection notifications
 			if (this.gamePin) {
 				this.joinPanel();
@@ -207,10 +212,18 @@ class PanelApp {
 		
 		if (status === GAME_STATES.WAITING) {
 			this.dom.addClass(this.elements.container, CSS_CLASSES.PANEL_WAITING);
-			// Show spinner in countdown during waiting
-			this.dom.addClass(this.elements.panelCountdown, 'waiting');
+			// Show spinner in countdown during waiting but DON'T start timer
+			if (this.elements.panelCountdown) {
+				this.dom.addClass(this.elements.panelCountdown, 'waiting');
+				this.elements.panelCountdown.style.display = 'flex';
+			}
 		} else if (status === GAME_STATES.FINISHED) {
 			this.dom.addClass(this.elements.container, CSS_CLASSES.PANEL_FINISHED);
+			// Hide countdown when finished
+			this.hideCountdown();
+		} else if (status === 'disconnected') {
+			// Handle disconnected state - hide countdown and show message
+			this.hideCountdown();
 		} else {
 			// Remove waiting spinner when not waiting
 			this.dom.removeClass(this.elements.panelCountdown, 'waiting');
@@ -233,7 +246,12 @@ class PanelApp {
 			this.dom.setText(this.elements.panelQuestionText, data.question);
 		}
 
-		// Update options
+		// Update options - ensure options grid is visible
+		if (this.elements.panelOptionsGrid) {
+			this.dom.removeClass(this.elements.panelOptionsGrid, 'hidden');
+			this.elements.panelOptionsGrid.style.display = 'grid';
+		}
+
 		const optionElements = [
 			this.elements.panelOptionA,
 			this.elements.panelOptionB,
@@ -244,6 +262,7 @@ class PanelApp {
 		data.options.forEach((option, index) => {
 			if (optionElements[index]) {
 				this.dom.setText(optionElements[index], option);
+				console.log(`Updated option ${index}: ${option}`);
 			}
 		});
 
@@ -261,12 +280,18 @@ class PanelApp {
 	}
 
 	startCountdown(timeLimit) {
+		console.log('Starting panel countdown with time limit:', timeLimit);
 		this.timeRemaining = timeLimit;
 		this.showCountdown();
 		
+		// Stop any existing timer first
 		if (this.countdownTimer) {
 			clearInterval(this.countdownTimer);
+			this.countdownTimer = null;
 		}
+		
+		// Remove waiting state from countdown
+		this.dom.removeClass(this.elements.panelCountdown, 'waiting');
 		
 		this.countdownTimer = setInterval(() => {
 			this.timeRemaining--;
@@ -279,16 +304,18 @@ class PanelApp {
 	}
 
 	stopCountdown() {
+		console.log('Stopping panel countdown');
 		if (this.countdownTimer) {
 			clearInterval(this.countdownTimer);
 			this.countdownTimer = null;
 		}
+		this.timeRemaining = 0;
 		this.hideCountdown();
 	}
 
 	showCountdown() {
 		if (this.elements.panelCountdown) {
-			this.elements.panelCountdown.style.display = 'block';
+			this.elements.panelCountdown.style.display = 'flex';
 			this.updateCountdown();
 		}
 	}
@@ -361,8 +388,11 @@ class PanelApp {
 			}
 		});
 
-		// Reset option styles
+		// Reset option styles and ensure grid is visible
 		if (this.elements.panelOptionsGrid) {
+			this.dom.removeClass(this.elements.panelOptionsGrid, 'hidden');
+			this.elements.panelOptionsGrid.style.display = 'grid';
+			
 			const options = this.elements.panelOptionsGrid.querySelectorAll('.panel-option');
 			options.forEach(el => {
 				this.dom.removeClass(el, CSS_CLASSES.CORRECT);
@@ -422,6 +452,9 @@ class PanelApp {
 	showGameEnded(data) {
 		console.log('Showing game ended view:', data);
 		
+		// Stop any running timers
+		this.stopCountdown();
+		
 		// Update status to finished
 		this.updateStatus(GAME_STATES.FINISHED);
 		
@@ -432,24 +465,43 @@ class PanelApp {
 		
 		// Update question info to show game completed
 		if (this.elements.panelQuestionText) {
-			this.dom.setText(this.elements.panelQuestionText, `🏆 Hra ukončená! Celkovo ${data.totalQuestions} otázok.`);
+			this.dom.setText(this.elements.panelQuestionText, `🏆 Hra ukončená! Celkovo ${data.totalQuestions || 'niekoľko'} otázok.`);
 		}
 		
-		// Hide options since game is over
+		// Reset options display for final view
+		const optionElements = [
+			this.elements.panelOptionA,
+			this.elements.panelOptionB,
+			this.elements.panelOptionC,
+			this.elements.panelOptionD
+		];
+
+		optionElements.forEach(el => {
+			if (el) {
+				this.dom.setText(el, '');
+			}
+		});
+
+		// Reset option styles
 		if (this.elements.panelOptionsGrid) {
-			this.dom.addClass(this.elements.panelOptionsGrid, 'hidden');
+			const options = this.elements.panelOptionsGrid.querySelectorAll('.panel-option');
+			options.forEach(el => {
+				this.dom.removeClass(el, 'correct');
+				this.dom.removeClass(el, 'selected');
+			});
 		}
 		
 		// Show completion message
 		this.notifications.showSuccess('Hra bola úspešne ukončená!');
 		
-		// Redirect to stage interface after 10 seconds to show final results
+		// Redirect to stage interface after 5 seconds to show final results
+		console.log(`Will redirect to stage interface for game ${this.gamePin} in 5 seconds`);
 		setTimeout(() => {
 			if (this.gamePin) {
 				console.log(`Redirecting panel to stage interface for game ${this.gamePin}`);
 				window.location.href = `/stage/${this.gamePin}`;
 			}
-		}, 10000);
+		}, 5000);
 	}
 
 	handleGameStateUpdate(data) {
@@ -465,10 +517,19 @@ class PanelApp {
 					`Čakáme na otázku ${data.questionNumber}/${data.totalQuestions}...`);
 			}
 			
-			// Hide options during waiting
-			if (this.elements.panelOptionsGrid) {
-				this.dom.addClass(this.elements.panelOptionsGrid, 'hidden');
-			}
+			// Reset options during waiting but keep them visible
+			const optionElements = [
+				this.elements.panelOptionA,
+				this.elements.panelOptionB,
+				this.elements.panelOptionC,
+				this.elements.panelOptionD
+			];
+
+			optionElements.forEach(el => {
+				if (el) {
+					this.dom.setText(el, '-');
+				}
+			});
 			
 			// Hide countdown
 			if (this.elements.countdownText) {
@@ -478,6 +539,17 @@ class PanelApp {
 			
 		} else if (data.status === 'finished') {
 			this.updateStatus(GAME_STATES.FINISHED);
+		} else if (data.status === 'reset') {
+			// Game was reset - redirect to join page after short delay
+			this.notifications.showInfo(data.message || 'Hra bola resetovaná');
+			
+			setTimeout(() => {
+				if (this.gamePin) {
+					window.location.href = `/join/${this.gamePin}`;
+				} else {
+					window.location.href = '/join';
+				}
+			}, 2000);
 		}
 	}
 
@@ -489,6 +561,10 @@ class PanelApp {
 		if (this.elements.container) {
 			this.dom.addClass(this.elements.container, 'visible');
 		}
+		
+		// Ensure timer is hidden initially and not running
+		this.hideCountdown();
+		this.stopCountdown();
 	}
 
 	hidePanelInterface() {

@@ -729,6 +729,17 @@ class App {
 			
 		} else if (data.status === 'finished') {
 			// Game finished - will be handled by GAME_ENDED event
+		} else if (data.status === 'reset') {
+			// Game was reset - show message and redirect to join page
+			this.notifications.showInfo(data.message || 'Hra bola resetovaná');
+			
+			// Clear game state
+			this.gameState.clearGameData();
+			
+			// Redirect to join page after short delay
+			setTimeout(() => {
+				this.router.redirectToJoin();
+			}, 2000);
 		}
 	}
 
