@@ -111,8 +111,9 @@ class App {
 		this.socket.on(SOCKET_EVENTS.GAME_JOINED, (data) => {
 			this.gameState.setPlayerToken(data.playerToken);
 			this.gameState.setPlayerId(data.playerId);
+			this.gameState.setPlayerName(data.playerName);
 			
-			this.notifications.showSuccess(`Pripojené ako Hráč ${data.playerId}`);
+			this.notifications.showSuccess(`Pripojené ako ${data.playerName}`);
 			// Transition from loading to game interface with proper state
 			this.showGameInterface();
 		});
@@ -125,6 +126,7 @@ class App {
 
 		this.socket.on(SOCKET_EVENTS.PLAYER_RECONNECTED, (data) => {
 			this.gameState.setPlayerId(data.playerId);
+			this.gameState.setPlayerName(data.playerName);
 			// Connection banner handles reconnection success notification
 			// Transition from loading to game interface with proper state
 			this.showGameInterface();
@@ -422,7 +424,7 @@ class App {
 			this.dom.setText(this.elements.gameCode, `#${this.gameState.gamePin}`);
 		}
 		if (this.elements.gameStatus) {
-			this.dom.setText(this.elements.gameStatus, `Hráč ${this.gameState.playerId || '?'}`);
+			this.dom.setText(this.elements.gameStatus, this.gameState.playerName || 'Hráč ?');
 		}
 		
 		this.setWaitingState();

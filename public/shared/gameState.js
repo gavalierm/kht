@@ -12,6 +12,7 @@ export class GameState {
 		this.playerToken = null;
 		this.moderatorToken = null;
 		this.playerId = null;
+		this.playerName = null;
 		this.timerInterval = null;
 		this.lastResult = null;
 		this.gameStatus = 'waiting';
@@ -55,6 +56,17 @@ export class GameState {
 		this.playerId = id;
 		if (this.gamePin) {
 			localStorage.setItem(`game_${this.gamePin}_id`, id);
+		}
+	}
+
+	/**
+	 * Set player name
+	 * @param {string} name - Player name
+	 */
+	setPlayerName(name) {
+		this.playerName = name;
+		if (this.gamePin) {
+			localStorage.setItem(`game_${this.gamePin}_name`, name);
 		}
 	}
 
@@ -124,6 +136,7 @@ export class GameState {
 		this.isWaiting = true;
 		this.lastResult = null;
 		this.gameStatus = 'waiting';
+		this.playerName = null;
 		this.clearTimers();
 		this.saveToStorage();
 	}
@@ -163,9 +176,11 @@ export class GameState {
 		localStorage.removeItem('playerToken');
 		if (this.gamePin) {
 			localStorage.removeItem(`game_${this.gamePin}_id`);
+			localStorage.removeItem(`game_${this.gamePin}_name`);
 		}
 		this.playerToken = null;
 		this.playerId = null;
+		this.playerName = null;
 	}
 
 	/**
@@ -203,9 +218,10 @@ export class GameState {
 				this.currentGame = state.currentGame;
 				this.gameStatus = state.gameStatus || 'waiting';
 				
-				// Load player ID for current game
+				// Load player ID and name for current game
 				if (this.gamePin) {
 					this.playerId = localStorage.getItem(`game_${this.gamePin}_id`);
+					this.playerName = localStorage.getItem(`game_${this.gamePin}_name`);
 				}
 			}
 		} catch (error) {
@@ -226,6 +242,7 @@ export class GameState {
 			isWaiting: this.isWaiting,
 			playerToken: this.playerToken,
 			playerId: this.playerId,
+			playerName: this.playerName,
 			lastResult: this.lastResult,
 			gameStatus: this.gameStatus,
 			selectedAnswer: this.selectedAnswer
@@ -241,6 +258,7 @@ export const setGamePin = defaultGameState.setGamePin.bind(defaultGameState);
 export const setPlayerToken = defaultGameState.setPlayerToken.bind(defaultGameState);
 export const setModeratorToken = defaultGameState.setModeratorToken.bind(defaultGameState);
 export const setPlayerId = defaultGameState.setPlayerId.bind(defaultGameState);
+export const setPlayerName = defaultGameState.setPlayerName.bind(defaultGameState);
 export const setCurrentGame = defaultGameState.setCurrentGame.bind(defaultGameState);
 export const setCurrentQuestion = defaultGameState.setCurrentQuestion.bind(defaultGameState);
 export const submitAnswer = defaultGameState.submitAnswer.bind(defaultGameState);

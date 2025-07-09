@@ -172,9 +172,9 @@ app.get('/api/games/:pin/leaderboard', async (req, res) => {
     
     const players = await db.getGamePlayers(gameData.id);
     const leaderboard = players
-      .map(player => ({
+      .map((player, index) => ({
         id: player.id,
-        name: player.name,
+        name: `Hráč ${index + 1}`,
         score: player.score || 0
       }))
       .sort((a, b) => b.score - a.score);
@@ -331,15 +331,29 @@ async function resetTestGame(game, moderatorSocket) {
   game.questionStartTime = null;
   game.answers = [];
   
-  // Reset all player scores but keep them connected
+  // Disconnect all players from their sockets
   for (const player of game.players.values()) {
-    player.score = 0;
-    // Also update score in database
-    try {
-      await db.updatePlayerScore(player.id, 0);
-    } catch (error) {
-      console.error(`Error resetting score for player ${player.id}:`, error);
+    if (player.socketId) {
+      const playerSocket = io.sockets.sockets.get(player.socketId);
+      if (playerSocket) {
+        playerSocket.leave(`game_${game.gamePin}`);
+        playerSocket.emit('game_state_update', {
+          status: 'reset',
+          message: 'Hra bola resetovaná. Pripojte sa znovu.'
+        });
+      }
     }
+  }
+  
+  // Clear all players from game state
+  game.players.clear();
+  
+  // Remove all players from database
+  try {
+    await db.removeAllPlayersFromGame(game.dbId);
+    console.log(`Removed all players from database for game ${game.gamePin}`);
+  } catch (error) {
+    console.error(`Error removing players from database for game ${game.gamePin}:`, error);
   }
   
   // Sync to database
@@ -350,33 +364,26 @@ async function resetTestGame(game, moderatorSocket) {
     message: 'Test hra bola resetovaná'
   });
   
-  // Update control interface with reset state
-  const connectedPlayers = Array.from(game.players.values()).filter(p => p.connected);
+  // Update control interface with reset state (no players)
   moderatorSocket.emit('moderator_reconnected', {
     gamePin: game.gamePin,
     questionCount: game.questions.length,
     currentQuestionIndex: 0,
     status: 'waiting',
-    players: connectedPlayers.map(p => p.name),
-    totalPlayers: connectedPlayers.length,
+    players: [],
+    totalPlayers: 0,
     moderatorToken: socketToModerator.get(moderatorSocket.id)?.moderatorToken
   });
   
-  // Update panel leaderboard
+  // Update panel leaderboard (empty)
   updatePanelLeaderboard(game);
-  
-  // Notify all players about the reset
-  io.to(`game_${game.gamePin}`).emit('game_state_update', {
-    status: 'waiting',
-    message: 'Hra bola resetovaná'
-  });
   
   // Notify panels about the reset
   io.to(`game_${game.gamePin}_panel`).emit('game_state_update', {
     status: 'waiting'
   });
   
-  console.log(`Test game ${game.gamePin} has been reset`);
+  console.log(`Test game ${game.gamePin} has been reset - all players removed`);
 }
 
 // Socket.io connection handling
@@ -477,10 +484,17 @@ io.on('connection', (socket) => {
         game.currentQuestionIndex = gameData.current_question_index;
         game.questionStartTime = gameData.question_start_time;
         
-        // Restore players
-        players.forEach(playerData => {
-          game.addPlayer(playerData.id, playerData);
+        // Restore players in join order with corrected names
+        players.forEach((playerData, index) => {
+          game.addPlayer(playerData.id, {
+            name: `Hráč ${index + 1}`,
+            player_token: playerData.player_token,
+            score: playerData.score
+          });
         });
+        
+        // Set join order counter to match restored players
+        game.playerJoinOrder = players.length;
         
         activeGames.set(data.gamePin, game);
       }
@@ -510,7 +524,7 @@ io.on('connection', (socket) => {
         questionCount: gameData.questions.length,
         currentQuestionIndex: gameData.current_question_index,
         status: gameData.status,
-        players: connectedPlayers.map(p => p.name),
+        players: connectedPlayers.map((p, index) => `Hráč ${index + 1}`),
         totalPlayers: connectedPlayers.length,
         moderatorToken: gameData.moderator_token
       });
@@ -646,10 +660,17 @@ io.on('connection', (socket) => {
         game.phase = gameData.status.toUpperCase();
         game.currentQuestionIndex = gameData.current_question_index;
       
-        // Restore players
-        players.forEach(playerData => {
-          game.addPlayer(playerData.id, playerData);
+        // Restore players in join order with corrected names
+        players.forEach((playerData, index) => {
+          game.addPlayer(playerData.id, {
+            name: `Hráč ${index + 1}`,
+            player_token: playerData.player_token,
+            score: playerData.score
+          });
         });
+        
+        // Set join order counter to match restored players
+        game.playerJoinOrder = players.length;
       
         activeGames.set(data.gamePin, game);
       }
@@ -684,9 +705,8 @@ io.on('connection', (socket) => {
       // Add player to database - no name needed
       const playerResult = await db.addPlayer(gameData.id);
     
-      // Add to in-memory game
+      // Add to in-memory game (name will be auto-generated based on join order)
       game.addPlayer(playerResult.playerId, {
-        name: `Hráč ${playerResult.playerId}`,
         player_token: playerResult.playerToken,
         score: 0
       });
@@ -706,6 +726,7 @@ io.on('connection', (socket) => {
       socket.emit('game_joined', {
         gamePin: data.gamePin,
         playerId: playerResult.playerId,
+        playerName: player.name,
         playersCount: Array.from(game.players.values()).filter(p => p.connected).length,
         playerToken: playerResult.playerToken
       });
@@ -762,9 +783,17 @@ io.on('connection', (socket) => {
         game.phase = gameData.status.toUpperCase();
         game.currentQuestionIndex = gameData.current_question_index;
         
-        players.forEach(p => {
-          game.addPlayer(p.id, p);
+        // Restore players in join order and update join order counter
+        players.forEach((p, index) => {
+          game.addPlayer(p.id, {
+            name: `Hráč ${index + 1}`,
+            player_token: p.player_token,
+            score: p.score
+          });
         });
+        
+        // Set join order counter to match restored players
+        game.playerJoinOrder = players.length;
         
         activeGames.set(data.gamePin, game);
       }
@@ -795,6 +824,7 @@ io.on('connection', (socket) => {
       socket.emit('player_reconnected', {
         gamePin: data.gamePin,
         playerId: playerData.id,
+        playerName: game.players.get(playerData.id)?.name || `Hráč ${playerData.id}`,
         score: playerData.score,
         gameStatus: game.phase
       });
@@ -904,7 +934,7 @@ io.on('connection', (socket) => {
           .slice(0, 10)
           .map((player, index) => ({
             position: index + 1,
-            name: player.name,
+            name: `Hráč ${players.findIndex(p => p.id === player.id) + 1}`,
             score: player.score
           }));
 

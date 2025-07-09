@@ -415,7 +415,7 @@ class GameDatabase {
   async getGamePlayers(gameId) {
     return new Promise((resolve, reject) => {
       this.db.all(
-        'SELECT * FROM players WHERE game_id = ? ORDER BY score DESC',
+        'SELECT * FROM players WHERE game_id = ? ORDER BY joined_at ASC',
         [gameId],
         (err, rows) => {
           if (err) reject(err);
@@ -532,6 +532,21 @@ class GameDatabase {
       this.db.run(sql, [playerId], (err) => {
         if (err) reject(err);
         else resolve();
+      });
+    });
+  }
+
+  // Remove all players from a game
+  async removeAllPlayersFromGame(gameId) {
+    return new Promise((resolve, reject) => {
+      const sql = `DELETE FROM players WHERE game_id = ?`;
+
+      this.db.run(sql, [gameId], function(err) {
+        if (err) reject(err);
+        else {
+          console.log(`Removed ${this.changes} players from game ${gameId}`);
+          resolve(this.changes);
+        }
       });
     });
   }
