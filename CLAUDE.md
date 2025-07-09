@@ -56,10 +56,12 @@ This is a real-time multiplayer quiz application built with Node.js, Express, So
 - Cleanup routines for old games
 
 **Client Applications**
-- **Player App** (`/app`): Players join games and answer questions
+- **Player Game** (`/game`): Players join games and answer questions
 - **Control** (`/control`): Moderators create and control games  
 - **Panel** (`/panel`): Display boards for showing leaderboards and questions
 - **Stage** (`/stage`): Post-game leaderboard displays
+- **Join** (`/join`): Main entry point for players to join games
+- **Create** (`/create`): Interface for creating new games
 
 ### Key Game Flow
 
@@ -92,10 +94,12 @@ This is a real-time multiplayer quiz application built with Node.js, Express, So
 
 ```
 /public/
-  /app/          # Player interface (SPA)
+  /game/         # Player interface (SPA)
+  /join/         # Main entry point for players
   /control/      # Moderator interface  
   /panel/        # Display panel interface
   /stage/        # Post-game leaderboard display
+  /create/       # Game creation interface
   /shared/       # Shared frontend utilities
     ├── router.js       # Client-side routing
     ├── socket.js       # Socket.io client wrapper
