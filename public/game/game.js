@@ -318,6 +318,36 @@ class App {
 
 
 	async handleGameRouteWithSession() {
+		// Check if player has a valid token and game PIN for reconnection
+		if (this.gameState.playerToken && this.gameState.gamePin) {
+			try {
+				// Validate the saved game PIN via API first
+				const game = await GameAPI.getGame(this.gameState.gamePin);
+				
+				if (game && (game.status === 'waiting' || game.status === 'running')) {
+					// Game is still active - attempt reconnection
+					this.notifications.showInfo('Pokračujem v hre...');
+					this.attemptReconnect();
+					return;
+				} else {
+					// Game ended or doesn't exist - clear session and redirect
+					this.gameState.clearGame();
+					this.gameState.clearSavedSession();
+					this.notifications.showWarning('Uložená hra už skončila');
+					this.router.redirectToJoin();
+					return;
+				}
+			} catch (error) {
+				console.error('Error validating saved session:', error);
+				this.gameState.clearGame();
+				this.gameState.clearSavedSession();
+				this.notifications.showError('Chyba pri kontrole uloženej hry');
+				this.router.redirectToJoin();
+				return;
+			}
+		}
+		
+		// Fallback to original session checking logic
 		const result = await this.sessionChecker.checkSavedSession();
 		
 		if (result.shouldRedirect) {

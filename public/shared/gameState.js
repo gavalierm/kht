@@ -161,6 +161,14 @@ export class GameState {
 	}
 
 	/**
+	 * Check if player has valid reconnection data
+	 * @returns {boolean} Whether reconnection data exists
+	 */
+	hasReconnectionData() {
+		return this.playerToken && this.gamePin;
+	}
+
+	/**
 	 * Get saved player ID for current game
 	 * @returns {string|null} Saved player ID or null
 	 */
