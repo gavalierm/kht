@@ -323,6 +323,16 @@ class App {
 	}
 
 
+	// Helper method to check if a game state supports reconnection
+	isGameStateReconnectable(gameStatus) {
+		// Allow reconnection for all active game states
+		return gameStatus === GAME_STATES.WAITING || 
+			   gameStatus === GAME_STATES.RUNNING || 
+			   gameStatus === GAME_STATES.ACTIVE || 
+			   gameStatus === GAME_STATES.QUESTION_ACTIVE || 
+			   gameStatus === GAME_STATES.RESULTS;
+	}
+
 	async handleGameRouteWithSession() {
 		// Check if player has a valid token and game PIN for reconnection
 		if (this.gameState.playerToken && this.gameState.gamePin) {
@@ -330,7 +340,7 @@ class App {
 				// Validate the saved game PIN via API first
 				const game = await GameAPI.getGame(this.gameState.gamePin);
 				
-				if (game && (game.status === 'waiting' || game.status === 'running')) {
+				if (game && this.isGameStateReconnectable(game.status)) {
 					// Game is still active - attempt reconnection
 					this.notifications.showInfo('Pokračujem v hre...');
 					this.attemptReconnect();
@@ -378,7 +388,7 @@ class App {
 					// Validate the saved game PIN via API
 					const game = await GameAPI.getGame(savedPin);
 					
-					if (game && (game.status === 'waiting' || game.status === 'running')) {
+					if (game && this.isGameStateReconnectable(game.status)) {
 						// Game is still active - attempt reconnection
 						this.gameState.setPlayerId(savedId);
 						this.attemptReconnect();
