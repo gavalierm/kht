@@ -24,18 +24,6 @@ const io = socketIo(server, {
   allowEIO3: false // Disable legacy Engine.IO support
 });
 
-// Initialize database and socket manager
-const db = new GameDatabase();
-const socketManager = new SocketManager(io);
-
-// Initialize memory manager for high-concurrency support
-const memoryManager = new MemoryManager(activeGames, {
-  maxActiveGames: 100,
-  maxMemoryUsageMB: 512,
-  cleanupInterval: 5 * 60 * 1000, // 5 minutes
-  gameInactivityTimeout: 30 * 60 * 1000 // 30 minutes
-});
-
 // Helper function to validate question structure
 function validateQuestions(questions) {
   if (!Array.isArray(questions)) {
@@ -75,6 +63,18 @@ const activeGames = new Map(); // gamePin -> GameInstance (in-memory for perform
 const playerLatencies = new Map(); // socketId -> latency
 const socketToPlayer = new Map(); // socketId -> {gamePin, playerId, playerToken}
 const socketToModerator = new Map(); // socketId -> {gamePin, gameId}
+
+// Initialize database and socket manager
+const db = new GameDatabase();
+const socketManager = new SocketManager(io);
+
+// Initialize memory manager for high-concurrency support
+const memoryManager = new MemoryManager(activeGames, {
+  maxActiveGames: 100,
+  maxMemoryUsageMB: 512,
+  cleanupInterval: 5 * 60 * 1000, // 5 minutes
+  gameInactivityTimeout: 30 * 60 * 1000 // 30 minutes
+});
 
 // GameInstance class moved to ./lib/gameInstance.js
 
