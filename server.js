@@ -779,6 +779,7 @@ io.on('connection', (socket) => {
       const rooms = socketManager.getGameRooms(data.gamePin);
       io.to(rooms.moderators).emit('player_joined', {
         playerId: playerResult.playerId,
+        playerName: player.name,
         totalPlayers: connectedPlayers.length,
         players: connectedPlayers.map(p => ({ id: p.id, name: p.name }))
       });
@@ -1027,7 +1028,10 @@ io.on('connection', (socket) => {
           
           // Update dashboard and panel with optimized methods
           const rooms = socketManager.getGameRooms(playerInfo.gamePin);
+          const playerName = game.getPlayer(playerInfo.playerId)?.name || `Hráč ${playerInfo.playerId}`;
           io.to(rooms.moderators).emit('player_left', {
+            playerId: playerInfo.playerId,
+            playerName: playerName,
             totalPlayers: game.getConnectedPlayerCount()
           });
           

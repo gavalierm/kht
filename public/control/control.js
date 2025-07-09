@@ -92,17 +92,71 @@ class ControlApp {
 	}
 
 	setupSocketListeners() {
-		// Get socket instance
-		const socket = this.socket.connect();
+		// Ensure socket is connected before setting up listeners
+		// Connection banner handles connection status notifications
+		this.socket.connect();
 		
-		// Listen for game state updates
-		socket.on(SOCKET_EVENTS.GAME_STATE_UPDATE, (data) => {
-			this.handleGameStateUpdate(data);
+		// Game connection events
+		this.socket.on(SOCKET_EVENTS.GAME_CREATED, (data) => {
+			this.handleGameCreated(data);
 		});
-		
-		// Listen for next question ready events
-		socket.on('next_question_ready', (data) => {
+
+		this.socket.on(SOCKET_EVENTS.CREATE_GAME_ERROR, (error) => {
+			this.notifications.showError(error.message || 'Chyba pri vytváraní hry');
+		});
+
+		// Moderator reconnection events
+		this.socket.on('moderator_reconnected', (data) => {
+			this.handleLoginSuccess(data);
+		});
+
+		this.socket.on('moderator_reconnect_error', (error) => {
+			this.handleLoginError(error);
+		});
+
+		// Game control events
+		this.socket.on('question_started_dashboard', (data) => {
+			this.handleQuestionStarted(data);
+		});
+
+		this.socket.on('question_ended_dashboard', (data) => {
+			this.handleQuestionEnded(data);
+		});
+
+		this.socket.on('next_question_ready', (data) => {
 			this.handleNextQuestionReady(data);
+		});
+
+		this.socket.on(SOCKET_EVENTS.GAME_ENDED_DASHBOARD, (data) => {
+			this.handleGameEndedDashboard(data);
+		});
+
+		this.socket.on('start_question_error', (error) => {
+			this.notifications.showError(error.message || 'Chyba pri spustení otázky');
+		});
+
+		// Player updates
+		this.socket.on('player_joined', (data) => {
+			this.handlePlayerJoined(data);
+		});
+
+		this.socket.on('player_left', (data) => {
+			this.handlePlayerLeft(data);
+		});
+
+		// Live stats during questions
+		this.socket.on('live_stats', (data) => {
+			this.handleLiveStats(data);
+		});
+
+		// Game reset for test game
+		this.socket.on('game_reset_success', (data) => {
+			this.handleGameReset(data);
+		});
+
+		// Listen for game state updates
+		this.socket.on(SOCKET_EVENTS.GAME_STATE_UPDATE, (data) => {
+			this.handleGameStateUpdate(data);
 		});
 	}
 
@@ -211,70 +265,6 @@ class ControlApp {
 		}
 	}
 
-	setupSocketListeners() {
-		// Ensure socket is connected before setting up listeners
-		// Connection banner handles connection status notifications
-		this.socket.connect();
-		
-		// Game connection events
-		this.socket.on(SOCKET_EVENTS.GAME_CREATED, (data) => {
-			this.handleGameCreated(data);
-		});
-
-		this.socket.on(SOCKET_EVENTS.CREATE_GAME_ERROR, (error) => {
-			this.notifications.showError(error.message || 'Chyba pri vytváraní hry');
-		});
-
-		// Moderator reconnection events
-		this.socket.on('moderator_reconnected', (data) => {
-			this.handleLoginSuccess(data);
-		});
-
-		this.socket.on('moderator_reconnect_error', (error) => {
-			this.handleLoginError(error);
-		});
-
-		// Game control events
-		this.socket.on('question_started_dashboard', (data) => {
-			this.handleQuestionStarted(data);
-		});
-
-		this.socket.on('question_ended_dashboard', (data) => {
-			this.handleQuestionEnded(data);
-		});
-
-		this.socket.on('next_question_ready', (data) => {
-			this.handleNextQuestionReady(data);
-		});
-
-		this.socket.on(SOCKET_EVENTS.GAME_ENDED_DASHBOARD, (data) => {
-			this.handleGameEndedDashboard(data);
-		});
-
-		this.socket.on('start_question_error', (error) => {
-			this.notifications.showError(error.message || 'Chyba pri spustení otázky');
-		});
-
-		// Player updates
-		this.socket.on('player_joined', (data) => {
-			this.handlePlayerJoined(data);
-		});
-
-		this.socket.on('player_left', (data) => {
-			this.handlePlayerLeft(data);
-		});
-
-		// Live stats during questions
-		this.socket.on('live_stats', (data) => {
-			this.handleLiveStats(data);
-		});
-
-		// Game reset for test game
-		this.socket.on('game_reset_success', (data) => {
-			this.handleGameReset(data);
-		});
-		
-	}
 
 
 	// Socket event handlers
@@ -323,7 +313,7 @@ class ControlApp {
 		this.updateGameControlUI();
 		
 		// Safe access to player name
-		const playerName = data.player?.name || data.name || 'neznámy hráč';
+		const playerName = data.playerName || data.player?.name || data.name || 'neznámy hráč';
 		this.notifications.showInfo(`Hráč ${playerName} sa pripojil`);
 	}
 
@@ -333,7 +323,7 @@ class ControlApp {
 		this.updateGameControlUI();
 		
 		// Safe access to player name
-		const playerName = data.player?.name || data.name || 'neznámy hráč';
+		const playerName = data.playerName || data.player?.name || data.name || 'neznámy hráč';
 		this.notifications.showInfo(`Hráč ${playerName} opustil hru`);
 	}
 
