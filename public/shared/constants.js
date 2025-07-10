@@ -28,6 +28,9 @@ export const SOCKET_EVENTS = {
 	GAME_ENDED: 'game_ended',
 	GAME_ENDED_DASHBOARD: 'game_ended_dashboard',
 	
+	// Game reset events
+	GAME_RESET: 'game_reset',
+	
 	// Panel events
 	JOIN_PANEL: 'join_panel',
 	PANEL_GAME_JOINED: 'panel_game_joined',

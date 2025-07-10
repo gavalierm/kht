@@ -435,6 +435,12 @@ async function resetGame(game, moderatorSocket, isManualReset = false) {
   // Update panel leaderboard (empty) - this will be shown after they return from stage
   socketManager.broadcastLeaderboardUpdate(game.gamePin, game.getLeaderboard());
   
+  // Broadcast game reset event to ALL clients in the game room
+  io.to(`game_${game.gamePin}`).emit('game_reset', {
+    gamePin: game.gamePin,
+    message: 'Hra bola resetovaná'
+  });
+  
   console.log(`Game ${game.gamePin} has been reset - game ready for next session`);
 }
 

@@ -88,6 +88,17 @@ class StageApp {
 			this.handleGameStateUpdate(data);
 		});
 
+		// Listen for game start events (questions starting)
+		this.socket.on(SOCKET_EVENTS.PANEL_QUESTION_STARTED, (data) => {
+			this.handleGameStartEvent(data);
+		});
+
+		// Listen for game reset events - THIS IS THE SIMPLE SOLUTION
+		this.socket.on(SOCKET_EVENTS.GAME_RESET, (data) => {
+			console.log('Stage: Game reset event received:', data);
+			this.redirectBasedOnContext();
+		});
+
 		// Connection events
 		this.socket.on('connect', () => {
 			this.onSocketConnect();
@@ -180,6 +191,31 @@ class StageApp {
 			if (data.status === GAME_STATES.RUNNING || data.status === GAME_STATES.WAITING) {
 				this.router.redirectToGame(this.gamePin);
 			}
+		}
+	}
+
+	handleGameStartEvent(data) {
+		// When a game starts (question started), redirect based on context
+		console.log('Stage: Game start event received', data);
+		
+		// Check if this is the same game we're currently showing
+		if (this.gamePin) {
+			console.log('Stage: Redirecting based on context - game restarted');
+			this.redirectBasedOnContext();
+		}
+	}
+
+
+	redirectBasedOnContext() {
+		// Redirect based on the context parameter
+		if (this.context === 'panel') {
+			// If context is panel, redirect back to panel
+			console.log('Stage: Redirecting to panel context');
+			this.router.redirectToPanel(this.gamePin);
+		} else {
+			// If context is empty/undefined, redirect to game
+			console.log('Stage: Redirecting to game');
+			this.router.redirectToGame(this.gamePin);
 		}
 	}
 
@@ -287,7 +323,8 @@ class StageApp {
 		console.log('Stage: Connected to server');
 		// Rejoin game room if we have a PIN
 		if (this.gamePin) {
-			this.socket.emit(SOCKET_EVENTS.JOIN_PANEL, { pin: this.gamePin });
+			console.log('Stage: Joining game room with PIN:', this.gamePin);
+			this.socket.emit(SOCKET_EVENTS.JOIN_PANEL, { gamePin: this.gamePin });
 			// Only reload leaderboard data if this is a REconnection (not initial connection)
 			if (this.hasConnectedBefore) {
 				console.log('Stage: Reconnected - reloading leaderboard data');
@@ -378,6 +415,8 @@ class StageApp {
 		// Remove socket listeners specific to this app
 		this.socket.off(SOCKET_EVENTS.LEADERBOARD_UPDATE);
 		this.socket.off(SOCKET_EVENTS.GAME_STATE_UPDATE);
+		this.socket.off(SOCKET_EVENTS.PANEL_QUESTION_STARTED);
+		this.socket.off(SOCKET_EVENTS.GAME_RESET);
 	}
 }
 
