@@ -7,9 +7,9 @@
 	<title>Quiz Results - Final Leaderboard</title>
 	<link rel="stylesheet" href="/shared/common.css">
 	<style>
+		/* === BASE LAYOUT STYLES === */
 		html,
 		body {
-			display: flex;
 			justify-content: center;
 			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 			position: relative;
@@ -17,11 +17,12 @@
 		}
 
 		.stage-container {
-			display: flex;
-			flex-direction: column;
 			padding: 1.5rem;
 			animation: fadeIn 0.8s ease-out;
 			position: relative;
+			width: 100%;
+			max-width: 1000px;
+			margin: auto;
 		}
 
 		.stage-header {
@@ -95,28 +96,12 @@
 			letter-spacing: 0.05em;
 		}
 
+		/* === TOP 3 LEADERBOARD STYLES === */
 		.top3-leaderboard {
 			display: flex;
 			flex-direction: column;
 			gap: 1.5rem;
 			margin-bottom: 2.5rem;
-		}
-
-		.player-position-message {
-			text-align: center;
-			font-size: 1.8rem;
-			font-weight: 800;
-			color: #ffffff;
-			background: rgba(255, 255, 255, 0.25);
-			padding: 2rem;
-			border-radius: 1rem;
-			margin-top: 2rem;
-			backdrop-filter: blur(15px);
-			box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-			transition: all 0.3s ease;
-			animation: fadeInUp 0.6s ease-out 0.4s both;
-			border: 2px solid rgba(255, 255, 255, 0.3);
-			text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 		}
 
 		.top3-item {
@@ -283,6 +268,297 @@
 			animation: countUp 0.8s ease-out;
 		}
 
+		/* === CONGRATULATIONS MESSAGE STYLES === */
+		.congratulations-message {
+			text-align: center;
+			font-size: 1.8rem;
+			font-weight: 800;
+			color: #ffffff;
+			background: rgba(255, 255, 255, 0.25);
+			padding: 2rem;
+			border-radius: 1rem;
+			margin-top: 2rem;
+			backdrop-filter: blur(15px);
+			box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+			border: 2px solid rgba(255, 255, 255, 0.3);
+			text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+		}
+
+		/* === CELEBRATION EFFECTS === */
+		.stage-container::before {
+			content: '';
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			pointer-events: none;
+			background-image: 
+				radial-gradient(circle at 15% 25%, rgba(255, 107, 107, 0.15) 0%, transparent 8%),
+				radial-gradient(circle at 85% 15%, rgba(78, 205, 196, 0.12) 0%, transparent 6%),
+				radial-gradient(circle at 25% 75%, rgba(69, 183, 209, 0.18) 0%, transparent 7%),
+				radial-gradient(circle at 75% 85%, rgba(150, 206, 180, 0.14) 0%, transparent 9%),
+				radial-gradient(circle at 45% 35%, rgba(254, 202, 87, 0.16) 0%, transparent 5%),
+				radial-gradient(circle at 65% 55%, rgba(255, 159, 243, 0.13) 0%, transparent 8%),
+				radial-gradient(circle at 35% 65%, rgba(248, 181, 0, 0.17) 0%, transparent 6%),
+				radial-gradient(circle at 55% 25%, rgba(116, 185, 255, 0.15) 0%, transparent 7%);
+			animation: lightSparkle1 5.2s ease-in-out infinite;
+			opacity: 0.6;
+			z-index: 1;
+		}
+
+		.stage-container::after {
+			content: '';
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			pointer-events: none;
+			background-image: 
+				radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.08) 0%, transparent 4%),
+				radial-gradient(circle at 70% 20%, rgba(255, 255, 255, 0.12) 0%, transparent 3%),
+				radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.06) 0%, transparent 5%),
+				radial-gradient(circle at 80% 60%, rgba(255, 255, 255, 0.10) 0%, transparent 4%),
+				radial-gradient(circle at 50% 70%, rgba(255, 255, 255, 0.09) 0%, transparent 3%),
+				radial-gradient(circle at 40% 10%, rgba(255, 255, 255, 0.07) 0%, transparent 6%);
+			animation: lightSparkle2 4.7s ease-in-out infinite;
+			opacity: 0.4;
+			z-index: 1;
+		}
+
+		@keyframes lightSparkle1 {
+			0% {
+				opacity: 0.2;
+				transform: scale(0.8);
+			}
+			20% {
+				opacity: 0.5;
+				transform: scale(1.1);
+			}
+			40% {
+				opacity: 0.3;
+				transform: scale(0.9);
+			}
+			60% {
+				opacity: 0.6;
+				transform: scale(1.05);
+			}
+			80% {
+				opacity: 0.25;
+				transform: scale(0.85);
+			}
+			100% {
+				opacity: 0.4;
+				transform: scale(1.0);
+			}
+		}
+
+		@keyframes lightSparkle2 {
+			0% {
+				opacity: 0.15;
+				transform: scale(0.7);
+			}
+			15% {
+				opacity: 0.4;
+				transform: scale(1.0);
+			}
+			35% {
+				opacity: 0.6;
+				transform: scale(1.15);
+			}
+			55% {
+				opacity: 0.2;
+				transform: scale(0.9);
+			}
+			75% {
+				opacity: 0.5;
+				transform: scale(1.08);
+			}
+			100% {
+				opacity: 0.3;
+				transform: scale(0.95);
+			}
+		}
+
+		.celebration-particles {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 120vh;
+			pointer-events: none;
+			z-index: 1;
+			font-size: 2rem;
+		}
+
+		.particle {
+			position: absolute;
+			top: calc(100vh + 50px);
+			animation-fill-mode: both;
+			will-change: transform, opacity;
+		}
+
+		.particle:nth-child(1) { 
+			left: 15%; 
+			animation: perfectFirework1 4s infinite;
+			animation-delay: 0s; 
+			font-size: 0.8em;
+		}
+		.particle:nth-child(2) { 
+			left: 25%; 
+			animation: perfectFirework2 3.8s infinite;
+			animation-delay: 0.3s; 
+			font-size: 1.2em;
+		}
+		.particle:nth-child(3) { 
+			left: 35%; 
+			animation: perfectFirework3 4.5s infinite;
+			animation-delay: 0.6s; 
+			font-size: 0.9em;
+		}
+		.particle:nth-child(4) { 
+			left: 45%; 
+			animation: perfectFirework4 3.5s infinite;
+			animation-delay: 0.9s; 
+			font-size: 1.3em;
+		}
+		.particle:nth-child(5) { 
+			left: 55%; 
+			animation: perfectFirework5 4.2s infinite;
+			animation-delay: 1.2s; 
+			font-size: 1.1em;
+		}
+		.particle:nth-child(6) { 
+			left: 65%; 
+			animation: perfectFirework1 3.9s infinite;
+			animation-delay: 1.5s; 
+			font-size: 0.9em;
+		}
+		.particle:nth-child(7) { 
+			left: 75%; 
+			animation: perfectFirework2 4.1s infinite;
+			animation-delay: 1.8s; 
+			font-size: 1.3em;
+		}
+		.particle:nth-child(8) { 
+			left: 85%; 
+			animation: perfectFirework3 3.7s infinite;
+			animation-delay: 2.1s; 
+			font-size: 0.7em;
+		}
+		.particle:nth-child(9) { 
+			left: 12%; 
+			animation: perfectFirework4 4.3s infinite;
+			animation-delay: 2.4s; 
+			font-size: 1.1em;
+		}
+		.particle:nth-child(10) { 
+			left: 22%; 
+			animation: perfectFirework5 3.6s infinite;
+			animation-delay: 2.7s; 
+			font-size: 1.0em;
+		}
+		.particle:nth-child(11) { 
+			left: 68%; 
+			animation: perfectFirework1 4.4s infinite;
+			animation-delay: 3.0s; 
+			font-size: 1.4em;
+		}
+		.particle:nth-child(12) { 
+			left: 78%; 
+			animation: perfectFirework2 3.4s infinite;
+			animation-delay: 3.3s; 
+			font-size: 0.7em;
+		}
+		.particle:nth-child(13) { 
+			left: 32%; 
+			animation: perfectFirework3 4.1s infinite;
+			animation-delay: 3.6s; 
+			font-size: 1.2em;
+		}
+		.particle:nth-child(14) { 
+			left: 58%; 
+			animation: perfectFirework4 3.9s infinite;
+			animation-delay: 3.9s; 
+			font-size: 0.9em;
+		}
+		.particle:nth-child(15) { 
+			left: 38%; 
+			animation: perfectFirework5 4.6s infinite;
+			animation-delay: 4.2s; 
+			font-size: 0.7em;
+		}
+		.particle:nth-child(16) { 
+			left: 18%; 
+			animation: perfectFirework1 3.3s infinite;
+			animation-delay: 4.5s; 
+			font-size: 1.5em;
+		}
+		.particle:nth-child(17) { 
+			left: 88%; 
+			animation: perfectFirework2 4.8s infinite;
+			animation-delay: 4.8s; 
+			font-size: 1.1em;
+		}
+		.particle:nth-child(18) { 
+			left: 48%; 
+			animation: perfectFirework3 3.8s infinite;
+			animation-delay: 5.1s; 
+			font-size: 0.9em;
+		}
+		.particle:nth-child(19) { 
+			left: 8%; 
+			animation: perfectFirework4 4.4s infinite;
+			animation-delay: 5.4s; 
+			font-size: 1.3em;
+		}
+		.particle:nth-child(20) { 
+			left: 72%; 
+			animation: perfectFirework5 3.7s infinite;
+			animation-delay: 5.7s; 
+			font-size: 0.8em;
+		}
+		.particle:nth-child(21) { 
+			left: 62%; 
+			animation: perfectFirework1 4.2s infinite;
+			animation-delay: 6.0s; 
+			font-size: 1.3em;
+		}
+
+		@keyframes perfectFirework1 {
+			0% { transform: translateY(0px) rotate(0deg) scale(0.8); opacity: 1; animation-timing-function: cubic-bezier(0, 1.07, 1, 1); }
+			50% { transform: translateY(-105vh) rotate(1800deg) scale(1.0); opacity: 1; animation-timing-function: cubic-bezier(1, 0, 1, 1); }
+			100% { transform: translateY(0px) rotate(3600deg) scale(0.6); opacity: 0.5; }
+		}
+		@keyframes perfectFirework2 {
+			0% { transform: translateY(0px) rotate(0deg) scale(0.8); opacity: 1; animation-timing-function: cubic-bezier(0, 1.07, 1, 1); }
+			50% { transform: translateY(-100vh) rotate(-1440deg) scale(1.0); opacity: 1; animation-timing-function: cubic-bezier(1, 0, 1, 1); }
+			100% { transform: translateY(0px) rotate(-2880deg) scale(0.6); opacity: 0.5; }
+		}
+		@keyframes perfectFirework3 {
+			0% { transform: translateY(0px) rotate(0deg) scale(0.8); opacity: 1; animation-timing-function: cubic-bezier(0, 1.07, 1, 1); }
+			50% { transform: translateY(-110vh) rotate(2160deg) scale(1.0); opacity: 1; animation-timing-function: cubic-bezier(1, 0, 1, 1); }
+			100% { transform: translateY(0px) rotate(4320deg) scale(0.6); opacity: 0.5; }
+		}
+		@keyframes perfectFirework4 {
+			0% { transform: translateY(0px) rotate(0deg) scale(0.8); opacity: 1; animation-timing-function: cubic-bezier(0, 1.07, 1, 1); }
+			50% { transform: translateY(-95vh) rotate(-900deg) scale(1.0); opacity: 1; animation-timing-function: cubic-bezier(1, 0, 1, 1); }
+			100% { transform: translateY(0px) rotate(-1800deg) scale(0.6); opacity: 0.5; }
+		}
+		@keyframes perfectFirework5 {
+			0% { transform: translateY(0px) rotate(0deg) scale(0.8); opacity: 1; animation-timing-function: cubic-bezier(0, 1.07, 1, 1); }
+			50% { transform: translateY(-103vh) rotate(2700deg) scale(1.0); opacity: 1; animation-timing-function: cubic-bezier(1, 0, 1, 1); }
+			100% { transform: translateY(0px) rotate(5400deg) scale(0.6); opacity: 0.5; }
+		}
+
+		/* Enhanced stage container for celebration */
+		.stage-container {
+			position: relative;
+			z-index: 3;
+		}
+
+		/* === STAGE LAYOUT STYLES === */
 		.stage-footer {
 			display: flex;
 			justify-content: center;
@@ -321,6 +597,7 @@
 			box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 		}
 
+		/* === EMPTY STATE STYLES === */
 		.empty-state {
 			text-align: center;
 			padding: 4rem;
@@ -334,7 +611,7 @@
 			animation: bounce 2s ease-in-out infinite;
 		}
 
-		/* Animations */
+		/* === ANIMATIONS === */
 		@keyframes fadeIn {
 			from {
 				opacity: 0;
@@ -360,12 +637,12 @@
 		@keyframes slideUp {
 			from {
 				opacity: 0;
-				transform: translateY(30px) scale(0.8);
+				transform: translateY(30px);
 			}
 
 			to {
 				opacity: 1;
-				transform: translateY(0) scale(0.8);
+				transform: translateY(0);
 			}
 		}
 
@@ -396,29 +673,29 @@
 		@keyframes fadeInUp {
 			from {
 				opacity: 0;
-				transform: translateY(20px) scale(1);
+				transform: translateY(20px);
 			}
 
 			to {
 				opacity: 1;
-				transform: translateY(0) scale(1);
+				transform: translateY(0);
 			}
 		}
 
 		@keyframes bounceIn {
 			0% {
 				opacity: 0;
-				transform: translateY(30px) scale(0.3);
+				transform: translateY(30px);
 			}
 
 			50% {
 				opacity: 1;
-				transform: translateY(-10px) scale(0.95);
+				transform: translateY(-10px);
 			}
 
 			100% {
 				opacity: 1;
-				transform: translateY(0) scale(1.0);
+				transform: translateY(0);
 			}
 		}
 
@@ -471,12 +748,10 @@
 			0%,
 			100% {
 				opacity: 1;
-				transform: scale(1);
 			}
 
 			50% {
 				opacity: 0.3;
-				transform: scale(0.8);
 			}
 		}
 
@@ -498,12 +773,10 @@
 		/* Number counting effect */
 		@keyframes countUp {
 			from {
-				transform: scale(0.9);
 				opacity: 0.7;
 			}
 
 			to {
-				transform: scale(1);
 				opacity: 1;
 			}
 		}
@@ -513,15 +786,15 @@
 
 			0%,
 			100% {
-				transform: translateY(0px) rotate(-5deg) scale(1);
+				transform: translateY(0px) rotate(-5deg);
 			}
 
 			50% {
-				transform: translateY(-3px) rotate(5deg) scale(1);
+				transform: translateY(-3px) rotate(5deg);
 			}
 		}
 
-		/* Visibility utility classes with smooth transitions */
+		/* === UTILITY CLASSES === */
 		.hidden {
 			display: none !important;
 		}
@@ -572,23 +845,45 @@
 		@keyframes scoreReveal {
 			0% {
 				opacity: 0;
-				transform: scale(0.5);
 			}
 
 			50% {
 				opacity: 1;
-				transform: scale(0.95);
 			}
 
 			100% {
 				opacity: 1;
-				transform: scale(1);
 			}
 		}
 	</style>
 </head>
 
 <body>
+	<!-- Celebration particles background -->
+	<div class="celebration-particles">
+		<div class="particle">✨</div>
+		<div class="particle">🎊</div>
+		<div class="particle">😄</div>
+		<div class="particle">🎈</div>
+		<div class="particle">🎩</div>
+		<div class="particle">🎉</div>
+		<div class="particle">😊</div>
+		<div class="particle">✨</div>
+		<div class="particle">🎈</div>
+		<div class="particle">🥳</div>
+		<div class="particle">🎊</div>
+		<div class="particle">🎉</div>
+		<div class="particle">😆</div>
+		<div class="particle">🎩</div>
+		<div class="particle">🎈</div>
+		<div class="particle">✨</div>
+		<div class="particle">😁</div>
+		<div class="particle">🎊</div>
+		<div class="particle">🎉</div>
+		<div class="particle">🤩</div>
+		<div class="particle">🎩</div>
+	</div>
+
 	<div class="stage-container">
 		<div class="stage-header">
 			<div class="stage-pin-display">
@@ -606,8 +901,10 @@
 				<!-- TOP 3 items will be populated here -->
 			</div>
 
-			<div id="playerPositionMessage" class="player-position-message hidden">
-				<!-- Player position message will be shown here -->
+			<div id="playerPositionMessage" class="hidden">
+				<div class="congratulations-message">
+					<!-- Player position message will be shown here -->
+				</div>
 			</div>
 
 			<div id="emptyState" class="empty-state hidden">

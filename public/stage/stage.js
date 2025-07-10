@@ -44,12 +44,14 @@ class StageApp {
 		// Initialize TOP 3 component
 		this.top3 = defaultTop3Leaderboard;
 		
-		// Check if this is a panel context (LED display) and hide back button
+		// Check if this is a panel context (LED display) and hide UI elements
 		const urlParams = new URLSearchParams(window.location.search);
-		const context = urlParams.get('context');
-		if (context === 'panel' && this.elements.backToJoinBtn) {
+		this.context = urlParams.get('context');
+		if (this.context === 'panel') {
 			// Hide the back button for panel view
-			this.elements.backToJoinBtn.classList.add('hidden');
+			if (this.elements.backToJoinBtn) {
+				this.elements.backToJoinBtn.classList.add('hidden');
+			}
 		}
 		
 		// Setup event listeners
@@ -314,25 +316,52 @@ class StageApp {
 	}
 
 	showPlayerPosition(sortedLeaderboard) {
-		if (!this.elements.playerPositionMessage || !this.currentPlayer || !sortedLeaderboard) {
-			this.elements.playerPositionMessage.classList.add('hidden');
-			this.elements.playerPositionMessage.classList.remove('visible');
+		if (!this.elements.playerPositionMessage || !sortedLeaderboard) {
+			if (this.elements.playerPositionMessage) {
+				this.elements.playerPositionMessage.classList.add('hidden');
+				this.elements.playerPositionMessage.classList.remove('visible');
+			}
 			return;
 		}
 
-		// Use shared TOP 3 component to find player position
-		const position = this.top3.findPlayerPosition(sortedLeaderboard, this.currentPlayer);
-		
-		if (!position) {
-			this.elements.playerPositionMessage.classList.add('hidden');
-			this.elements.playerPositionMessage.classList.remove('visible');
-			return;
-		}
+		let message = '';
 
-		// Get formatted position message
-		const message = this.top3.getPositionMessage(position);
+		// If this is a panel context, show simple congratulations
+		if (this.context === 'panel') {
+			if (sortedLeaderboard.length > 0) {
+				message = `🏆 Gratulujeme! 🏆`;
+			} else {
+				// Hide if no results
+				this.elements.playerPositionMessage.classList.add('hidden');
+				this.elements.playerPositionMessage.classList.remove('visible');
+				return;
+			}
+		} else {
+			// Regular context - show current player position
+			if (!this.currentPlayer) {
+				this.elements.playerPositionMessage.classList.add('hidden');
+				this.elements.playerPositionMessage.classList.remove('visible');
+				return;
+			}
+
+			// Use shared TOP 3 component to find player position
+			const position = this.top3.findPlayerPosition(sortedLeaderboard, this.currentPlayer);
+			
+			if (!position) {
+				this.elements.playerPositionMessage.classList.add('hidden');
+				this.elements.playerPositionMessage.classList.remove('visible');
+				return;
+			}
+
+			// Get formatted position message
+			message = this.top3.getPositionMessage(position);
+		}
 		
-		this.dom.setText(this.elements.playerPositionMessage, message);
+		// Set text in the inner styled element
+		const messageElement = this.elements.playerPositionMessage.querySelector('.congratulations-message');
+		if (messageElement) {
+			this.dom.setText(messageElement, message);
+		}
 		this.elements.playerPositionMessage.classList.remove('hidden');
 		this.elements.playerPositionMessage.classList.add('visible');
 	}
