@@ -538,7 +538,8 @@ io.on('connection', (socket) => {
       
       if (!gameData) {
         socket.emit('moderator_reconnect_error', { 
-          message: 'Neplatné prihlásenie moderátora alebo hra neexistuje' 
+          message: 'Neplatné prihlásenie moderátora alebo hra neexistuje',
+          code: 'AUTH_FAILED' 
         });
         return;
       }
@@ -628,7 +629,18 @@ io.on('connection', (socket) => {
   // Dashboard: Start question
   socket.on('start_question', async (data) => {
     const game = activeGames.get(data.gamePin);
-    if (!game || game.moderatorSocket !== socket.id) return;
+    if (!game) {
+      socket.emit('start_question_error', { 
+        message: 'Hra neexistuje alebo server bol reštartovaný.' 
+      });
+      return;
+    }
+    if (game.moderatorSocket !== socket.id) {
+      socket.emit('start_question_error', { 
+        message: 'Nemáte oprávnenie ovládať túto hru.' 
+      });
+      return;
+    }
     
     console.log(`Starting question for game ${data.gamePin}, questions count: ${game.questions.length}, current index: ${game.currentQuestionIndex}`);
     
@@ -694,7 +706,18 @@ io.on('connection', (socket) => {
   // Dashboard: End question manually
   socket.on('end_question', (data) => {
     const game = activeGames.get(data.gamePin);
-    if (!game || game.moderatorSocket !== socket.id) return;
+    if (!game) {
+      socket.emit('end_question_error', { 
+        message: 'Hra neexistuje alebo server bol reštartovaný.' 
+      });
+      return;
+    }
+    if (game.moderatorSocket !== socket.id) {
+      socket.emit('end_question_error', { 
+        message: 'Nemáte oprávnenie ovládať túto hru.' 
+      });
+      return;
+    }
     
     endQuestion(game);
   });
@@ -702,7 +725,18 @@ io.on('connection', (socket) => {
   // Dashboard: End game manually
   socket.on('end_game', async (data) => {
     const game = activeGames.get(data.gamePin);
-    if (!game || game.moderatorSocket !== socket.id) return;
+    if (!game) {
+      socket.emit('end_game_error', { 
+        message: 'Hra neexistuje alebo server bol reštartovaný.' 
+      });
+      return;
+    }
+    if (game.moderatorSocket !== socket.id) {
+      socket.emit('end_game_error', { 
+        message: 'Nemáte oprávnenie ovládať túto hru.' 
+      });
+      return;
+    }
     
     // Mark as manual end game so endQuestion knows to end the game
     game.manualEndGame = true;
@@ -723,7 +757,18 @@ io.on('connection', (socket) => {
   // Dashboard: Reset game manually
   socket.on('reset_game', async (data) => {
     const game = activeGames.get(data.gamePin);
-    if (!game || game.moderatorSocket !== socket.id) return;
+    if (!game) {
+      socket.emit('reset_game_error', { 
+        message: 'Hra neexistuje alebo server bol reštartovaný.' 
+      });
+      return;
+    }
+    if (game.moderatorSocket !== socket.id) {
+      socket.emit('reset_game_error', { 
+        message: 'Nemáte oprávnenie ovládať túto hru.' 
+      });
+      return;
+    }
     
     console.log(`Manual reset requested for game ${data.gamePin}, current phase: ${game.phase}`);
     
@@ -956,10 +1001,26 @@ io.on('connection', (socket) => {
   socket.on('submit_answer', async (data) => {
     try {
       const playerInfo = socketToPlayer.get(socket.id);
-      if (!playerInfo) return;
+      if (!playerInfo) {
+        socket.emit('submit_answer_error', { 
+          message: 'Nie ste prihlásený do hry alebo server bol reštartovaný.' 
+        });
+        return;
+      }
 
       const game = activeGames.get(playerInfo.gamePin);
-      if (!game || game.phase !== 'QUESTION_ACTIVE') return;
+      if (!game) {
+        socket.emit('submit_answer_error', { 
+          message: 'Hra neexistuje alebo server bol reštartovaný. Obnovte stránku a pripojte sa znovu.' 
+        });
+        return;
+      }
+      if (game.phase !== 'QUESTION_ACTIVE') {
+        socket.emit('submit_answer_error', { 
+          message: 'Momentálne nie je aktívna žiadna otázka.' 
+        });
+        return;
+      }
       
       const answerData = game.submitAnswer(playerInfo.playerId, data.answer, playerLatencies);
       if (!answerData) return;

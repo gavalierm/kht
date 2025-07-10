@@ -171,6 +171,14 @@ class App {
 			this.router.redirectToJoin();
 		});
 
+		this.socket.on('submit_answer_error', (data) => {
+			// Auto-reload on any error to trigger re-authentication
+			this.notifications.showInfo('Obnovujem pripojenie...');
+			setTimeout(() => {
+				window.location.reload();
+			}, 1000);
+		});
+
 		// Question events
 		this.socket.on(SOCKET_EVENTS.QUESTION_STARTED, (data) => {
 			this.showQuestion(data);
@@ -656,6 +664,15 @@ class App {
 	}
 
 	submitAnswer(answerIndex) {
+		// Check if player is properly authenticated
+		if (!this.gameState.playerToken || !this.gameState.gamePin) {
+			this.notifications.showInfo('Obnovujem pripojenie...');
+			setTimeout(() => {
+				window.location.reload();
+			}, 500);
+			return;
+		}
+		
 		if (!this.gameState.submitAnswer(answerIndex)) return;
 
 		const answerTime = Date.now();

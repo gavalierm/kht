@@ -133,8 +133,29 @@ class ModeratorApp {
 			this.handleGameEndedDashboard(data);
 		});
 
+		// Operation errors - auto-reload to re-authenticate
 		this.socket.on('start_question_error', (error) => {
-			this.notifications.showError(error.message || 'Chyba pri spustení otázky');
+			// Auto-reload on any error to trigger re-authentication
+			this.notifications.showInfo('Obnovujem pripojenie...');
+			setTimeout(() => window.location.reload(), 1000);
+		});
+
+		this.socket.on('end_game_error', (error) => {
+			// Auto-reload on any error to trigger re-authentication
+			this.notifications.showInfo('Obnovujem pripojenie...');
+			setTimeout(() => window.location.reload(), 1000);
+		});
+
+		this.socket.on('reset_game_error', (error) => {
+			// Auto-reload on any error to trigger re-authentication
+			this.notifications.showInfo('Obnovujem pripojenie...');
+			setTimeout(() => window.location.reload(), 1000);
+		});
+
+		this.socket.on('end_question_error', (error) => {
+			// Auto-reload on any error to trigger re-authentication
+			this.notifications.showInfo('Obnovujem pripojenie...');
+			setTimeout(() => window.location.reload(), 1000);
 		});
 
 		// Player updates
@@ -567,10 +588,14 @@ class ModeratorApp {
 			this.loginTimeout = null;
 		}
 		
-		this.setLoginLoading(false);
-		this.isLoggedIn = false;
+		// Always reload on authentication errors to trigger auto-reconnect
+		// This handles server restarts, expired tokens, network issues, etc.
+		this.notifications.showInfo('Obnovujem pripojenie...');
 		
-		this.notifications.showError(error.message || 'Chyba pri prihlasovaní');
+		// Auto-reload page after short delay to trigger auto-reconnect
+		setTimeout(() => {
+			window.location.reload();
+		}, 1000);
 	}
 
 	handleLogout() {
@@ -923,11 +948,18 @@ class ModeratorApp {
 
 	// Game Moderator Methods
 	handleStartGame() {
+		if (!this.isLoggedIn) {
+			this.notifications.showInfo('Obnovujem pripojenie...');
+			setTimeout(() => {
+				window.location.reload();
+			}, 500);
+			return;
+		}
+		
 		if (this.questions.length === 0) {
 			this.notifications.showError('Pridajte aspoň jednu otázku pred spustením hry');
 			return;
 		}
-
 
 		// Start the next question via socket
 		this.socket.emit(SOCKET_EVENTS.START_QUESTION, { gamePin: this.gamePin });
@@ -936,6 +968,14 @@ class ModeratorApp {
 	}
 
 	handleEndGame() {
+		if (!this.isLoggedIn) {
+			this.notifications.showInfo('Obnovujem pripojenie...');
+			setTimeout(() => {
+				window.location.reload();
+			}, 500);
+			return;
+		}
+		
 		if (confirm('Naozaj chcete ukončiť hru? Všetok postup bude stratený.')) {
 			// End the game using the new END_GAME event
 			this.socket.emit(SOCKET_EVENTS.END_GAME, { gamePin: this.gamePin });
@@ -947,6 +987,14 @@ class ModeratorApp {
 	}
 
 	handleResetGame() {
+		if (!this.isLoggedIn) {
+			this.notifications.showInfo('Obnovujem pripojenie...');
+			setTimeout(() => {
+				window.location.reload();
+			}, 500);
+			return;
+		}
+		
 		if (confirm('Naozaj chcete resetovať hru? Všetok postup bude stratený a hra sa vráti na začiatok.')) {
 			// Reset the game using the new RESET_GAME event
 			this.socket.emit(SOCKET_EVENTS.RESET_GAME, { gamePin: this.gamePin });
@@ -1090,6 +1138,9 @@ class ModeratorApp {
 			this.socket.off('question_ended_dashboard');
 			this.socket.off('next_question_ready');
 			this.socket.off('start_question_error');
+			this.socket.off('end_game_error');
+			this.socket.off('reset_game_error');
+			this.socket.off('end_question_error');
 			this.socket.off('player_joined');
 			this.socket.off('player_left');
 			this.socket.off('live_stats');

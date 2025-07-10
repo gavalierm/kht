@@ -113,8 +113,8 @@ class PanelApp {
 			} else {
 				// If no game status provided, assume waiting state only for initial connection
 				if (!this.gameStatus || this.gameStatus === 'disconnected') {
-				this.updateStatus(GAME_STATES.WAITING);
-			}
+					this.updateStatus(GAME_STATES.WAITING);
+				}
 				// Otherwise keep the current state (question active, results, etc.)
 			}
 			
@@ -412,6 +412,15 @@ class PanelApp {
 
 	updateLeaderboard(leaderboard) {
 		if (!this.elements.panelLeaderboardList || !leaderboard) return;
+
+		// Prevent double animation by checking if we're showing the same empty state
+		const currentContent = this.elements.panelLeaderboardList.innerHTML;
+		const hasEmptyState = currentContent.includes('Zatiaľ žiadni hráči') || currentContent.includes('Čakáme na hráčov');
+		
+		// If we have an empty leaderboard and we're already showing empty state, don't re-render
+		if (leaderboard.length === 0 && hasEmptyState) {
+			return;
+		}
 
 		// Use shared TOP 3 component to render leaderboard
 		this.top3.render(

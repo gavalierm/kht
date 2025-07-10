@@ -21,6 +21,7 @@ class StageApp {
 		this.gamePin = null;
 		this.leaderboard = [];
 		this.gameStatus = GAME_STATES.ENDED;
+		this.hasConnectedBefore = false;
 
 		// Element references
 		this.elements = {};
@@ -287,8 +288,14 @@ class StageApp {
 		// Rejoin game room if we have a PIN
 		if (this.gamePin) {
 			this.socket.emit(SOCKET_EVENTS.JOIN_PANEL, { pin: this.gamePin });
-			// Reload leaderboard data after reconnection
-			setTimeout(() => this.loadLeaderboard(), 500);
+			// Only reload leaderboard data if this is a REconnection (not initial connection)
+			if (this.hasConnectedBefore) {
+				console.log('Stage: Reconnected - reloading leaderboard data');
+				setTimeout(() => this.loadLeaderboard(), 500);
+			} else {
+				console.log('Stage: Initial connection - skipping leaderboard reload');
+				this.hasConnectedBefore = true;
+			}
 		}
 	}
 
