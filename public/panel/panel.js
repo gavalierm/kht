@@ -226,6 +226,7 @@ class PanelApp {
 			// Show spinner in countdown during waiting but DON'T start timer
 			if (this.elements.panelCountdown) {
 				this.dom.addClass(this.elements.panelCountdown, 'waiting');
+				this.dom.removeClass(this.elements.panelCountdown, 'low-time');
 				this.elements.panelCountdown.style.display = 'flex';
 			}
 		} else if (status === GAME_STATES.FINISHED) {

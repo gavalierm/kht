@@ -505,8 +505,9 @@ class App {
 		// Update question text
 		this.dom.setText(this.elements.questionText, 'Čakám na otázku...');
 		
-		// Show spinner in timer
+		// Show spinner in timer and reset low-time styling
 		this.dom.addClass(this.elements.timer, 'waiting');
+		this.dom.removeClass(this.elements.timer, 'low-time');
 		
 		
 		// Reset option texts and clear selection highlighting
@@ -793,9 +794,10 @@ class App {
 					`Čakáme na otázku ${data.questionNumber}/${data.totalQuestions}...`);
 			}
 			
-			// Show timer with waiting spinner
+			// Show timer with waiting spinner and reset low-time styling
 			if (this.elements.timer) {
 				this.dom.addClass(this.elements.timer, 'waiting');
+				this.dom.removeClass(this.elements.timer, 'low-time');
 				this.dom.removeClass(this.elements.timer, 'hidden');
 			}
 			
