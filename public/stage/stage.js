@@ -187,9 +187,9 @@ class StageApp {
 		if (data.status) {
 			this.gameStatus = data.status;
 			
-			// If game status changed from ended to running or waiting, redirect
+			// If game status changed from ended to running or waiting, redirect based on context
 			if (data.status === GAME_STATES.RUNNING || data.status === GAME_STATES.WAITING) {
-				this.router.redirectToGame(this.gamePin);
+				this.redirectBasedOnContext();
 			}
 		}
 	}

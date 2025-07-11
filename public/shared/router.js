@@ -266,9 +266,11 @@ export class Router {
 	/**
 	 * Redirect to stage view (full page redirect)
 	 * @param {string} pin - Game PIN
+	 * @param {string} context - Optional context parameter
 	 */
-	redirectToStage(pin) {
-		window.location.href = `/stage/${pin}`;
+	redirectToStage(pin, context = null) {
+		const url = context ? `/stage/${pin}?context=${context}` : `/stage/${pin}`;
+		window.location.href = url;
 	}
 
 	/**

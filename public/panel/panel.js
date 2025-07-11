@@ -22,6 +22,7 @@ class PanelApp {
 		this.playerCount = 0;
 		this.currentQuestionNumber = 0;
 		this.totalQuestions = 0;
+		this.stageRedirectTimeout = null;
 
 		// Element references
 		this.elements = {};
@@ -72,11 +73,7 @@ class PanelApp {
 		this.socket.on(SOCKET_EVENTS.CONNECT, () => {
 			console.log('Panel connected to server');
 			this.updateLoadingText('Pripájame sa k hre...');
-			if (this.gamePin) {
-				this.joinPanel();
-			} else {
-				this.showError('No game PIN found in URL');
-			}
+			this.joinPanel();
 		});
 	}
 
@@ -89,7 +86,10 @@ class PanelApp {
 			this.updatePinDisplay();
 			console.log('Extracted game PIN:', this.gamePin);
 		} else {
+			// This should never happen for valid panel URLs, but handle gracefully
 			console.error('Could not extract game PIN from URL:', path);
+			this.showError('Invalid panel URL - no game PIN found');
+			// Panel stays on same URL, just shows error
 		}
 	}
 
@@ -127,6 +127,8 @@ class PanelApp {
 			console.error('Panel join error:', data.message);
 			this.hideLoading();
 			this.showError(data.message);
+			// NOTE: Panel should never redirect to join/game on errors
+			// Panels are display devices and should stay on the same URL
 		});
 
 		// Question events
@@ -179,18 +181,11 @@ class PanelApp {
 			// Reset to waiting state on reconnection
 			this.updateStatus(GAME_STATES.WAITING);
 			// Connection banner handles reconnection notifications
-			if (this.gamePin) {
-				this.joinPanel();
-			}
+			this.joinPanel();
 		});
 	}
 
 	joinPanel() {
-		if (!this.gamePin) {
-			this.showError('No game PIN available');
-			return;
-		}
-
 		console.log('Joining panel for game:', this.gamePin);
 		this.socket.emit(SOCKET_EVENTS.JOIN_PANEL, {
 			gamePin: this.gamePin
@@ -498,6 +493,12 @@ class PanelApp {
 	showGameEnded(data) {
 		console.log('Showing game ended view:', data);
 		
+		// Prevent multiple calls to showGameEnded from setting up multiple redirects
+		if (this.stageRedirectTimeout) {
+			console.log('Panel: Game end already processed, ignoring duplicate event');
+			return;
+		}
+		
 		// Stop any running timers
 		this.stopCountdown();
 		
@@ -549,12 +550,11 @@ class PanelApp {
 		
 		// Redirect to stage interface after 5 seconds to show final results
 		console.log(`Will redirect to stage interface for game ${this.gamePin} in 5 seconds`);
-		setTimeout(() => {
-			if (this.gamePin) {
-				console.log(`Redirecting panel to stage interface for game ${this.gamePin}`);
-				// Add context parameter to differentiate panel from player view
-				window.location.href = `/stage/${this.gamePin}?context=panel`;
-			}
+		this.stageRedirectTimeout = setTimeout(() => {
+			console.log(`Redirecting panel to stage interface for game ${this.gamePin}`);
+			// Add context parameter to differentiate panel from player view
+			this.router.redirectToStage(this.gamePin, 'panel');
+			this.stageRedirectTimeout = null;
 		}, 5000);
 	}
 
@@ -601,16 +601,19 @@ class PanelApp {
 		} else if (data.status === 'finished') {
 			this.updateStatus(GAME_STATES.FINISHED);
 		} else if (data.status === 'reset') {
-			// Game was reset - redirect to join page after short delay
+			// Game was reset - reset panel state and continue displaying
 			this.notifications.showInfo(data.message || 'Hra bola resetovaná');
 			
-			setTimeout(() => {
-				if (this.gamePin) {
-					window.location.href = `/join/${this.gamePin}`;
-				} else {
-					window.location.href = '/join';
-				}
-			}, 2000);
+			// Cancel any pending stage redirect timeout
+			if (this.stageRedirectTimeout) {
+				console.log('Panel: Canceling pending stage redirect due to game reset');
+				clearTimeout(this.stageRedirectTimeout);
+				this.stageRedirectTimeout = null;
+			}
+			
+			// Reset panel to waiting state
+			this.resetToWaiting();
+			this.updateStatus(GAME_STATES.WAITING);
 		}
 	}
 
