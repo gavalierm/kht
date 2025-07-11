@@ -430,63 +430,6 @@
 			text-align: left;
 		}
 
-		#messageBox {
-			position: fixed;
-			top: 1em;
-			left: 50%;
-			transform: translateX(-50%);
-			display: flex;
-			gap: 0.25em;
-			flex-direction: column;
-			pointer-events: none;
-			z-index: 1000;
-		}
-
-		#messageBox div {
-			font-size: 1.2em;
-			padding: 0.75em 1.5em;
-			background: rgba(255, 255, 255, 0.95);
-			backdrop-filter: blur(10px);
-			color: black;
-			border-radius: 2em;
-			text-align: center;
-			animation: slideIn 0.3s ease-out;
-			box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-			border: 1px solid rgba(255, 255, 255, 0.3);
-			font-weight: 600;
-		}
-
-		@keyframes slideIn {
-			from {
-				transform: translateY(-20px);
-				opacity: 0;
-			}
-
-			to {
-				transform: translateY(0);
-				opacity: 1;
-			}
-		}
-
-		#messageBox div.error {
-			background: red;
-			color: white;
-		}
-
-		#messageBox div.info {
-			background: white;
-			color: black;
-		}
-
-		#messageBox div.success {
-			background: green;
-			color: white;
-		}
-
-		#messageBox div.warning {
-			background: orange;
-			color: white;
-		}
 	</style>
 </head>
 

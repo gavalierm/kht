@@ -143,55 +143,6 @@
 			cursor: not-allowed;
 		}
 
-		#messageBox {
-			position: absolute;
-			top: 1em;
-			display: flex;
-			gap: 0.25em;
-			flex-direction: column;
-			pointer-events: none;
-		}
-
-		#messageBox div {
-			font-size: 1.2em;
-			padding: 0.5em 1em;
-			background: white;
-			color: black;
-			border-radius: 2em;
-			text-align: center;
-			animation: slideIn 0.3s ease-out;
-		}
-
-		@keyframes slideIn {
-			from {
-				transform: translateY(-20px);
-				opacity: 0;
-			}
-			to {
-				transform: translateY(0);
-				opacity: 1;
-			}
-		}
-
-		#messageBox div.error {
-			background: red;
-			color: white;
-		}
-
-		#messageBox div.info {
-			background: white;
-			color: black;
-		}
-
-		#messageBox div.success {
-			background: green;
-			color: white;
-		}
-
-		#messageBox div.warning {
-			background: orange;
-			color: white;
-		}
 
 		.loading-spinner {
 			display: inline-block;

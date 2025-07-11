@@ -436,59 +436,6 @@
 			100% { transform: rotate(360deg); }
 		}
 
-		#messageBox {
-			position: fixed;
-			top: 20px;
-			left: 50%;
-			transform: translateX(-50%);
-			z-index: 1000;
-			display: flex;
-			gap: 10px;
-			flex-direction: column;
-			pointer-events: none;
-		}
-
-		#messageBox div {
-			font-size: 1rem;
-			padding: 12px 24px;
-			background: white;
-			color: black;
-			border-radius: 8px;
-			text-align: center;
-			animation: slideIn 0.3s ease-out;
-			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-		}
-
-		@keyframes slideIn {
-			from {
-				transform: translateY(-20px);
-				opacity: 0;
-			}
-			to {
-				transform: translateY(0);
-				opacity: 1;
-			}
-		}
-
-		#messageBox div.error {
-			background: #dc3545;
-			color: white;
-		}
-
-		#messageBox div.success {
-			background: #28a745;
-			color: white;
-		}
-
-		#messageBox div.warning {
-			background: #ffc107;
-			color: black;
-		}
-
-		#messageBox div.info {
-			background: #17a2b8;
-			color: white;
-		}
 
 		/* Collapsible Styles */
 		.collapsible-box {
