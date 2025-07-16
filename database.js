@@ -1,9 +1,17 @@
 const Database = require('better-sqlite3');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 
 class GameDatabase {
   constructor(dbPath = './db/quiz.db', options = {}) {
+    // Create db directory if it doesn't exist
+    const dbDir = path.dirname(dbPath);
+    if (!fs.existsSync(dbDir)) {
+      fs.mkdirSync(dbDir, { recursive: true });
+    }
+    
     this.db = new Database(dbPath);
     
     // Enable WAL mode for better concurrency
