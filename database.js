@@ -22,7 +22,11 @@ class GameDatabase {
     this.db.pragma('mmap_size = 134217728'); // 128MB
     this.db.pragma('foreign_keys = ON');
     
-    // Prepare commonly used statements for better performance
+    this.skipTestGame = options.skipTestGame || process.env.NODE_ENV === 'test';
+    this.initialized = false;
+    this.initTables();
+    
+    // Prepare commonly used statements for better performance (after tables are created)
     this.stmts = {
       getGameByPin: this.db.prepare('SELECT * FROM games WHERE pin = ?'),
       getQuestions: this.db.prepare('SELECT * FROM questions WHERE game_id = ? ORDER BY question_order'),
@@ -31,10 +35,6 @@ class GameDatabase {
       disconnectPlayer: this.db.prepare('UPDATE players SET connected = false, last_seen = strftime(\'%s\', \'now\') WHERE id = ?'),
       updateGameState: this.db.prepare('UPDATE games SET status = ?, current_question_index = ?, question_start_time = ?, updated_at = strftime(\'%s\', \'now\') WHERE id = ?')
     };
-    
-    this.skipTestGame = options.skipTestGame || process.env.NODE_ENV === 'test';
-    this.initialized = false;
-    this.initTables();
   }
 
   initTables() {
