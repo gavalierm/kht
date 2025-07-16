@@ -367,13 +367,18 @@ class GameDatabase {
     this.db.prepare(sql).run(gameId, playerToken);
     
     // Get updated player data
-    return this.db.prepare(
+    const player = this.db.prepare(
       'SELECT * FROM players WHERE game_id = ? AND player_token = ?'
     ).get(gameId, playerToken);
+    
+    return player || null;
   }
 
   // Get game players
   getGamePlayers(gameId) {
+    if (gameId === null || gameId === undefined) {
+      throw new Error('Game ID is required');
+    }
     return this.stmts.getGamePlayers.all(gameId);
   }
 
@@ -384,6 +389,9 @@ class GameDatabase {
 
   // Update player score
   updatePlayerScore(playerId, score) {
+    if (playerId === null || playerId === undefined) {
+      throw new Error('Player ID is required');
+    }
     this.stmts.updatePlayerScore.run(score, playerId);
   }
 
@@ -473,13 +481,13 @@ class GameDatabase {
     const sql = `
       SELECT 
         COUNT(DISTINCT p.id) as total_players,
-        COUNT(a.id) as total_answers,
+        COUNT(DISTINCT a.id) as total_answers,
         AVG(a.response_time) as avg_response_time,
         SUM(CASE WHEN a.is_correct = 1 THEN 1 ELSE 0 END) as correct_answers
       FROM games g
       LEFT JOIN players p ON g.id = p.game_id
       LEFT JOIN questions q ON g.id = q.game_id
-      LEFT JOIN answers a ON q.id = a.question_id
+      LEFT JOIN answers a ON q.id = a.question_id AND p.id = a.player_id
       WHERE g.id = ?
     `;
 

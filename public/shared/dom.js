@@ -153,7 +153,7 @@ export class DOMHelper {
 	 */
 	addClass(element, className) {
 		const el = typeof element === 'string' ? this.getElementById(element) : element;
-		if (el) {
+		if (el && className && className.trim()) {
 			el.classList.add(className);
 		}
 	}
@@ -201,7 +201,7 @@ export class DOMHelper {
 	 */
 	setStyle(element, property, value) {
 		const el = typeof element === 'string' ? this.getElementById(element) : element;
-		if (el) {
+		if (el && property && value !== undefined) {
 			el.style[property] = value;
 		}
 	}

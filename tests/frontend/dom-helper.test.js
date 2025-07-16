@@ -551,7 +551,7 @@ describe('DOM Helper Frontend Tests', () => {
 
   describe('Slovak Context Integration', () => {
     test('should handle Slovak UI elements correctly', () => {
-      // Set up Slovak UI elements
+      // Create Slovak UI elements
       const slovakElements = {
         button: 'Odoslať',
         label: 'Meno hráča:',
@@ -559,6 +559,14 @@ describe('DOM Helper Frontend Tests', () => {
         success: 'Úspešne pripojené'
       };
       
+      // Create DOM elements first
+      Object.keys(slovakElements).forEach(key => {
+        const element = document.createElement('div');
+        element.id = `${key}Element`;
+        document.body.appendChild(element);
+      });
+      
+      // Set Slovak text
       Object.entries(slovakElements).forEach(([key, value]) => {
         domHelper.setText(`${key}Element`, value);
       });

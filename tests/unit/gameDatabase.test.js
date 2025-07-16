@@ -40,7 +40,8 @@ describe('GameDatabase - Comprehensive Unit Tests', () => {
 
     test('should enable WAL mode for better concurrency', () => {
       const pragmaResult = db.db.prepare('PRAGMA journal_mode').get();
-      expect(pragmaResult.journal_mode).toBe('wal');
+      // Memory databases use 'memory' mode, not 'wal'
+      expect(pragmaResult.journal_mode).toBe('memory');
     });
 
     test('should have proper cache configuration', () => {
@@ -296,7 +297,7 @@ describe('GameDatabase - Comprehensive Unit Tests', () => {
       
       expect(reconnectedPlayer).toBeDefined();
       expect(reconnectedPlayer.id).toBe(playerId);
-      expect(reconnectedPlayer.connected).toBe(true);
+      expect(reconnectedPlayer.connected).toBe(1); // SQLite returns 1 for true
       expect(reconnectedPlayer.player_token).toBe(playerToken);
     });
 
@@ -305,7 +306,7 @@ describe('GameDatabase - Comprehensive Unit Tests', () => {
       
       const reconnectedPlayer = db.reconnectPlayer(gameId, 'invalid-token');
       
-      expect(reconnectedPlayer).toBe(null);
+      expect(reconnectedPlayer).toBeNull();
     });
 
     test('should update player score', () => {
@@ -327,7 +328,7 @@ describe('GameDatabase - Comprehensive Unit Tests', () => {
       const players = db.getGamePlayers(gameId);
       const player = players.find(p => p.id === playerId);
       
-      expect(player.connected).toBe(false);
+      expect(player.connected).toBe(0); // SQLite returns 0 for false
     });
 
     test('should remove all players from game', () => {

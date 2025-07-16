@@ -29,10 +29,14 @@ const localStorageMock = {
 
 // Setup JSDOM environment
 Object.defineProperty(window, 'localStorage', {
-  value: localStorageMock
+  value: localStorageMock,
+  writable: true
 });
 
-global.localStorage = localStorageMock;
+Object.defineProperty(global, 'localStorage', {
+  value: localStorageMock,
+  writable: true
+});
 
 describe('GameState Management Frontend Tests', () => {
   let gameState;

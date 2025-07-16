@@ -158,6 +158,7 @@ describe('GameUtils - Comprehensive Unit Tests', () => {
     });
 
     test('should return fallback questions when file not found', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
       const result = await loadQuestions('nonexistent');
       
       expect(result).toHaveProperty('quiz');
@@ -176,10 +177,13 @@ describe('GameUtils - Comprehensive Unit Tests', () => {
       // Check Slovak content
       expect(firstQuestion.question).toContain('Slovenska');
       expect(firstQuestion.options).toContain('Bratislava');
+      
+      consoleSpy.mockRestore();
     });
 
     test('should handle malformed JSON gracefully', async () => {
       // Mock invalid JSON
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
       fs.promises.readFile = jest.fn().mockResolvedValue('invalid json {');
       
       const result = await loadQuestions('malformed');
@@ -193,10 +197,12 @@ describe('GameUtils - Comprehensive Unit Tests', () => {
       
       // Restore original function
       fs.promises.readFile = originalReadFile;
+      consoleSpy.mockRestore();
     });
 
     test('should handle empty file gracefully', async () => {
       // Mock empty file
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
       fs.promises.readFile = jest.fn().mockResolvedValue('');
       
       const result = await loadQuestions('empty');
@@ -207,10 +213,12 @@ describe('GameUtils - Comprehensive Unit Tests', () => {
       
       // Restore original function
       fs.promises.readFile = originalReadFile;
+      consoleSpy.mockRestore();
     });
 
     test('should handle file read errors gracefully', async () => {
       // Mock file read error
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
       fs.promises.readFile = jest.fn().mockRejectedValue(new Error('File read error'));
       
       const result = await loadQuestions('error');
@@ -221,6 +229,7 @@ describe('GameUtils - Comprehensive Unit Tests', () => {
       
       // Restore original function
       fs.promises.readFile = originalReadFile;
+      consoleSpy.mockRestore();
     });
 
     test('should default to general category when no category specified', async () => {
@@ -333,6 +342,7 @@ describe('GameUtils - Comprehensive Unit Tests', () => {
     });
 
     test('should handle concurrent question loading', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
       const categories = ['general', 'science', 'history', 'nonexistent'];
       
       const loadPromises = categories.map(category => loadQuestions(category));
@@ -344,6 +354,8 @@ describe('GameUtils - Comprehensive Unit Tests', () => {
         expect(Array.isArray(result.quiz.questions)).toBe(true);
         expect(result.quiz.questions.length).toBeGreaterThan(0);
       });
+      
+      consoleSpy.mockRestore();
     });
   });
 
@@ -452,6 +464,7 @@ describe('GameUtils - Comprehensive Unit Tests', () => {
 
     test('should validate fallback questions structure', async () => {
       // Force fallback by causing error
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
       fs.promises.readFile = jest.fn().mockRejectedValue(new Error('Test error'));
       
       const result = await loadQuestions('error');
@@ -478,6 +491,7 @@ describe('GameUtils - Comprehensive Unit Tests', () => {
       
       // Restore original function
       fs.promises.readFile = require('fs').promises.readFile;
+      consoleSpy.mockRestore();
     });
   });
 
@@ -500,6 +514,7 @@ describe('GameUtils - Comprehensive Unit Tests', () => {
     });
 
     test('should handle question loading performance', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
       const startTime = Date.now();
       
       // Load questions multiple times
@@ -515,6 +530,8 @@ describe('GameUtils - Comprehensive Unit Tests', () => {
       results.forEach(result => {
         expect(result.quiz.questions).toBeDefined();
       });
+      
+      consoleSpy.mockRestore();
     });
   });
 });
