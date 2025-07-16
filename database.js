@@ -35,6 +35,11 @@ class GameDatabase {
       disconnectPlayer: this.db.prepare('UPDATE players SET connected = false, last_seen = strftime(\'%s\', \'now\') WHERE id = ?'),
       updateGameState: this.db.prepare('UPDATE games SET status = ?, current_question_index = ?, question_start_time = ?, updated_at = strftime(\'%s\', \'now\') WHERE id = ?')
     };
+    
+    // Create test game if it doesn't exist and not in test mode
+    if (!this.skipTestGame) {
+      this.createTestGame();
+    }
   }
 
   initTables() {
@@ -106,11 +111,6 @@ class GameDatabase {
       this.db.exec(sql);
       console.log('Database initialized successfully');
       this.initialized = true;
-      
-      // Create test game if it doesn't exist and not in test mode
-      if (!this.skipTestGame) {
-        this.createTestGame();
-      }
     } catch (err) {
       console.error('Database init error:', err);
       throw err;
