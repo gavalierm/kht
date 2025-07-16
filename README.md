@@ -5,7 +5,8 @@ Real-time multiplayer quiz system built with Node.js, Socket.io, and SQLite.
 ## Quick Start
 
 ```bash
-npm install
+# Use npm ci for clean install without modifying package-lock.json
+npm ci
 npm run dev
 ```
 

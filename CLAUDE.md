@@ -18,7 +18,9 @@ Runs server.js directly with Node.js.
 
 ### Install Dependencies
 ```bash
-npm install
+npm ci  # Use for clean install without modifying package-lock.json
+# or
+npm install  # May update package-lock.json based on npm version
 ```
 
 ### Process Management
