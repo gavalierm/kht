@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ main, dev ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   NODE_ENV: test
   # Slovak language support
@@ -20,7 +24,7 @@ jobs:
     
     strategy:
       matrix:
-        node-version: [18, 20, 22]
+        node-version: [22]
     
     steps:
     - name: Checkout code
@@ -55,7 +59,7 @@ jobs:
     
     strategy:
       matrix:
-        node-version: [18, 20, 22]
+        node-version: [22]
     
     steps:
     - name: Checkout code
@@ -91,7 +95,7 @@ jobs:
     
     strategy:
       matrix:
-        node-version: [18, 20, 22]
+        node-version: [22]
     
     steps:
     - name: Checkout code
@@ -127,7 +131,7 @@ jobs:
     
     strategy:
       matrix:
-        node-version: [20, 22] # Run on fewer versions for E2E to save resources
+        node-version: [22] # Run on Node.js 22 only per package.json requirement
     
     steps:
     - name: Checkout code
@@ -247,13 +251,13 @@ jobs:
       run: npm ci
       
     - name: Run security audit
-      run: npm audit --audit-level=moderate
+      run: npm audit --audit-level moderate
       
     - name: Check for critical vulnerabilities
       run: |
-        if npm audit --audit-level=high --json | jq -r '.vulnerabilities | to_entries[] | select(.value.severity == "high" or .value.severity == "critical") | .key' | wc -l | grep -v '^0$'; then
+        if npm audit --audit-level high --json | jq -r '.vulnerabilities | to_entries[] | select(.value.severity == "high" or .value.severity == "critical") | .key' | wc -l | grep -v '^0$'; then
           echo "❌ High or critical vulnerabilities found"
-          npm audit --audit-level=high
+          npm audit --audit-level high
           exit 1
         else
           echo "✅ No high or critical vulnerabilities found"
@@ -289,11 +293,25 @@ jobs:
         # Wait for server to be ready
         sleep 20
         
-        # Test multiple endpoints
+        # Test multiple endpoints with better error handling
         echo "Testing main endpoints..."
-        curl -f http://localhost:3000/ || { echo "❌ Main page failed"; exit 1; }
-        curl -f http://localhost:3000/join || { echo "❌ Join page failed"; exit 1; }
-        curl -f http://localhost:3000/create || { echo "❌ Create page failed"; exit 1; }
+        if ! curl -f http://localhost:3000/; then
+          echo "❌ Main page failed"
+          kill $SERVER_PID 2>/dev/null || true
+          exit 1
+        fi
+        
+        if ! curl -f http://localhost:3000/join; then
+          echo "❌ Join page failed"
+          kill $SERVER_PID 2>/dev/null || true
+          exit 1
+        fi
+        
+        if ! curl -f http://localhost:3000/create; then
+          echo "❌ Create page failed"
+          kill $SERVER_PID 2>/dev/null || true
+          exit 1
+        fi
         
         echo "✅ All endpoints responding successfully"
         
@@ -305,7 +323,7 @@ jobs:
         fi
         
         # Clean up
-        kill $SERVER_PID || true
+        kill $SERVER_PID 2>/dev/null || true
       timeout-minutes: 3
 
   # Test coverage analysis
@@ -332,7 +350,7 @@ jobs:
       continue-on-error: true
       
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: ./coverage/lcov.info
