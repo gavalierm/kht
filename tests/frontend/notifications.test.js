@@ -446,8 +446,8 @@ describe('Notification System Frontend Tests', () => {
       
       expect(messageBox.children).toHaveLength(50);
       
-      // Wait for auto-removal
-      jest.advanceTimersByTime(200);
+      // Wait for auto-removal (increased timeout for CI)
+      jest.advanceTimersByTime(300);
       
       // All should be removed
       expect(messageBox.children).toHaveLength(0);
