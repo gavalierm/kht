@@ -131,9 +131,12 @@ function createMockSocket() {
     id: `socket_${Math.random().toString(36).substr(2, 9)}`,
     connected: true,
     
-    // Event handling
+    // Event handling - support multiple handlers for same event
     on: jest.fn((event, callback) => {
-      events.set(event, callback);
+      if (!events.has(event)) {
+        events.set(event, []);
+      }
+      events.get(event).push(callback);
     }),
     
     emit: jest.fn(),
@@ -153,7 +156,8 @@ function createMockSocket() {
     // Helper methods for testing
     _trigger: (event, data) => {
       if (events.has(event)) {
-        events.get(event)(data);
+        const handlers = events.get(event);
+        handlers.forEach(handler => handler(data));
       }
     },
     
