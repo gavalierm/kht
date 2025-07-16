@@ -48,33 +48,37 @@ export class NotificationManager {
 	/**
 	 * Show an error message
 	 * @param {string} message - Error message to display
+	 * @param {number} duration - Duration in milliseconds (optional)
 	 */
-	showError(message) {
-		this.showNotification(message, 'error');
+	showError(message, duration) {
+		this.showNotification(message, 'error', duration);
 	}
 
 	/**
 	 * Show an info message
 	 * @param {string} message - Info message to display
+	 * @param {number} duration - Duration in milliseconds (optional)
 	 */
-	showInfo(message) {
-		this.showNotification(message, 'info');
+	showInfo(message, duration) {
+		this.showNotification(message, 'info', duration);
 	}
 
 	/**
 	 * Show a success message
 	 * @param {string} message - Success message to display
+	 * @param {number} duration - Duration in milliseconds (optional)
 	 */
-	showSuccess(message) {
-		this.showNotification(message, 'success');
+	showSuccess(message, duration) {
+		this.showNotification(message, 'success', duration);
 	}
 
 	/**
 	 * Show a warning message
 	 * @param {string} message - Warning message to display
+	 * @param {number} duration - Duration in milliseconds (optional)
 	 */
-	showWarning(message) {
-		this.showNotification(message, 'warning');
+	showWarning(message, duration) {
+		this.showNotification(message, 'warning', duration);
 	}
 
 	/**

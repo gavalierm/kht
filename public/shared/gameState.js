@@ -31,12 +31,25 @@ export class GameState {
 	}
 
 	/**
+	 * Safe localStorage setItem with error handling
+	 * @param {string} key - Storage key
+	 * @param {string} value - Storage value
+	 */
+	setItem(key, value) {
+		try {
+			localStorage.setItem(key, value);
+		} catch (error) {
+			console.warn('localStorage error:', error);
+		}
+	}
+
+	/**
 	 * Set player token
 	 * @param {string} token - Player token
 	 */
 	setPlayerToken(token) {
 		this.playerToken = token;
-		localStorage.setItem('playerToken', token);
+		this.setItem('playerToken', token);
 	}
 
 	/**
@@ -45,7 +58,7 @@ export class GameState {
 	 */
 	setModeratorToken(token) {
 		this.moderatorToken = token;
-		localStorage.setItem('moderatorToken', token);
+		this.setItem('moderatorToken', token);
 	}
 
 	/**
@@ -55,7 +68,7 @@ export class GameState {
 	setPlayerId(id) {
 		this.playerId = id;
 		if (this.gamePin) {
-			localStorage.setItem(`game_${this.gamePin}_id`, id);
+			this.setItem(`game_${this.gamePin}_id`, id);
 		}
 	}
 
@@ -66,7 +79,7 @@ export class GameState {
 	setPlayerName(name) {
 		this.playerName = name;
 		if (this.gamePin) {
-			localStorage.setItem(`game_${this.gamePin}_name`, name);
+			this.setItem(`game_${this.gamePin}_name`, name);
 		}
 	}
 
@@ -156,8 +169,8 @@ export class GameState {
 	 * @returns {boolean} Whether saved session exists
 	 */
 	hasSavedSession() {
-		return this.playerToken && this.gamePin && 
-			   localStorage.getItem(`game_${this.gamePin}_id`);
+		return !!(this.playerToken && this.gamePin && 
+			   localStorage.getItem(`game_${this.gamePin}_id`));
 	}
 
 	/**
@@ -165,7 +178,7 @@ export class GameState {
 	 * @returns {boolean} Whether reconnection data exists
 	 */
 	hasReconnectionData() {
-		return this.playerToken && this.gamePin;
+		return !!(this.playerToken && this.gamePin);
 	}
 
 	/**
@@ -201,7 +214,7 @@ export class GameState {
 			gameStatus: this.gameStatus,
 			lastSaved: Date.now()
 		};
-		localStorage.setItem('gameState', JSON.stringify(state));
+		this.setItem('gameState', JSON.stringify(state));
 	}
 
 	/**

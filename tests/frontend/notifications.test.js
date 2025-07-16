@@ -441,13 +441,13 @@ describe('Notification System Frontend Tests', () => {
     test('should handle memory cleanup with auto-removal', () => {
       // Show many notifications with short duration
       for (let i = 0; i < 50; i++) {
-        notificationManager.showInfo(`Message ${i}`, 'info', 100);
+        notificationManager.showInfo(`Message ${i}`, 100);
       }
       
       expect(messageBox.children).toHaveLength(50);
       
-      // Wait for auto-removal (increased timeout for CI)
-      jest.advanceTimersByTime(300);
+      // Wait for auto-removal
+      jest.advanceTimersByTime(150);
       
       // All should be removed
       expect(messageBox.children).toHaveLength(0);
